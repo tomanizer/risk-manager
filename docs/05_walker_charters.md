@@ -354,12 +354,12 @@ The Orchestrator manages the workflow and routing between walkers. A typical inv
 1. Data Controller establishes whether the evidence base is usable
 2. Quant Walker explains what changed
 3. Time Series Walker adds historical and volatility context
-4. Controls and Change Walker checks for operational causes
+4. Controls & Change Walker checks for operational causes
 5. Market Context Walker checks for economic plausibility
 6. Model Risk and Usage Walker adds model caveats where relevant
-7. Critic or Challenge Walker interrogates the emerging conclusion
-8. Governance and Reporting Walker prepares decision-ready output
-9. Presentation and Visualization Walker tailors the output for human consumption
+7. Critic/Challenge Walker interrogates the emerging conclusion
+8. Governance & Reporting Walker prepares decision-ready output
+9. Presentation & Visualization Walker tailors the output for human consumption
 
 ## Human boundary
 
