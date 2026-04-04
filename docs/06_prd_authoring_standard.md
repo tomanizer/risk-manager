@@ -135,6 +135,16 @@ Orchestrator PRDs should emphasize:
 - evidence handoff
 - degraded and retry behavior
 
+## Special guidance for UI and Presentation
+
+UI and Presentation PRDs should emphasize:
+
+- data sources (must consume typed walker or service outputs)
+- caveat visibility (must not suppress or hide caveats)
+- no logic recomputation (must not re-run business or risk logic)
+- user interaction gates (explicitly defining where human decisions occur)
+- degraded state rendering (how to show partial or missing data)
+
 ## Recommended PRD quality questions
 
 Before accepting a PRD, ask:
