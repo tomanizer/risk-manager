@@ -38,7 +38,7 @@ Provide canonical deterministic retrieval of current and comparison-period VaR a
 ## Core rules
 1. Missing current snapshot is blocking.
 2. Missing compare snapshot returns partial output with explicit status.
-3. `delta_pct` is null when previous value is zero.
+3. delta_pct and delta_abs are null when previous value is missing; delta_pct is also null when previous value is zero.
 4. Service is read-only and replayable.
 
 ## Acceptance criteria
