@@ -165,8 +165,8 @@ The same logical hierarchy levels may exist in both scopes.
 - if `lookback_window` is omitted, use service default for rolling stats
 - if `require_complete=true`, partial results must return an explicit degraded error/status
 - if `snapshot_id` is provided, retrieval must be pinned to that snapshot
-- if `scope_type = TOP_OF_HOUSE`, `legal_entity_id` must be null
-- if `scope_type = LEGAL_ENTITY`, `legal_entity_id` is required
+- if `hierarchy_scope = TOP_OF_HOUSE`, `legal_entity_id` must be null 
+- if `hierarchy_scope = LEGAL_ENTITY`, `legal_entity_id` is required 
 - node resolution must be exact within the selected scope
 - a node identifier valid in one scope must not be assumed valid in another scope
 
