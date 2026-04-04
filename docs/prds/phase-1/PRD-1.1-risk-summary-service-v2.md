@@ -176,8 +176,10 @@ The same logical hierarchy levels may exist in both scopes.
 
 Fields:
 
-- `node_ref`
-- `node_level`
+- `node_ref` 
+- `node_level` 
+- `hierarchy_scope` 
+- `legal_entity_id` 
 - `measure_type`
 - `as_of_date`
 - `compare_to_date`
