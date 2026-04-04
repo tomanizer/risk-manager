@@ -5,9 +5,10 @@ This repository uses AI agents for PRD authoring, issue decomposition, implement
 ## Architecture hierarchy
 1. `docs/` contains the governed architecture canon.
 2. `docs/prds/` and `docs/prd_exemplars/` define implementation contracts.
-3. `work_items/` holds bounded execution slices.
-4. `src/` contains implementation.
-5. `tests/` and `fixtures/` verify correctness and replayability.
+3. `prompts/` contains AI-mediated delivery instructions.
+4. `work_items/` holds bounded execution slices.
+5. `src/` contains implementation.
+6. `tests/` and `fixtures/` verify correctness and replayability.
 
 ## Agent roles
 
