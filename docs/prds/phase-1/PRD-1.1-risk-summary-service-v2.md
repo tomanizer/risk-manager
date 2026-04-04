@@ -479,7 +479,7 @@ Create a small synthetic dataset with:
 
 ## Decisions taken for v1
 
-- v1 supports `ES_97_5` only; stressed ES is out of scope
+- v1 continues to support VaR measures; for ES, v1 supports `ES_97_5` only, and stressed ES is out of scope
 - firm-level and division-level rows are read directly from the canonical store in v1
 - base reporting currency is hard-wired in v1
 - `get_risk_delta` returns a dedicated `RiskDelta` schema
