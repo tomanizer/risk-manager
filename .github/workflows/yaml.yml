@@ -1,0 +1,48 @@
+name: yaml-validate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  yaml-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install PyYAML
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      - name: Validate YAML files
+        run: |
+          python - <<'PY'
+          import pathlib
+          import sys
+          import yaml
+
+          bad = []
+          for pattern in ('*.yml', '*.yaml'):
+              for path in pathlib.Path('.').rglob(pattern):
+                  try:
+                      yaml.safe_load(path.read_text(encoding='utf-8'))
+                  except Exception as e:
+                      bad.append((str(path), str(e)))
+
+          if bad:
+              for p, e in bad:
+                  print(f'{p}: {e}')
+              sys.exit(1)
+          else:
+              print('All YAML files parsed successfully.')
+          PY
