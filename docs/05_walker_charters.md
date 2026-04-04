@@ -349,7 +349,7 @@ Assess whether model limitations, usage boundaries, assumptions, or open issues 
 
 Walkers are complementary, not hierarchical.
 
-A typical investigation may look like this:
+The Orchestrator manages the workflow and routing between walkers. A typical investigation may look like this:
 
 1. Data Controller establishes whether the evidence base is usable
 2. Quant Walker explains what changed
