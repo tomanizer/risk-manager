@@ -1,0 +1,12 @@
+# Architecture canon and template-heavy docs
+README.md
+.github/PULL_REQUEST_TEMPLATE.md
+docs/**
+prompts/**
+work_items/**
+
+# Scaffold READMEs
+src/README.md
+src/**/README.md
+tests/README.md
+fixtures/README.md
