@@ -96,7 +96,7 @@ Deliverables:
 
 ## Dependency map
 
-::: mermaid
+```mermaid
 flowchart TD
     A[WI-1.1.1 Schemas] --> B[WI-1.1.2 Fixtures]
     A --> C[WI-1.1.6 Business-day resolver]
@@ -105,7 +105,7 @@ flowchart TD
     D --> E[WI-1.1.4 Summary, delta, change profile]
     E --> F[WI-1.1.5 Rolling stats and replay]
     F --> G[WI-1.1.7 Docs and examples]
-:::
+```
 
 ## Why this sequence matters
 

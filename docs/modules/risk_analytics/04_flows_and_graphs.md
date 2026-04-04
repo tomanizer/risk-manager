@@ -6,7 +6,7 @@ This document captures the main control flow and data flow for the first module 
 
 ## Service dependency graph
 
-::: mermaid
+```mermaid
 flowchart TD
     A[NodeRef and request context] --> B[Business-day resolver]
     A --> C[Current point retrieval]
@@ -21,7 +21,7 @@ flowchart TD
     C --> I[RiskChangeProfile]
     E --> I
     F --> I
-:::
+```
 
 ## Summary retrieval flow
 
@@ -38,7 +38,7 @@ flowchart TD
 
 ## Change profile flow
 
-::: mermaid
+```mermaid
 flowchart LR
     A[Current value] --> D[First-order change]
     B[Comparison value] --> D
@@ -49,11 +49,11 @@ flowchart LR
     E --> H[Volatility change flag]
     G --> F
     H --> F
-:::
+```
 
 ## Scope handling graph
 
-::: mermaid
+```mermaid
 flowchart TD
     A[Incoming NodeRef] --> B{Hierarchy scope}
     B -->|TOP_OF_HOUSE| C[legal_entity_id must be null]
@@ -62,11 +62,11 @@ flowchart TD
     D --> F[Resolve node in entity-scoped hierarchy]
     E --> G[Deterministic retrieval]
     F --> G
-:::
+```
 
 ## Degraded-state decision sketch
 
-::: mermaid
+```mermaid
 flowchart TD
     A[Request] --> B{Measure supported?}
     B -->|No| U[UNSUPPORTED_MEASURE]
@@ -81,7 +81,7 @@ flowchart TD
     H -->|No| I{History missing?}
     I -->|Yes| R[MISSING_HISTORY]
     I -->|No| O[OK]
-:::
+```
 
 ## How this module is used by walkers
 
