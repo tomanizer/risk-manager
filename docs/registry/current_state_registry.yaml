@@ -1,0 +1,101 @@
+version: 1
+last_updated: 2026-04-04
+
+components:
+  modules:
+    - id: MOD-RISK-ANALYTICS
+      name: Risk Analytics
+      status: proposed
+      contract_status: draft
+    - id: MOD-FRTB-PLA-CONTROLS
+      name: FRTB / PLA Controls
+      status: proposed
+      contract_status: draft
+    - id: MOD-LIMITS-APPROVALS
+      name: Limits & Approvals
+      status: proposed
+      contract_status: draft
+    - id: MOD-CONTROLS-PRODUCTION-INTEGRITY
+      name: Controls & Production Integrity
+      status: proposed
+      contract_status: draft
+    - id: MOD-GOVERNANCE-REPORTING
+      name: Governance & Reporting
+      status: proposed
+      contract_status: draft
+    - id: MOD-CAPITAL-DESK-STATUS
+      name: Capital & Desk Status
+      status: proposed
+      contract_status: draft
+    - id: MOD-MODEL-INVENTORY-USAGE-REGISTRY
+      name: Model Inventory / Usage Registry
+      status: proposed
+      contract_status: draft
+
+  walkers:
+    - id: WALKER-QUANT
+      name: Quant Walker
+      status: proposed
+      contract_status: draft
+    - id: WALKER-TIME-SERIES
+      name: Time Series Walker
+      status: proposed
+      contract_status: draft
+    - id: WALKER-DATA-CONTROLLER
+      name: Data Controller Walker
+      status: proposed
+      contract_status: draft
+    - id: WALKER-CONTROLS-CHANGE
+      name: Controls / Change Walker
+      status: proposed
+      contract_status: draft
+    - id: WALKER-MARKET-CONTEXT
+      name: Market Context Walker
+      status: proposed
+      contract_status: draft
+    - id: WALKER-GOVERNANCE-REPORTING
+      name: Governance / Reporting Walker
+      status: proposed
+      contract_status: draft
+    - id: WALKER-CRITIC-CHALLENGE
+      name: Critic / Challenge Walker
+      status: proposed
+      contract_status: draft
+    - id: WALKER-PRESENTATION-VISUALIZATION
+      name: Presentation / Visualization Walker
+      status: proposed
+      contract_status: draft
+    - id: WALKER-MODEL-RISK-USAGE
+      name: Model Risk & Usage Walker
+      status: proposed
+      contract_status: draft
+
+  orchestrators:
+    - id: ORCH-DAILY-RISK-INVESTIGATION
+      name: Daily Risk Investigation
+      status: proposed
+      contract_status: draft
+    - id: ORCH-LIMIT-BREACH
+      name: Limit Breach
+      status: proposed
+      contract_status: draft
+    - id: ORCH-PLA-DETERIORATION
+      name: PLA Deterioration
+      status: proposed
+      contract_status: draft
+    - id: ORCH-MONTH-END-REVIEW
+      name: Month-End Review
+      status: proposed
+      contract_status: draft
+    - id: ORCH-DESK-STATUS-CAPITAL-IMPACT
+      name: Desk Status / Capital Impact
+      status: proposed
+      contract_status: draft
+    - id: ORCH-MODEL-CHANGE-IMPACT
+      name: Model / Change Impact
+      status: proposed
+      contract_status: draft
+    - id: ORCH-GOVERNANCE-PACK
+      name: Governance Pack
+      status: proposed
+      contract_status: draft
