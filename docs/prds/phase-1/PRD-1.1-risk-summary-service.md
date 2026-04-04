@@ -380,7 +380,7 @@ Minimum structured logging:
 - only 3 history points available
 - partial snapshot
 
-### Replay
+### Replay cases
 
 - fixed snapshot replay for VaR
 - fixed snapshot replay for ES
