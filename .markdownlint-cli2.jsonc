@@ -1,0 +1,11 @@
+{
+  // This repository contains architecture canon, PRD templates, exemplars,
+  // and prompt files where strict line-length and blank-line style rules are noisy.
+  "config": {
+    "MD013": false,
+    "MD022": false,
+    "MD032": false,
+    "MD033": false,
+    "MD041": false
+  }
+}
