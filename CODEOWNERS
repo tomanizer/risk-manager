@@ -1,0 +1,21 @@
+# Architecture canon
+/docs/ @tomanizer
+/docs/adr/ @tomanizer
+/docs/prd_templates/ @tomanizer
+/docs/prd_exemplars/ @tomanizer
+/prompts/ @tomanizer
+/work_items/ @tomanizer
+
+# Source code
+/src/shared/ @tomanizer
+/src/modules/ @tomanizer
+/src/walkers/ @tomanizer
+/src/orchestrators/ @tomanizer
+/tests/ @tomanizer
+/fixtures/ @tomanizer
+
+# Repo hygiene
+/.github/ @tomanizer
+/.editorconfig @tomanizer
+/.gitattributes @tomanizer
+/.gitignore @tomanizer
