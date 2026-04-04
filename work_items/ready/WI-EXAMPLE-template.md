@@ -21,7 +21,7 @@
 - <criterion>
 
 ## Suggested Agent
-Coding Agent
+<Coding Agent | Review Agent | PM Agent>
 
 ## Review Focus
 - contract fidelity

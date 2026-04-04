@@ -5,7 +5,7 @@
 - PRD ID
 - Phase
 - Status
-- Product Owner
+- Business Owner
 - Prompt / Logic Steward
 - Technical Owner
 - Control Owner

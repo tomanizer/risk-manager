@@ -1,3 +1,6 @@
+# Catch-all: all files not matched below
+* @tomanizer
+
 # Architecture canon
 /docs/ @tomanizer
 /docs/adr/ @tomanizer

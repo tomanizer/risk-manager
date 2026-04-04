@@ -9,4 +9,4 @@ Planned module roots:
 - controls_production_integrity/
 - governance_reporting/
 - capital_desk_status/
-- model_registry/
+- model_inventory_usage_registry/
