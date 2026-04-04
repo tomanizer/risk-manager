@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+.env
+
+# Node / frontend
+node_modules/
+dist/
+build/
+coverage/
+.next/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local runtime / logs
+*.log
+logs/
+.tmp/
+tmp/
+
+# Secrets / local config overrides
+.env.local
+.env.*.local
+secrets/
