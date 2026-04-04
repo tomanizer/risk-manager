@@ -35,6 +35,7 @@ Each walker should produce a typed or structured result with at least:
 - key findings
 - evidence references
 - caveats
+- trust state (as defined by Data Controller)
 - confidence level
 - recommended next step
 - escalation suggestion if relevant
