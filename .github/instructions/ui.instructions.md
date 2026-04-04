@@ -1,5 +1,5 @@
 ---
-applyTo: "**/*.ts,**/*.tsx,**/*.js,**/*.jsx,**/*.css"
+applyTo: "src/**/*.ts,src/**/*.tsx,src/**/*.js,src/**/*.jsx,src/**/*.css"
 ---
 
 # UI and presentation instructions
