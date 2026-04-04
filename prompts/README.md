@@ -5,7 +5,7 @@ This directory contains prompt assets for AI agents operating in this repository
 ## Structure
 
 | Directory | Purpose |
-|-----------|---------|
+| --------- | ------- |
 | `prd_generation/` | Prompts for the PRD Author agent |
 | `issue_decomposition/` | Prompts for the issue decomposition agent |
 | `pm/` | Prompts for the PM / coordination agent |
