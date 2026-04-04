@@ -1,5 +1,7 @@
 # Mission and Design Principles
 
+> **Note:** `docs/01_design_principles.md` contains the concise, summary-form design principles used as a quick reference across the canon. This document extends that foundation with the full mission statement, system rationale, and detailed design principle explanations. Both documents are part of the canon; `01_design_principles.md` is the canonical short-form reference.
+
 ## Mission
 
 Build an AI-supported market risk manager that helps detect, explain, challenge, escalate, and document material changes in risk.

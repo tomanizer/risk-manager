@@ -21,6 +21,8 @@ It also answers:
 
 ## Every PRD should include
 
+PRDs must follow the appropriate template in `docs/prd_templates/`. This standard adds risk-mission-specific checks on top of that structure — it does not replace the required template sections (in-scope / out-of-scope, acceptance criteria, test cases, dependencies, and open questions).
+
 ### 1. Risk management purpose
 
 State clearly:

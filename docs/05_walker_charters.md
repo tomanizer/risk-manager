@@ -157,7 +157,7 @@ Driven by objective control and completeness evidence rather than subjective int
 - provide market explanations
 - resolve governance decisions
 
-## Controls and Change Walker
+## Controls / Change Walker
 
 ### Mission
 
@@ -220,7 +220,7 @@ Connect observed risk movement to external market context and plausible business
 - override control or data warnings
 - present news-like color as if it were proof
 
-## Governance and Reporting Walker
+## Governance / Reporting Walker
 
 ### Mission
 
@@ -251,7 +251,7 @@ Transform investigation output into governance-ready summaries, packs, and escal
 - fabricate confidence not present in source walkers
 - sign off on behalf of accountable humans
 
-## Critic or Challenge Walker
+## Critic / Challenge Walker
 
 ### Mission
 
@@ -282,7 +282,7 @@ Interrogate the current explanation and identify weak assumptions, missing evide
 - block progress without stating clear reasons
 - become a generic contrarian with no evidence basis
 
-## Presentation and Visualization Walker
+## Presentation / Visualization Walker
 
 ### Mission
 
@@ -313,7 +313,7 @@ Present risk findings in the clearest human-readable format using sound communic
 - distort uncertainty for visual neatness
 - invent analysis beyond supplied findings
 
-## Model Risk and Usage Walker
+## Model Risk & Usage Walker
 
 ### Mission
 
@@ -354,12 +354,12 @@ The Orchestrator manages the workflow and routing between walkers. A typical inv
 1. Data Controller establishes whether the evidence base is usable
 2. Quant Walker explains what changed
 3. Time Series Walker adds historical and volatility context
-4. Controls & Change Walker checks for operational causes
+4. Controls / Change Walker checks for operational causes
 5. Market Context Walker checks for economic plausibility
-6. Model Risk and Usage Walker adds model caveats where relevant
-7. Critic/Challenge Walker interrogates the emerging conclusion
-8. Governance & Reporting Walker prepares decision-ready output
-9. Presentation & Visualization Walker tailors the output for human consumption
+6. Model Risk & Usage Walker adds model caveats where relevant
+7. Critic / Challenge Walker interrogates the emerging conclusion
+8. Governance / Reporting Walker prepares decision-ready output
+9. Presentation / Visualization Walker tailors the output for human consumption
 
 ## Human boundary
 
