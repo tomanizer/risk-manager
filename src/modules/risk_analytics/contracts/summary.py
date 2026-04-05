@@ -64,15 +64,12 @@ class _RiskContractBase(BaseModel):
         node_ref_value = values.get("node_ref")
         if node_ref_value is not None:
             if isinstance(node_ref_value, dict):
-                expected_values = {
-                    "node_level": _MIRROR_FIELD_ADAPTERS["node_level"].validate_python(node_ref_value.get("node_level")),
-                    "hierarchy_scope": _MIRROR_FIELD_ADAPTERS["hierarchy_scope"].validate_python(
-                        node_ref_value.get("hierarchy_scope")
-                    ),
-                    "legal_entity_id": _MIRROR_FIELD_ADAPTERS["legal_entity_id"].validate_python(
-                        node_ref_value.get("legal_entity_id")
-                    ),
-                }
+                expected_values = {}
+                for field_name, adapter in _MIRROR_FIELD_ADAPTERS.items():
+                    if field_name in node_ref_value:
+                        expected_values[field_name] = adapter.validate_python(node_ref_value[field_name])
+                    else:
+                        expected_values[field_name] = None
             else:
                 node_ref = _NODE_REF_ADAPTER.validate_python(node_ref_value)
                 expected_values = {
@@ -85,17 +82,17 @@ class _RiskContractBase(BaseModel):
                 if actual is None:
                     values[field_name] = expected
                     continue
+                if actual == expected:
+                    values[field_name] = expected
+                    continue
                 actual = _MIRROR_FIELD_ADAPTERS[field_name].validate_python(actual)
                 if actual is not None and actual != expected:
                     raise ValueError(f"{field_name} must mirror node_ref exactly")
                 values[field_name] = expected
 
-        if "snapshot_id" in values and not values["snapshot_id"]:
-            raise ValueError("snapshot_id must be non-empty")
-        if "data_version" in values and not values["data_version"]:
-            raise ValueError("data_version must be non-empty")
-        if "service_version" in values and not values["service_version"]:
-            raise ValueError("service_version must be non-empty")
+        for field_name in ("snapshot_id", "data_version", "service_version"):
+            if field_name in values and not values[field_name]:
+                raise ValueError(f"{field_name} must be non-empty")
 
         as_of_date = values.get("as_of_date")
         compare_to_date = values.get("compare_to_date")
