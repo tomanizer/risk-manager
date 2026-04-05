@@ -20,7 +20,9 @@ Read first:
 Before reviewing:
 
 1. `git fetch origin`
-2. inspect the latest PR head and latest review comments
+2. `git switch main`
+3. `git pull --ff-only origin main`
+4. inspect the latest PR head and latest review comments
 
 Do not review from stale local state when the PR or canon may have changed.
 
