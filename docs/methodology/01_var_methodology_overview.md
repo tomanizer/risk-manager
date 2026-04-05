@@ -193,7 +193,7 @@ However, a methodology-aware repository should remember:
 
 - Basel 2.5 supplemented VaR with stressed VaR
 - the FRTB internal-models framework replaced VaR and stressed VaR with expected shortfall for capital measurement
-- FRTB also introduced liquidity horizons, non-modellable risk-factor treatment, and stronger P&L attribution and backtesting gates
+- FRTB also introduced liquidity horizons, non-modellable risk-factor treatment, and stronger P&L attribution (RTPL vs HPL) and backtesting gates
 
 This means a specification should say whether it is building:
 

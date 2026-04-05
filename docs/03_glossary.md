@@ -78,7 +78,7 @@ The time assumed to exit or hedge a risk factor under stressed market conditions
 A governed historical period or calibration window chosen to represent stressed market conditions for risk measurement or capital purposes.
 
 ### P&L Attribution
-A regulatory validation test comparing modelled and observed desk P&L drivers to assess whether an internal market-risk model captures the risks that matter in practice.
+A regulatory validation test comparing Risk-Theoretical P&L (RTPL) and Hypothetical P&L (HPL) to assess whether an internal market-risk model captures the risk drivers used in front-office pricing.
 
 ### Non-Modellable Risk Factor
 A risk factor that lacks sufficient real-price observations for internal-model treatment under the FRTB framework and therefore requires separate capital treatment.

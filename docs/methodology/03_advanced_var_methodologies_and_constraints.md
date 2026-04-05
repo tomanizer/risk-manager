@@ -194,7 +194,7 @@ Key points:
 - unconditional breach counts matter
 - clustering of violations matters
 - a model can appear acceptable on raw exception rate and still adapt poorly to regime change
-- regulatory internal-model contexts also care about P&L attribution, not just raw backtesting counts
+- regulatory internal-model contexts also care about P&L attribution (RTPL vs HPL), not just raw backtesting counts (HPL/APL vs VaR)
 - crisis periods can generate clusters of exceptions that reveal stale calibration, under-reactive volatility treatment, or a true methodology gap
 
 If a service will be used in validation or governance workflows, these distinctions should be preserved explicitly.
