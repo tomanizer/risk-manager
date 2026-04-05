@@ -122,11 +122,16 @@
           ]
         },
         "legal_entity_id": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
           ],
-          "minLength": 1
+          "default": null
         },
         "node_level": {
           "type": "string",
