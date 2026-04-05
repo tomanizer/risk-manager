@@ -38,7 +38,7 @@ def main() -> int:
 
 
 def _report_from_payload(payload: dict[str, object]) -> "DriftSuiteReport":
-    from agent_runtime.drift.drift_suite import DriftSuiteReport, DriftSuiteStats, DriftScanSummary
+    from agent_runtime.drift.drift_suite import DriftSuiteReport, DriftSuiteStats
 
     raw_scans = _require_list(payload.get("scans"), field_name="scans")
     raw_findings = _require_list(payload.get("findings"), field_name="findings")
