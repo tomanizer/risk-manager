@@ -23,6 +23,15 @@ def _float_matches(actual: float, expected: float) -> bool:
     return math.isclose(actual, expected, rel_tol=1e-9, abs_tol=1e-12)
 
 
+_MIRROR_FIELD_ADAPTERS = {
+    "node_level": TypeAdapter(NodeLevel | None),
+    "hierarchy_scope": TypeAdapter(HierarchyScope | None),
+    "legal_entity_id": TypeAdapter(str | None),
+}
+_DATE_ADAPTER = TypeAdapter(date)
+_FLOAT_ADAPTER = TypeAdapter(float)
+
+
 class _RiskContractBase(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -59,17 +68,12 @@ class _RiskContractBase(BaseModel):
                 "hierarchy_scope": node_ref.hierarchy_scope,
                 "legal_entity_id": node_ref.legal_entity_id,
             }
-            field_adapters = {
-                "node_level": TypeAdapter(NodeLevel | None),
-                "hierarchy_scope": TypeAdapter(HierarchyScope | None),
-                "legal_entity_id": TypeAdapter(str | None),
-            }
             for field_name, expected in updates.items():
                 actual = values.get(field_name)
                 if actual is None:
                     values[field_name] = expected
                     continue
-                actual = field_adapters[field_name].validate_python(actual)
+                actual = _MIRROR_FIELD_ADAPTERS[field_name].validate_python(actual)
                 if actual is not None and actual != expected:
                     raise ValueError(f"{field_name} must mirror node_ref exactly")
                 values[field_name] = expected
@@ -81,16 +85,14 @@ class _RiskContractBase(BaseModel):
         if "service_version" in values and not values["service_version"]:
             raise ValueError("service_version must be non-empty")
 
-        date_adapter = TypeAdapter(date)
         as_of_date = values.get("as_of_date")
         compare_to_date = values.get("compare_to_date")
         if as_of_date is not None and compare_to_date is not None:
-            parsed_as_of_date = date_adapter.validate_python(as_of_date)
-            parsed_compare_to_date = date_adapter.validate_python(compare_to_date)
+            parsed_as_of_date = _DATE_ADAPTER.validate_python(as_of_date)
+            parsed_compare_to_date = _DATE_ADAPTER.validate_python(compare_to_date)
             if parsed_compare_to_date > parsed_as_of_date:
                 raise ValueError("compare_to_date must be on or before as_of_date")
 
-        float_adapter = TypeAdapter(float)
         previous_value = values.get("previous_value")
         if previous_value is None:
             if values.get("delta_abs") is not None:
@@ -102,8 +104,8 @@ class _RiskContractBase(BaseModel):
         current_value = values.get("current_value")
         if current_value is None:
             return values
-        current_value = float_adapter.validate_python(current_value)
-        previous_value = float_adapter.validate_python(previous_value)
+        current_value = _FLOAT_ADAPTER.validate_python(current_value)
+        previous_value = _FLOAT_ADAPTER.validate_python(previous_value)
         expected_delta_abs = current_value - previous_value
 
         delta_abs = values.get("delta_abs")
@@ -111,7 +113,7 @@ class _RiskContractBase(BaseModel):
             values["delta_abs"] = expected_delta_abs
             delta_abs = expected_delta_abs
         else:
-            delta_abs = float_adapter.validate_python(delta_abs)
+            delta_abs = _FLOAT_ADAPTER.validate_python(delta_abs)
         if not _float_matches(delta_abs, expected_delta_abs):
             raise ValueError("delta_abs must equal current_value - previous_value")
 
@@ -127,7 +129,7 @@ class _RiskContractBase(BaseModel):
             values["delta_pct"] = expected_delta_pct
             return values
 
-        delta_pct = float_adapter.validate_python(delta_pct)
+        delta_pct = _FLOAT_ADAPTER.validate_python(delta_pct)
         if not _float_matches(delta_pct, expected_delta_pct):
             raise ValueError("delta_pct must equal delta_abs / previous_value")
 
