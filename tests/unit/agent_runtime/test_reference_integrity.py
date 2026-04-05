@@ -109,9 +109,7 @@ def test_repo_scan_has_no_missing_test_layout_references() -> None:
     }
 
     unexpected = {
-        (finding.source_file, finding.reference)
-        for finding in report.findings
-        if (finding.source_file, finding.reference) in blocked_findings
+        (finding.source_file, finding.reference) for finding in report.findings if (finding.source_file, finding.reference) in blocked_findings
     }
 
     assert unexpected == set()
