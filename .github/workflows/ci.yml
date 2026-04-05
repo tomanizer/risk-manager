@@ -35,7 +35,7 @@ jobs:
       - name: Mypy
         run: |
           if git ls-files '*.py' '*.pyi' | grep . >/dev/null; then
-            mypy src/
+            mypy src/ agent_runtime/
           else
             echo 'No Python files found. Skipping mypy.'
           fi

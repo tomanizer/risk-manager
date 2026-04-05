@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 import sqlite3
 import tempfile
+from typing import Any
 
 from agent_runtime.orchestrator.github_sync import (
     _extract_pull_request_page,
@@ -194,7 +195,7 @@ def test_build_pull_request_snapshots_maps_live_payload() -> None:
             stage=WorkItemStage.READY,
         ),
     )
-    payload = {
+    payload: dict[str, object] = {
         "data": {
             "repository": {
                 "pullRequests": {
@@ -243,7 +244,7 @@ def test_build_pull_request_snapshots_uses_exact_work_item_matching() -> None:
         WorkItemSnapshot(id="WI-1", title="WI-1", path=Path("work_items/ready/WI-1.md"), stage=WorkItemStage.READY),
         WorkItemSnapshot(id="WI-11", title="WI-11", path=Path("work_items/ready/WI-11.md"), stage=WorkItemStage.READY),
     )
-    payload = {
+    payload: dict[str, object] = {
         "data": {
             "repository": {
                 "pullRequests": {
@@ -280,7 +281,7 @@ def test_build_pull_request_snapshots_skips_malformed_nodes_with_warning() -> No
             stage=WorkItemStage.READY,
         ),
     )
-    payload = {
+    payload: dict[str, object] = {
         "data": {
             "repository": {
                 "pullRequests": {
@@ -316,7 +317,7 @@ def test_build_pull_request_snapshots_warns_on_duplicate_work_item_prs() -> None
             stage=WorkItemStage.READY,
         ),
     )
-    payload = {
+    payload: dict[str, object] = {
         "data": {
             "repository": {
                 "pullRequests": {
@@ -364,7 +365,7 @@ def test_build_pull_request_snapshots_does_not_synthesize_new_review_comments() 
             stage=WorkItemStage.READY,
         ),
     )
-    payload = {
+    payload: dict[str, object] = {
         "data": {
             "repository": {
                 "pullRequests": {
@@ -395,7 +396,7 @@ def test_build_pull_request_snapshots_does_not_synthesize_new_review_comments() 
 
 
 def test_extract_pull_request_page_reports_missing_page_info() -> None:
-    payload = {
+    payload: dict[str, Any] = {
         "data": {
             "repository": {
                 "pullRequests": {
