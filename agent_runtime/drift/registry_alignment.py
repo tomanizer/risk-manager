@@ -10,6 +10,7 @@ ACTIVE_STATUSES = {"implemented", "in-progress"}
 INACTIVE_STATUSES = {"draft", "not-started", "proposed"}
 REGISTRY_PATH = Path("docs/registry/current_state_registry.yaml")
 SECTIONS = ("modules", "walkers", "orchestrators")
+REGISTRY_ALIGNMENT_SEVERITY = "critical"
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,7 +103,7 @@ def build_registry_alignment_report(root: Path) -> RegistryAlignmentReport:
             findings.append(
                 RegistryAlignmentFinding(
                     kind="unregistered_module_root",
-                    severity="major",
+                    severity=REGISTRY_ALIGNMENT_SEVERITY,
                     drift_class="maturity or status drift",
                     owner="PM",
                     component_id="UNREGISTERED",
@@ -177,9 +178,10 @@ def _load_registry_components(registry_path: Path) -> tuple[RegistryComponent, .
         in_subcomponents = False
 
     for raw_line in lines:
-        if not raw_line.strip() or raw_line.lstrip().startswith("#"):
+        line_content = _strip_yaml_comment(raw_line)
+        if not line_content.strip():
             continue
-        stripped = raw_line.strip()
+        stripped = line_content.strip()
 
         if stripped.endswith(":") and stripped[:-1] in SECTIONS:
             finalize_component()
@@ -236,7 +238,7 @@ def _maybe_append_module_root_finding(
         findings.append(
             RegistryAlignmentFinding(
                 kind="missing_module_root",
-                severity="major",
+                severity=REGISTRY_ALIGNMENT_SEVERITY,
                 drift_class="maturity or status drift",
                 owner="PM",
                 component_id=component.component_id,
@@ -250,7 +252,7 @@ def _maybe_append_module_root_finding(
         findings.append(
             RegistryAlignmentFinding(
                 kind="unexpected_module_root",
-                severity="major",
+                severity=REGISTRY_ALIGNMENT_SEVERITY,
                 drift_class="maturity or status drift",
                 owner="PM",
                 component_id=component.component_id,
@@ -274,7 +276,7 @@ def _maybe_append_subcomponent_finding(
             findings.append(
                 RegistryAlignmentFinding(
                     kind="implemented_subcomponent_without_path",
-                    severity="major",
+                    severity=REGISTRY_ALIGNMENT_SEVERITY,
                     drift_class="maturity or status drift",
                     owner="PM",
                     component_id=component.component_id,
@@ -293,7 +295,7 @@ def _maybe_append_subcomponent_finding(
         findings.append(
             RegistryAlignmentFinding(
                 kind="missing_registered_path",
-                severity="major",
+                severity=REGISTRY_ALIGNMENT_SEVERITY,
                 drift_class="maturity or status drift",
                 owner="PM",
                 component_id=component.component_id,
@@ -307,7 +309,7 @@ def _maybe_append_subcomponent_finding(
         findings.append(
             RegistryAlignmentFinding(
                 kind="unexpected_implemented_path",
-                severity="major",
+                severity=REGISTRY_ALIGNMENT_SEVERITY,
                 drift_class="maturity or status drift",
                 owner="PM",
                 component_id=component.component_id,
@@ -337,6 +339,21 @@ def _parse_scalar(raw_value: str) -> object | None:
     if raw_value == "null":
         return None
     return raw_value.strip("\"'")
+
+
+def _strip_yaml_comment(raw_line: str) -> str:
+    in_single_quote = False
+    in_double_quote = False
+    for index, char in enumerate(raw_line):
+        if char == "'" and not in_double_quote:
+            in_single_quote = not in_single_quote
+            continue
+        if char == '"' and not in_single_quote:
+            in_double_quote = not in_double_quote
+            continue
+        if char == "#" and not in_single_quote and not in_double_quote:
+            return raw_line[:index]
+    return raw_line
 
 
 def _normalize_scalar(value: object | None) -> str | None:

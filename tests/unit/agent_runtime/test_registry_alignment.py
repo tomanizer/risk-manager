@@ -34,6 +34,7 @@ def test_registry_alignment_reports_missing_implemented_paths(tmp_path: Path) ->
     assert finding.kind == "missing_registered_path"
     assert finding.component_id == "MOD-RISK-ANALYTICS"
     assert finding.implementation_path == "src/modules/risk_analytics/service.py"
+    assert finding.severity == "critical"
 
 
 def test_registry_alignment_reports_unexpected_paths_for_not_started_subcomponents(tmp_path: Path) -> None:
@@ -63,6 +64,7 @@ def test_registry_alignment_reports_unexpected_paths_for_not_started_subcomponen
     finding = report.findings[0]
     assert finding.kind == "unexpected_implemented_path"
     assert finding.component_name == "risk_summary_core_service"
+    assert finding.severity == "critical"
 
 
 def test_registry_alignment_reports_implemented_subcomponents_without_paths(tmp_path: Path) -> None:
@@ -90,6 +92,7 @@ def test_registry_alignment_reports_implemented_subcomponents_without_paths(tmp_
     finding = report.findings[0]
     assert finding.kind == "implemented_subcomponent_without_path"
     assert finding.implementation_path is None
+    assert finding.severity == "critical"
 
 
 def test_registry_alignment_reports_unregistered_module_roots(tmp_path: Path) -> None:
@@ -114,6 +117,33 @@ def test_registry_alignment_reports_unregistered_module_roots(tmp_path: Path) ->
     finding = report.findings[0]
     assert finding.kind == "unregistered_module_root"
     assert finding.implementation_path == "src/modules/limits_approvals"
+    assert finding.severity == "critical"
+
+
+def test_registry_alignment_supports_trailing_yaml_comments(tmp_path: Path) -> None:
+    _write_registry(
+        tmp_path,
+        """
+        version: 1
+        components:
+          modules: # active section
+            - id: MOD-RISK-ANALYTICS
+              name: Risk Analytics
+              status: in-progress # implemented foundation
+              contract_status: implemented
+              sub_components: # tracked paths
+                - name: history_service
+                  path: src/modules/risk_analytics/service.py # deterministic service
+                  status: implemented
+        """,
+    )
+    service_path = tmp_path / "src" / "modules" / "risk_analytics" / "service.py"
+    service_path.parent.mkdir(parents=True)
+    service_path.write_text("pass\n", encoding="utf-8")
+
+    report = build_registry_alignment_report(tmp_path)
+
+    assert report.findings == ()
 
 
 def test_check_registry_alignment_cli_writes_json_report(tmp_path: Path) -> None:
