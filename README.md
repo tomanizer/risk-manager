@@ -18,7 +18,7 @@ This repository is the governed source of truth for:
 The platform is organized into:
 1. **Capability Modules**: deterministic logic, business rules, canonical business state, audit trails
 2. **Specialist Walkers**: typed interpretation over module outputs
-3. **Process Orchestrators**: workflow state, workflow execution, routing, challenge, and handoff
+3. **Process Orchestrators**: workflow state, workflow execution, routing, gates, challenge, and handoff
 
 ## Design doctrine
 

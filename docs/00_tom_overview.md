@@ -52,4 +52,4 @@ The platform separates:
 
 ## Architectural statement
 
-Deterministic services own calculations, canonical business state, policy rules, and audit trails. Walkers interpret through typed interfaces. Orchestrators own workflow state and execute routing, gating, synthesis, challenge, and handoff. No component should silently absorb the responsibilities of another.
+Deterministic services own calculations, canonical business state, policy rules, and audit trails. Walkers interpret through typed interfaces. Orchestrators own workflow state and execute routing, gates, challenge, and handoff. No component should silently absorb the responsibilities of another.
