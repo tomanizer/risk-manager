@@ -24,7 +24,7 @@ compute = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "agent_runtime/tests"]
 
 [tool.ruff]
 target-version = "py312"
@@ -45,4 +45,4 @@ init_typed = true
 warn_required_dynamic_aliases = true
 
 [tool.setuptools.packages.find]
-include = ["src*"]
+include = ["src*", "agent_runtime*"]
