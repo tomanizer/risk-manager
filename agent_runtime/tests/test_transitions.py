@@ -482,7 +482,9 @@ def test_non_execution_decision_preserves_existing_pm_outcome_fields() -> None:
             work_item_id="WI-1.1.4-risk-summary-core-service",
             run_id=existing.run_id,
             status=NextActionType.HUMAN_UPDATE_REPO.value,
-            last_action=NextActionType.HUMAN_UPDATE_REPO.value,
+            last_action=existing.last_action,
+            runner_name=existing.runner_name,
+            runner_status=existing.runner_status,
             details={"pm_outcome_status": "split_required"},
             outcome_status=existing.outcome_status,
             outcome_summary=existing.outcome_summary,
@@ -496,10 +498,14 @@ def test_non_execution_decision_preserves_existing_pm_outcome_fields() -> None:
 
         assert loaded is not None
         assert loaded.status == NextActionType.HUMAN_UPDATE_REPO.value
+        assert loaded.last_action == "run_pm"
+        assert loaded.runner_name == "pm"
+        assert loaded.runner_status == "completed"
         assert loaded.outcome_status == "split_required"
         assert loaded.outcome_summary == "Need to split WI-1.1.4 before coding."
         assert loaded.outcome_details["recommended_next_step"] == "update_work_item"
         assert loaded.result == {"summary": "Prepared PM handoff."}
+        assert loaded.completed_at == "2026-04-06 10:00:00"
 
 
 def test_parse_github_remote_supports_ssh_and_https() -> None:

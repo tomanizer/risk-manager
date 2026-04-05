@@ -189,9 +189,9 @@ def main() -> int:
                 pr_number=pr_number,
                 status=decision.action.value,
                 blocked_reason=decision.reason if decision.action is NextActionType.RUN_SPEC else None,
-                last_action=decision.action.value,
-                runner_name=execution.runner_name.value if execution is not None else None,
-                runner_status=runner_result.status.value if runner_result is not None else None,
+                last_action=decision.action.value if execution is not None else existing_run.last_action if existing_run is not None else decision.action.value,
+                runner_name=execution.runner_name.value if execution is not None else existing_run.runner_name if existing_run is not None else None,
+                runner_status=runner_result.status.value if runner_result is not None else existing_run.runner_status if existing_run is not None else None,
                 outcome_status=existing_run.outcome_status if existing_run is not None else None,
                 outcome_summary=existing_run.outcome_summary if existing_run is not None else None,
                 details=(
