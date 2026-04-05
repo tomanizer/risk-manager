@@ -52,6 +52,9 @@ Implement history retrieval for a node and measure.
 - sparse valid points in range return `PARTIAL`
 - degraded snapshot rows return `DEGRADED`
 - `require_complete=true` upgrades otherwise partial history results to `DEGRADED`
+- for history retrieval, node resolution is performed against the broader pinned dataset context for the request, not only the `end_date` row lookup
+- `MISSING_NODE` applies only when the scoped node and measure are absent from that pinned dataset context
+- `MISSING_HISTORY` remains reachable when the scoped node and measure resolve in that pinned dataset context but zero returnable points exist within the inclusive requested range
 - node resolution is exact within scope
 - unit tests cover status behavior and snapshot-anchor semantics
 - dedicated replay-suite coverage is deferred to WI-1.1.5

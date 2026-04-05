@@ -179,6 +179,9 @@ These apply to `get_risk_summary`, `get_risk_delta`, and `get_risk_change_profil
 - for `get_risk_history`, `start_date` must be on or before `end_date`
 - for `get_risk_history`, if `snapshot_id` is provided, it is the anchor snapshot for the request and must resolve to a snapshot whose `as_of_date` equals `end_date`
 - for `get_risk_history`, `snapshot_id` pins the request context, but returned `RiskHistoryPoint.snapshot_id` values remain the per-point source snapshot ids for each returned date
+- for `get_risk_history`, the pinned dataset context is the broader canonical dataset selected for the request by scope plus anchor-snapshot/date context, not only the row lookup at `end_date`
+- for `get_risk_history`, node resolution is performed against that pinned dataset context across its available history
+- if `snapshot_id` is omitted for `get_risk_history`, the request is anchored to the canonical dataset selected by the service for `end_date`
 - for `get_risk_history`, `require_complete=true` upgrades otherwise partial history results to `DEGRADED`
 
 ## Outputs
@@ -461,7 +464,7 @@ Result:
 - `status = MISSING_NODE`
 - `points = []`
 
-`MISSING_NODE` means the requested scoped node and measure cannot be resolved in the pinned dataset context.
+`MISSING_NODE` means the requested scoped node and measure cannot be resolved anywhere in the pinned dataset context for the history request.
 
 ### Case: no history points in requested range
 
@@ -470,7 +473,9 @@ Result:
 - `status = MISSING_HISTORY`
 - `points = []`
 
-`MISSING_HISTORY` means the node resolves, but zero valid points fall within the inclusive requested range.
+`MISSING_HISTORY` means the requested scoped node and measure resolves in the pinned dataset context, but zero returnable points fall within the inclusive requested range.
+
+This status is reachable in v1 when the node exists elsewhere in the pinned dataset context but has no returnable points inside the requested date range.
 
 ### Case: sparse history points in requested range
 
