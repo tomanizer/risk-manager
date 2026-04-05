@@ -4,31 +4,29 @@ from __future__ import annotations
 
 import bisect
 from datetime import date
-from typing import Iterable
 
 
 class BusinessDayResolutionError(ValueError):
     """Raised when a canonical calendar cannot resolve a business day."""
 
 
-def _normalize_calendar(calendar: Iterable[date]) -> tuple[date, ...]:
-    normalized = tuple(calendar)
-    if not normalized:
+def validate_calendar(calendar: tuple[date, ...]) -> tuple[date, ...]:
+    """Validate a canonical business-day calendar and return it unchanged."""
+    if not calendar:
         raise BusinessDayResolutionError("calendar must not be empty")
     if any(
-        normalized[index] >= normalized[index + 1]
-        for index in range(len(normalized) - 1)
+        calendar[index] >= calendar[index + 1]
+        for index in range(len(calendar) - 1)
     ):
         raise BusinessDayResolutionError(
             "calendar must be sorted ascending and contain no duplicates"
         )
-    return normalized
+    return calendar
 
 
-def resolve_prior_business_day(as_of_date: date, calendar: Iterable[date]) -> date:
-    normalized = _normalize_calendar(calendar)
-    index = bisect.bisect_left(normalized, as_of_date)
-    if index >= len(normalized) or normalized[index] != as_of_date:
+def resolve_prior_business_day(as_of_date: date, calendar: tuple[date, ...]) -> date:
+    index = bisect.bisect_left(calendar, as_of_date)
+    if index >= len(calendar) or calendar[index] != as_of_date:
         raise BusinessDayResolutionError(
             f"as_of_date {as_of_date.isoformat()} is not present in the supplied calendar"
         )
@@ -38,13 +36,13 @@ def resolve_prior_business_day(as_of_date: date, calendar: Iterable[date]) -> da
             f"as_of_date {as_of_date.isoformat()} has no prior business day in the supplied calendar"
         )
 
-    return normalized[index - 1]
+    return calendar[index - 1]
 
 
 def resolve_compare_to_date(
     as_of_date: date,
     compare_to_date: date | None,
-    calendar: Iterable[date],
+    calendar: tuple[date, ...],
 ) -> date:
     if compare_to_date is not None:
         return compare_to_date

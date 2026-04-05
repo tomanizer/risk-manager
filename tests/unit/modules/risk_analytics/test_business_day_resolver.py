@@ -9,6 +9,7 @@ from src.modules.risk_analytics.time import (
     BusinessDayResolutionError,
     resolve_compare_to_date,
     resolve_prior_business_day,
+    validate_calendar,
 )
 
 
@@ -44,25 +45,28 @@ class BusinessDayResolverTestCase(unittest.TestCase):
         with self.assertRaises(BusinessDayResolutionError):
             resolve_prior_business_day(date(2026, 1, 2), CALENDAR)
 
-    def test_resolve_prior_business_day_rejects_unsorted_or_duplicate_calendar(self) -> None:
+    def test_validate_calendar_returns_input_unchanged(self) -> None:
+        self.assertIs(validate_calendar(CALENDAR), CALENDAR)
+
+    def test_validate_calendar_rejects_empty_unsorted_and_duplicate_calendar(self) -> None:
         with self.assertRaises(BusinessDayResolutionError):
-            resolve_prior_business_day(
-                date(2026, 1, 9),
+            validate_calendar(())
+        with self.assertRaises(BusinessDayResolutionError):
+            validate_calendar(
                 (
                     date(2026, 1, 2),
                     date(2026, 1, 6),
                     date(2026, 1, 5),
-                ),
+                )
             )
         with self.assertRaises(BusinessDayResolutionError):
-            resolve_prior_business_day(
-                date(2026, 1, 9),
+            validate_calendar(
                 (
                     date(2026, 1, 2),
                     date(2026, 1, 5),
                     date(2026, 1, 5),
                     date(2026, 1, 9),
-                ),
+                )
             )
 
     def test_resolve_compare_to_date_defaults_to_prior_business_day(self) -> None:
