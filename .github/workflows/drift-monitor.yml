@@ -1,0 +1,93 @@
+name: drift-monitor
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "15 6 * * 1-5"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/agents/**"
+      - ".github/workflows/drift-monitor.yml"
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - "GEMINI.md"
+      - "agent_runtime/drift/**"
+      - "artifacts/drift/README.md"
+      - "docs/**"
+      - "prompts/**"
+      - "scripts/drift/**"
+      - "tests/unit/agent_runtime/test_reference_integrity.py"
+      - "work_items/**"
+
+jobs:
+  reference-integrity:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install repo and dev tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run reference integrity scanner
+        run: |
+          python scripts/drift/check_references.py \
+            --output artifacts/drift/reference_integrity.json
+
+      - name: Summarize findings
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report_path = Path("artifacts/drift/reference_integrity.json")
+          report = json.loads(report_path.read_text(encoding="utf-8"))
+          findings = report["findings"]
+
+          lines = [
+              "## Drift Monitor",
+              "",
+              f"- Scan: `{report['scan_name']}`",
+              f"- Findings: `{len(findings)}`",
+              f"- Files scanned: `{report['stats']['files_scanned']}`",
+              f"- References checked: `{report['stats']['references_checked']}`",
+              "",
+          ]
+
+          if findings:
+              lines.append("### Findings")
+              for finding in findings[:20]:
+                  lines.append(
+                      f"- `{finding['severity']}` `{finding['source_file']}:{finding['source_line']}` "
+                      f"`{finding['reference']}` -> {finding['owner']}"
+                  )
+              if len(findings) > 20:
+                  lines.append(f"- ... and `{len(findings) - 20}` more")
+          else:
+              lines.append("No reference-integrity findings detected.")
+
+          summary = "\n".join(lines) + "\n"
+          with open(Path.home() / "drift-summary.md", "w", encoding="utf-8") as handle:
+              handle.write(summary)
+          PY
+          cat ~/drift-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload drift artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: drift-reference-integrity
+          path: artifacts/drift/reference_integrity.json
+          if-no-files-found: error
