@@ -150,7 +150,11 @@ def _scan_imports(root: Path, scan_dirs: tuple[str, ...]) -> _ImportScanResult:
 
 
 def _third_party_imports_in_file(path: Path) -> set[str]:
-    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    try:
+        content = path.read_text(encoding="utf-8")
+        tree = ast.parse(content, filename=str(path))
+    except (SyntaxError, UnicodeDecodeError):
+        return set()
     imports: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -177,8 +181,6 @@ def _append_runtime_import_findings(
 ) -> None:
     base_dependencies = declared_dependencies.base
     all_dependencies = declared_dependencies.all
-    non_dev_optional = set().union(*(deps for extra, deps in declared_dependencies.optional.items() if extra != "dev"))
-
     for dependency_name, source_paths in runtime_imports.items():
         source_path = min(source_paths)
         if dependency_name not in all_dependencies:
@@ -194,7 +196,7 @@ def _append_runtime_import_findings(
                 )
             )
             continue
-        if dependency_name not in base_dependencies and dependency_name in non_dev_optional:
+        if dependency_name not in base_dependencies:
             findings.append(
                 DependencyHygieneFinding(
                     kind="runtime_dependency_declared_only_in_optional_extra",
@@ -237,7 +239,10 @@ def _append_workflow_tool_findings(
     repo_root: Path,
 ) -> None:
     for workflow_path in workflows:
-        contents = workflow_path.read_text(encoding="utf-8")
+        try:
+            contents = workflow_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
         relative_path = workflow_path.relative_to(repo_root).as_posix()
         for tool_name, dependency_name in WORKFLOW_TOOL_DEPENDENCIES.items():
             if not re.search(rf"\b{re.escape(tool_name)}\b", contents):
@@ -260,7 +265,11 @@ def _append_workflow_tool_findings(
 def _append_stale_guidance_findings(findings: list[DependencyHygieneFinding], instruction_files: tuple[Path, ...], repo_root: Path) -> None:
     stale_pattern = re.compile(r"(?i)\bupdat\w*\b.*\brequirements\.txt\b|\brequirements\.txt\b.*\bupdate\b")
     for file_path in instruction_files:
-        for line_number, line in enumerate(file_path.read_text(encoding="utf-8").splitlines(), start=1):
+        try:
+            lines = file_path.read_text(encoding="utf-8").splitlines()
+        except UnicodeDecodeError:
+            continue
+        for line_number, line in enumerate(lines, start=1):
             if not stale_pattern.search(line):
                 continue
             relative_path = file_path.relative_to(repo_root).as_posix()
