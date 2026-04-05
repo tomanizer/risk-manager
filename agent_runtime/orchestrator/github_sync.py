@@ -189,11 +189,7 @@ def build_pull_request_snapshots(
 
         review_threads = raw_node.get("reviewThreads")
         thread_nodes = review_threads.get("nodes") if isinstance(review_threads, dict) else []
-        unresolved_review_threads = sum(
-            1
-            for thread in thread_nodes
-            if isinstance(thread, dict) and thread.get("isResolved") is False
-        )
+        unresolved_review_threads = sum(1 for thread in thread_nodes if isinstance(thread, dict) and thread.get("isResolved") is False)
         review_decision = str(raw_node.get("reviewDecision")) if raw_node.get("reviewDecision") else None
 
         snapshots.append(
