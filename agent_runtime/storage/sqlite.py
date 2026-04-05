@@ -149,7 +149,12 @@ def load_workflow_run(db_path: Path, work_item_id: str) -> WorkflowRunRecord | N
     if row is None:
         return None
 
-    details_payload = json.loads(row[7]) if row[7] else {}
+    details_payload = {}
+    if row[7]:
+        try:
+            details_payload = json.loads(row[7])
+        except json.JSONDecodeError:
+            details_payload = {}
     details = details_payload if isinstance(details_payload, dict) else {}
     return WorkflowRunRecord(
         work_item_id=str(row[0]),
