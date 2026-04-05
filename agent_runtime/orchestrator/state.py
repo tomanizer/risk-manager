@@ -39,8 +39,13 @@ class PullRequestSnapshot:
     work_item_id: str
     number: int
     is_draft: bool
+    url: str | None = None
+    head_ref_name: str | None = None
     unresolved_review_threads: int = 0
     has_new_review_comments: bool = False
+    review_decision: str | None = None
+    merge_state_status: str | None = None
+    ci_status: str | None = None
 
 
 @dataclass(frozen=True)

@@ -53,6 +53,7 @@ def build_simulation_snapshot(name: str) -> RuntimeSnapshot:
                     work_item_id="WI-1.1.3-risk-summary-history-service",
                     number=42,
                     is_draft=True,
+                    url="https://github.com/example/risk-manager/pull/42",
                 ),
             ),
         )
@@ -65,6 +66,7 @@ def build_simulation_snapshot(name: str) -> RuntimeSnapshot:
                     work_item_id="WI-1.1.3-risk-summary-history-service",
                     number=42,
                     is_draft=True,
+                    url="https://github.com/example/risk-manager/pull/42",
                     unresolved_review_threads=2,
                     has_new_review_comments=True,
                 ),
@@ -79,6 +81,10 @@ def build_simulation_snapshot(name: str) -> RuntimeSnapshot:
                     work_item_id="WI-1.1.3-risk-summary-history-service",
                     number=42,
                     is_draft=False,
+                    url="https://github.com/example/risk-manager/pull/42",
+                    review_decision="APPROVED",
+                    merge_state_status="CLEAN",
+                    ci_status="SUCCESS",
                 ),
             ),
         )

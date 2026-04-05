@@ -6,6 +6,7 @@ from pathlib import Path
 import sqlite3
 import tempfile
 
+from agent_runtime.orchestrator.github_sync import build_pull_request_snapshots, parse_github_remote
 from agent_runtime.orchestrator.state import (
     NextActionType,
     PullRequestSnapshot,
@@ -65,6 +66,60 @@ def test_open_pr_with_unresolved_reviews_routes_to_review() -> None:
     assert decision.action is NextActionType.RUN_REVIEW
 
 
+def test_open_pr_with_failing_checks_routes_to_coding() -> None:
+    snapshot = RuntimeSnapshot(
+        work_items=(
+            WorkItemSnapshot(
+                id="WI-1.1.3-risk-summary-history-service",
+                title="WI-1.1.3",
+                path=Path("work_items/ready/WI-1.1.3-risk-summary-history-service.md"),
+                stage=WorkItemStage.READY,
+                dependencies=(),
+            ),
+        ),
+        pull_requests=(
+            PullRequestSnapshot(
+                work_item_id="WI-1.1.3-risk-summary-history-service",
+                number=42,
+                is_draft=False,
+                review_decision="APPROVED",
+                ci_status="FAILURE",
+            ),
+        ),
+    )
+
+    decision = decide_next_action(snapshot)
+
+    assert decision.action is NextActionType.RUN_CODING
+
+
+def test_open_pr_waits_for_review_until_approved() -> None:
+    snapshot = RuntimeSnapshot(
+        work_items=(
+            WorkItemSnapshot(
+                id="WI-1.1.3-risk-summary-history-service",
+                title="WI-1.1.3",
+                path=Path("work_items/ready/WI-1.1.3-risk-summary-history-service.md"),
+                stage=WorkItemStage.READY,
+                dependencies=(),
+            ),
+        ),
+        pull_requests=(
+            PullRequestSnapshot(
+                work_item_id="WI-1.1.3-risk-summary-history-service",
+                number=42,
+                is_draft=False,
+                ci_status="SUCCESS",
+                review_decision="REVIEW_REQUIRED",
+            ),
+        ),
+    )
+
+    decision = decide_next_action(snapshot)
+
+    assert decision.action is NextActionType.WAIT_FOR_REVIEWS
+
+
 def test_built_in_simulation_scenarios_cover_expected_actions() -> None:
     expected_actions = {
         "ready-no-pr": NextActionType.RUN_PM,
@@ -117,3 +172,62 @@ def test_initialize_database_creates_expected_workflow_runs_schema() -> None:
 
         actual_columns = tuple(row[1] for row in rows)
         assert actual_columns == EXPECTED_WORKFLOW_RUN_COLUMNS
+
+
+def test_parse_github_remote_supports_ssh_and_https() -> None:
+    assert parse_github_remote("git@github.com:tomanizer/risk-manager.git") is not None
+    assert parse_github_remote("https://github.com/tomanizer/risk-manager.git") is not None
+    assert parse_github_remote("https://example.com/not-github.git") is None
+
+
+def test_build_pull_request_snapshots_maps_live_payload() -> None:
+    work_items = (
+        WorkItemSnapshot(
+            id="WI-1.1.3-risk-summary-history-service",
+            title="WI-1.1.3",
+            path=Path("work_items/ready/WI-1.1.3-risk-summary-history-service.md"),
+            stage=WorkItemStage.READY,
+        ),
+    )
+    payload = {
+        "data": {
+            "repository": {
+                "pullRequests": {
+                    "nodes": [
+                        {
+                            "number": 44,
+                            "url": "https://github.com/tomanizer/risk-manager/pull/44",
+                            "isDraft": False,
+                            "headRefName": "codex/WI-1.1.3-risk-summary-history-service",
+                            "title": "Implement WI-1.1.3",
+                            "body": "Implements history service.",
+                            "reviewDecision": "APPROVED",
+                            "mergeStateStatus": "CLEAN",
+                            "reviewThreads": {"nodes": [{"isResolved": True}, {"isResolved": False}]},
+                            "commits": {
+                                "nodes": [
+                                    {
+                                        "commit": {
+                                            "statusCheckRollup": {
+                                                "state": "SUCCESS",
+                                            }
+                                        }
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                }
+            }
+        }
+    }
+
+    snapshots, warnings = build_pull_request_snapshots(payload, work_items)
+
+    assert warnings == ()
+    assert len(snapshots) == 1
+    assert snapshots[0].work_item_id == "WI-1.1.3-risk-summary-history-service"
+    assert snapshots[0].number == 44
+    assert snapshots[0].unresolved_review_threads == 1
+    assert snapshots[0].review_decision == "APPROVED"
+    assert snapshots[0].ci_status == "SUCCESS"
