@@ -12,6 +12,7 @@ htmlcov/
 .venv/
 venv/
 .env
+*.egg-info/
 
 # Node / frontend
 node_modules/
@@ -26,6 +27,7 @@ Thumbs.db
 .vscode/
 .idea/
 .claude/
+.agent_runtime/
 *.swp
 *.swo
 

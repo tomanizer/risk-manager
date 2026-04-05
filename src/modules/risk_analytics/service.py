@@ -103,9 +103,7 @@ def get_risk_history(
                 service_version=pack.service_version,
             )
         if anchor_snapshot.as_of_date != end_date:
-            raise ValueError(
-                "snapshot_id must resolve to a snapshot whose as_of_date equals end_date"
-            )
+            raise ValueError("snapshot_id must resolve to a snapshot whose as_of_date equals end_date")
 
     pinned_snapshot = anchor_snapshot or index.get_snapshot_by_date(end_date)
     if pinned_snapshot is None:
@@ -185,9 +183,7 @@ def get_risk_history(
         missing_reason = _encode_dates_reason("MISSING_DATES", missing_dates)
         if require_complete:
             status = SummaryStatus.DEGRADED
-            status_reasons.append(
-                _encode_dates_reason("REQUIRE_COMPLETE_MISSING_DATES", missing_dates)
-            )
+            status_reasons.append(_encode_dates_reason("REQUIRE_COMPLETE_MISSING_DATES", missing_dates))
         elif status is SummaryStatus.OK:
             status = SummaryStatus.PARTIAL
             status_reasons.append(missing_reason)

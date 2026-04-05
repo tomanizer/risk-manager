@@ -24,16 +24,25 @@ compute = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "agent_runtime/tests"]
 
 [tool.ruff]
 target-version = "py312"
-line-length = 100
+line-length = 150
 
 [tool.ruff.format]
 
 [tool.mypy]
 python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
 
 [tool.setuptools.packages.find]
-include = ["src*"]
+include = ["src*", "agent_runtime*"]
