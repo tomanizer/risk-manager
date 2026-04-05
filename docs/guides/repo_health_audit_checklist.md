@@ -99,4 +99,4 @@ A good repo-health audit should return:
 5. drift class for each material finding
 6. sanctioned duplication noted as acceptable
 7. recommended owner for each material finding
-8. smallest next step to restore coherence
+8. smallest next step for each critical or major finding to restore coherence

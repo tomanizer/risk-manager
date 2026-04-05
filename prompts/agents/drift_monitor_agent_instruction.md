@@ -10,7 +10,7 @@ The drift monitor is a repo-health auditor, not a coding agent, not a PR reviewe
 
 1. `AGENTS.md`
 2. `docs/01_mission_and_design_principles.md`
-3. `docs/01_design_principles.md`
+3. `docs/00_tom_overview.md`
 4. `docs/delivery/05_repo_drift_monitoring.md`
 5. `docs/guides/repo_health_audit_checklist.md`
 6. `docs/registry/current_state_registry.yaml`
@@ -108,4 +108,4 @@ Return:
 5. drift class for each material finding
 6. sanctioned duplication or acceptable overlap
 7. recommended owner for each material finding
-8. smallest next action to restore coherence
+8. smallest next action for each critical or major finding to restore coherence

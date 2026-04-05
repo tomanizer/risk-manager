@@ -26,7 +26,7 @@ Rules:
 - cite evidence for each material finding
 - distinguish sanctioned duplication from unhealthy duplication
 - classify each material finding as canon, implementation, tooling, operational-instruction, or maturity/status drift
-- route each finding to PM, PRD, methodology/spec, coding, review, or human
+- route each finding to PM, PRD, methodology/spec, coding, review, repository maintenance, or human
 - do not rewrite artifacts unless explicitly asked
 - do not give merge approval
 

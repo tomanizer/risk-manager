@@ -133,13 +133,14 @@ This role should look for patterns that cross files, folders, or operating layer
 
 ### Preserve bounded ownership
 
-A finding is only useful if it identifies the right owner:
+A finding is only useful if it identifies the right owner or execution route:
 
 - PM
 - PRD author
 - methodology/spec
 - coding
 - review
+- repository maintenance
 - human decision
 
 The drift monitor should also state whether the problem is:
