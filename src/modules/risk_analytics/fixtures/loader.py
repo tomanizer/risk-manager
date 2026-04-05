@@ -152,9 +152,7 @@ class FixtureIndex:
         node_ref: NodeRef,
         measure_type: MeasureType,
     ) -> FixtureRow | None:
-        return self.rows_by_key.get(
-            (snapshot_id, self.node_key(node_ref), measure_type.value)
-        )
+        return self.rows_by_key.get((snapshot_id, self.node_key(node_ref), measure_type.value))
 
     def get_row_by_date(
         self,
@@ -162,9 +160,7 @@ class FixtureIndex:
         node_ref: NodeRef,
         measure_type: MeasureType,
     ) -> FixtureRow | None:
-        return self.rows_by_date_key.get(
-            (as_of_date, self.node_key(node_ref), measure_type.value)
-        )
+        return self.rows_by_date_key.get((as_of_date, self.node_key(node_ref), measure_type.value))
 
 
 def load_risk_summary_fixture_pack(

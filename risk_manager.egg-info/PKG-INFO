@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: risk-manager
+Version: 0.0.0
+Requires-Python: >=3.12
+Requires-Dist: pydantic<3.0,>=2.0
+Provides-Extra: dev
+Requires-Dist: pytest==9.0.2; extra == "dev"
+Requires-Dist: ruff==0.15.9; extra == "dev"
+Requires-Dist: mypy; extra == "dev"
+Provides-Extra: compute
+Requires-Dist: numpy==2.4.4; extra == "compute"
+Requires-Dist: scipy==1.17.1; extra == "compute"
+Requires-Dist: pyarrow==23.0.1; extra == "compute"
+Requires-Dist: duckdb==1.5.1; extra == "compute"
+Requires-Dist: statsmodels==0.14.6; extra == "compute"
+Requires-Dist: pandas==3.0.2; extra == "compute"
