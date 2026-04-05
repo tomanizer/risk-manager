@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import sys
 
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Scan repo-tracked text files for broken internal file references.")
     parser.add_argument("--root", default=".", help="Repository root to scan.")
