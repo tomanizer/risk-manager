@@ -47,7 +47,9 @@ class FixtureLoaderTestCase(unittest.TestCase):
                     legal_entities.add(row.node_ref.legal_entity_id)
 
         self.assertEqual(scopes, {HierarchyScope.TOP_OF_HOUSE, HierarchyScope.LEGAL_ENTITY})
-        self.assertTrue({NodeLevel.FIRM, NodeLevel.DIVISION, NodeLevel.DESK, NodeLevel.BOOK}.issubset(levels))
+        self.assertTrue(
+            {NodeLevel.FIRM, NodeLevel.DIVISION, NodeLevel.DESK, NodeLevel.BOOK}.issubset(levels)
+        )
         self.assertEqual(legal_entities, {"LE-UK-BANK", "LE-US-BROKER"})
 
     def test_same_logical_desk_differs_by_legal_entity(self) -> None:
@@ -125,12 +127,8 @@ class FixtureLoaderTestCase(unittest.TestCase):
             node_name="Rates EM",
         )
 
-        prior_row = self.index.get_row_by_date(
-            date(2026, 1, 8), node_ref, MeasureType.VAR_1D_99
-        )
-        degraded_row = self.index.get_row_by_date(
-            date(2026, 1, 9), node_ref, MeasureType.VAR_1D_99
-        )
+        prior_row = self.index.get_row_by_date(date(2026, 1, 8), node_ref, MeasureType.VAR_1D_99)
+        degraded_row = self.index.get_row_by_date(date(2026, 1, 9), node_ref, MeasureType.VAR_1D_99)
 
         self.assertIsNotNone(prior_row)
         self.assertEqual(prior_row.value, 0.0)
@@ -172,7 +170,9 @@ class FixtureLoaderTestCase(unittest.TestCase):
         )
 
         elevated_values = [
-            self.index.get_row_by_date(as_of_date, elevated_volatility_node, MeasureType.VAR_1D_99).value
+            self.index.get_row_by_date(
+                as_of_date, elevated_volatility_node, MeasureType.VAR_1D_99
+            ).value
             for as_of_date in self.pack.calendar
         ]
         stable_values = [

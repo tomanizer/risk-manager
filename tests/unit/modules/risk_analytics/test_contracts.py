@@ -44,7 +44,9 @@ def make_legal_entity_scoped_desk_node_ref() -> NodeRef:
 
 
 class ContractTestCase(unittest.TestCase):
-    def assert_mirrored_field_mismatch_rejected(self, contract_type: type[RiskDelta | RiskSummary | RiskChangeProfile]) -> None:
+    def assert_mirrored_field_mismatch_rejected(
+        self, contract_type: type[RiskDelta | RiskSummary | RiskChangeProfile]
+    ) -> None:
         kwargs = {
             "node_ref": make_node_ref(),
             "node_level": NodeLevel.BOOK,
