@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import subprocess
 import uuid
+import sqlite3
 
 from agent_runtime.config.defaults import RuntimeDefaults
 from agent_runtime.runners.contracts import RunnerExecution
@@ -51,6 +52,20 @@ def _build_branch_name(execution: RunnerExecution, run_id: str) -> str:
     return f"codex/{branch_slug}-{run_id.split('-')[-1]}"
 
 
+def _best_effort_git(repo_root: Path, *args: str) -> RuntimeError | None:
+    try:
+        _git(repo_root, *args)
+    except RuntimeError as error:
+        return error
+    return None
+
+
+def _cleanup_stale_lease(defaults: RuntimeDefaults, db_path: Path, lease: WorktreeLeaseRecord) -> None:
+    _best_effort_git(defaults.repo_root, "worktree", "prune")
+    _best_effort_git(defaults.repo_root, "branch", "-D", lease.branch_name)
+    mark_worktree_lease_released(db_path, lease.run_id)
+
+
 def allocate_worktree(
     defaults: RuntimeDefaults,
     db_path: Path,
@@ -61,7 +76,7 @@ def allocate_worktree(
         worktree_path = Path(existing.worktree_path)
         if worktree_path.exists() and (worktree_path / ".git").exists():
             return existing
-        mark_worktree_lease_released(db_path, existing.run_id)
+        _cleanup_stale_lease(defaults, db_path, existing)
 
     run_id = _build_run_id(execution)
     branch_name = _build_branch_name(execution, run_id)
@@ -83,7 +98,13 @@ def allocate_worktree(
         worktree_path=str(worktree_path),
         status="active",
     )
-    insert_worktree_lease(db_path, lease)
+    try:
+        insert_worktree_lease(db_path, lease)
+    except sqlite3.IntegrityError:
+        concurrent_lease = load_active_worktree_lease(db_path, execution.work_item_id, execution.runner_name.value)
+        if concurrent_lease is None:
+            raise
+        return concurrent_lease
     return lease
 
 
@@ -98,11 +119,25 @@ def bind_worktree_to_execution(execution: RunnerExecution, lease: WorktreeLeaseR
     return replace(execution, metadata=metadata)
 
 
-def release_worktree(defaults: RuntimeDefaults, db_path: Path, run_id: str) -> None:
+def release_worktree(defaults: RuntimeDefaults, db_path: Path, run_id: str) -> str:
     lease = load_worktree_lease(db_path, run_id)
-    if lease is None or lease.status != "active":
-        return
+    if lease is None:
+        return "not_found"
+    if lease.status != "active":
+        return "already_released"
 
-    _git(defaults.repo_root, "worktree", "remove", "--force", lease.worktree_path)
-    _git(defaults.repo_root, "branch", "-D", lease.branch_name)
-    mark_worktree_lease_released(db_path, run_id)
+    cleanup_error: RuntimeError | None = None
+    try:
+        error = _best_effort_git(defaults.repo_root, "worktree", "remove", "--force", lease.worktree_path)
+        if error is not None:
+            cleanup_error = error
+
+        error = _best_effort_git(defaults.repo_root, "branch", "-D", lease.branch_name)
+        if cleanup_error is None and error is not None:
+            cleanup_error = error
+    finally:
+        mark_worktree_lease_released(db_path, run_id)
+
+    if cleanup_error is not None:
+        raise cleanup_error
+    return "released"

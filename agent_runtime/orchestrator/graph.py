@@ -78,11 +78,12 @@ def main() -> int:
     repo_root = find_repo_root(Path(__file__).resolve())
     defaults = build_defaults(repo_root)
     if args.release_run is not None:
-        release_worktree(defaults, defaults.state_db_path, args.release_run)
+        release_status = release_worktree(defaults, defaults.state_db_path, args.release_run)
         print(
             json.dumps(
                 {
                     "released_run_id": args.release_run,
+                    "release_status": release_status,
                     "state_db_path": str(defaults.state_db_path),
                 },
                 indent=2,

@@ -34,6 +34,10 @@ CREATE TABLE IF NOT EXISTS worktree_leases (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     released_at TEXT
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_worktree_leases_active_runner
+ON worktree_leases(work_item_id, runner_name)
+WHERE status = 'active';
 """
 
 EXPECTED_WORKFLOW_RUN_COLUMNS = (
@@ -250,7 +254,7 @@ def insert_worktree_lease(db_path: Path, record: WorktreeLeaseRecord) -> None:
     with sqlite3.connect(db_path) as connection:
         connection.execute(
             """
-            INSERT OR REPLACE INTO worktree_leases (
+            INSERT INTO worktree_leases (
                 run_id,
                 work_item_id,
                 runner_name,
@@ -262,6 +266,14 @@ def insert_worktree_lease(db_path: Path, record: WorktreeLeaseRecord) -> None:
                 released_at
             )
             VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), ?)
+            ON CONFLICT(run_id) DO UPDATE SET
+                work_item_id = excluded.work_item_id,
+                runner_name = excluded.runner_name,
+                branch_name = excluded.branch_name,
+                base_ref = excluded.base_ref,
+                worktree_path = excluded.worktree_path,
+                status = excluded.status,
+                released_at = excluded.released_at
             """,
             (
                 record.run_id,
