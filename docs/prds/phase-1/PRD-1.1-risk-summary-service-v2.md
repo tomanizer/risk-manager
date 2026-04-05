@@ -168,7 +168,10 @@ These apply to `get_risk_summary`, `get_risk_delta`, and `get_risk_change_profil
 - the authoritative business-day calendar for production is the firm risk calendar used by the canonical snapshot process
 - fixture and replay implementations must use the calendar pinned to the fixture or snapshot metadata
 - no consumer may infer business days independently
-- if `lookback_window` is omitted, use service default for rolling stats
+- for `get_risk_summary` and `get_risk_change_profile`, if `lookback_window` is omitted, default to `60` business days
+- the `60`-business-day lookback window is anchored on `as_of_date` and includes `as_of_date`
+- `lookback_window` is business-day based only, using the canonical risk business-day resolver
+- `lookback_window` does not apply to `get_risk_delta`
 - if `require_complete=true`, partial results must return an explicit degraded error/status
 - if `snapshot_id` is provided for as-of-date retrieval, retrieval must be pinned to that snapshot
 - if `hierarchy_scope = TOP_OF_HOUSE`, `legal_entity_id` must be null
@@ -311,6 +314,65 @@ Allowed values:
 - `FALLING`
 - `INSUFFICIENT_HISTORY`
 
+## Volatility policy
+
+### Window policy
+
+- `baseline_window = 60` business days
+- `short_window = 10` business days
+- both windows are anchored on `as_of_date`
+- both windows are inclusive of `as_of_date`
+- both windows use only the canonical risk business-day resolver
+- the baseline window applies to `get_risk_summary` rolling statistics and to `get_risk_change_profile`
+- the short window applies only to `get_risk_change_profile`
+
+### Regime calculation
+
+For `RiskChangeProfile`, `volatility_regime` is derived from a scale-normalized dispersion ratio rather than from raw `rolling_std` alone.
+
+Definitions:
+
+- `reference_level = max(abs(current_value), abs(rolling_mean))`
+- `volatility_ratio = rolling_std / reference_level`
+
+Rules:
+
+- if `reference_level == 0` and `rolling_std == 0`, classify `LOW`
+- if `reference_level == 0` and `rolling_std > 0`, classify `HIGH`
+- otherwise apply these bands:
+  - `LOW` when `volatility_ratio < 0.05`
+  - `NORMAL` when `0.05 <= volatility_ratio < 0.15`
+  - `ELEVATED` when `0.15 <= volatility_ratio < 0.30`
+  - `HIGH` when `volatility_ratio >= 0.30`
+
+### Change-flag calculation
+
+For `RiskChangeProfile`, `volatility_change_flag` is derived from short-window versus baseline-window dispersion.
+
+Definitions:
+
+- `short_std` = sample standard deviation over the 10-business-day short window
+- `baseline_std` = sample standard deviation over the 60-business-day baseline window
+
+Rules:
+
+- if `baseline_std == 0` and `short_std == 0`, classify `STABLE`
+- if `baseline_std == 0` and `short_std > 0`, classify `RISING`
+- otherwise compute `dispersion_change_ratio = short_std / baseline_std`
+- apply these bands:
+  - `FALLING` when `dispersion_change_ratio <= 0.80`
+  - `STABLE` when `0.80 < dispersion_change_ratio < 1.20`
+  - `RISING` when `dispersion_change_ratio >= 1.20`
+
+### Minimum-history rules
+
+- `rolling_mean`, `rolling_min`, and `rolling_max` require at least 1 valid point
+- `rolling_std` requires at least 2 valid points
+- `volatility_regime` requires at least 20 valid points in the 60-business-day baseline window, otherwise `INSUFFICIENT_HISTORY`
+- `volatility_change_flag` requires at least 5 valid points in the 10-business-day short window and at least 20 valid points in the 60-business-day baseline window, otherwise `INSUFFICIENT_HISTORY`
+- degraded or invalid historical rows are excluded from volatility calculations
+- if exclusions reduce the valid-point count below the required minimum, the affected volatility output must be `INSUFFICIENT_HISTORY`
+
 ## Status model
 
 Allowed summary statuses:
@@ -411,9 +473,9 @@ Return first-order change plus second-order volatility context for consumers tha
 10. A small delta does not imply low risk if rolling volatility is elevated.
 11. Volatility metrics must be computed only from valid historical points within the pinned scope and snapshot context.
 12. Volatility interpretation must be deterministic and rule-based in v1, with no narrative or heuristic LLM logic.
-13. `volatility_regime` must be derived deterministically from rolling standard deviation and versioned threshold rules.
-14. `volatility_change_flag` must be derived deterministically by comparing short-window and baseline-window dispersion measures.
-15. Exact volatility thresholds must be explicitly configured and versioned.
+13. `volatility_regime` must be derived deterministically from the normalized `volatility_ratio` defined in the volatility policy.
+14. `volatility_change_flag` must be derived deterministically from the `dispersion_change_ratio` defined in the volatility policy.
+15. Exact volatility thresholds, window lengths, anchor semantics, inclusivity, and minimum-history gates are part of the governed volatility policy and must be versioned.
 
 ## Degraded and error cases
 
@@ -519,6 +581,10 @@ Result:
 - fixtures must pin expected outputs
 - replay output must not depend on wall-clock execution time
 - if `generated_at` is included, it must be deterministic for a given `snapshot_id` and derived from snapshot metadata or another pinned source
+- the v1 volatility policy ruleset identifier is `VOLATILITY_RULES_V1`
+- v1 does not allow runtime overrides for volatility thresholds, window lengths, anchor semantics, inclusivity, or minimum-history rules
+- for v1, the effective volatility-policy version is carried by `service_version`
+- any change to volatility bands, window lengths, business-day basis, anchor semantics, inclusivity, or minimum-history rules requires a `service_version` bump and replay-fixture refresh
 - ADR-003 application for this v1 service slice is approved as follows: each output contract retains the replay/version metadata explicitly defined in its field list, but the service must not invent module-local evidence or trace fields
 - explicit typed evidence-reference and trace-context fields are deferred until a dedicated shared-contract slice defines the canonical repo-wide objects for them
 - until then, replayability and auditability for this service are satisfied by pinned request context in replay fixtures and replay test artifacts, plus the replay/version metadata already defined on each output contract
@@ -530,9 +596,15 @@ Result:
   - `measure_type`
   - explicit `compare_to_date`, or the resolved comparison date after service defaulting
   - `lookback_window` when relevant
+  - the effective volatility-policy ruleset identifier (`VOLATILITY_RULES_V1` in v1) when relevant
   - history range bounds when relevant
   - `require_complete`
   - `snapshot_id` when provided
+- for volatility-aware outputs, replay fixtures and replay tests must pin the effective window policy explicitly:
+  - `baseline_window = 60`
+  - `short_window = 10`
+  - business-day basis
+  - inclusive anchor on `as_of_date`
 - for `get_risk_history`, pinned request context must include `start_date`, `end_date`, `require_complete`, and `snapshot_id` when provided
 - for `get_risk_history`, when `snapshot_id` is provided, it is the anchor snapshot for the request and must remain explicit in replay fixtures and replay test artifacts
 - this deferral does not expand `RiskHistoryPoint` or `RiskHistorySeries` metadata beyond the fields explicitly listed in their v1 contracts
