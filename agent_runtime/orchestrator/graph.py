@@ -6,6 +6,10 @@ import argparse
 import json
 from pathlib import Path
 
+from agent_runtime.config.defaults import build_defaults
+from agent_runtime.orchestrator.execution import build_runner_execution
+from agent_runtime.storage.sqlite import WorkflowRunRecord, upsert_workflow_run
+
 from .github_sync import fetch_pull_requests
 from .state import RuntimeSnapshot
 from .simulations import build_simulation_snapshot, simulation_names
@@ -43,6 +47,11 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="List the built-in simulation scenarios and exit.",
     )
+    parser.add_argument(
+        "--execute",
+        action="store_true",
+        help="Build the next runner invocation and persist the resulting workflow-run record.",
+    )
     return parser
 
 
@@ -55,17 +64,53 @@ def main() -> int:
         return 0
 
     repo_root = find_repo_root(Path(__file__).resolve())
+    defaults = build_defaults(repo_root)
     snapshot = build_simulation_snapshot(args.simulate) if args.simulate is not None else build_runtime_snapshot(repo_root)
     decision = decide_next_action(snapshot)
+    execution = build_runner_execution(snapshot, decision) if args.execute else None
+
+    if args.execute and decision.work_item_id is not None:
+        pr_number = None
+        branch_name = None
+        for pull_request in snapshot.pull_requests:
+            if pull_request.work_item_id == decision.work_item_id:
+                pr_number = pull_request.number
+                branch_name = pull_request.head_ref_name
+                break
+        upsert_workflow_run(
+            defaults.state_db_path,
+            WorkflowRunRecord(
+                work_item_id=decision.work_item_id,
+                branch_name=branch_name,
+                pr_number=pr_number,
+                status=decision.action.value,
+                blocked_reason=decision.reason if decision.action.value == "run_spec" else None,
+                last_action=decision.action.value,
+                runner_name=execution.runner_name.value if execution is not None else None,
+                details=(execution.metadata if execution is not None else dict(decision.metadata)),
+            ),
+        )
+
     print(
         json.dumps(
             {
                 "action": decision.action.value,
+                "execute": args.execute,
                 "simulation": args.simulate,
                 "work_item_id": decision.work_item_id,
                 "reason": decision.reason,
                 "target_path": str(decision.target_path) if decision.target_path else None,
                 "metadata": decision.metadata,
+                "runner": (
+                    {
+                        "name": execution.runner_name.value,
+                        "prompt": execution.prompt,
+                        "metadata": execution.metadata,
+                    }
+                    if execution is not None
+                    else None
+                ),
+                "state_db_path": str(defaults.state_db_path) if args.execute else None,
                 "pull_request_count": len(snapshot.pull_requests),
                 "work_item_count": len(snapshot.work_items),
                 "warnings": list(snapshot.warnings),

@@ -9,3 +9,10 @@ The runtime needs durable state for:
 - retry and polling metadata
 
 SQLite is the first local storage choice because it is simple, durable, and easy to inspect.
+
+The current state store records:
+
+- the last relay action per work item
+- linked PR number and branch when known
+- blocked reason for spec-routing cases
+- runner metadata needed to resume or audit the next handoff

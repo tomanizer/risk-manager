@@ -20,10 +20,18 @@ from agent_runtime.orchestrator.state import (
     WorkItemStage,
 )
 from agent_runtime.orchestrator.graph import find_repo_root
+from agent_runtime.orchestrator.execution import build_runner_execution
 from agent_runtime.orchestrator.simulations import build_simulation_snapshot, simulation_names
 from agent_runtime.orchestrator.transitions import decide_next_action
 from agent_runtime.orchestrator.work_item_registry import load_work_items
-from agent_runtime.storage.sqlite import EXPECTED_WORKFLOW_RUN_COLUMNS, initialize_database
+from agent_runtime.runners.contracts import RunnerName
+from agent_runtime.storage.sqlite import (
+    EXPECTED_WORKFLOW_RUN_COLUMNS,
+    WorkflowRunRecord,
+    initialize_database,
+    load_workflow_run,
+    upsert_workflow_run,
+)
 
 
 def test_ready_item_without_pr_routes_to_pm() -> None:
@@ -179,6 +187,26 @@ def test_initialize_database_creates_expected_workflow_runs_schema() -> None:
         assert actual_columns == EXPECTED_WORKFLOW_RUN_COLUMNS
 
 
+def test_upsert_workflow_run_round_trips_extended_columns() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "runtime" / "state.db"
+        record = WorkflowRunRecord(
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            branch_name="codex/WI-1.1.4-risk-summary-core-service",
+            pr_number=51,
+            status="run_review",
+            blocked_reason=None,
+            last_action="run_review",
+            runner_name="review",
+            details={"pr_url": "https://github.com/tomanizer/risk-manager/pull/51"},
+        )
+
+        upsert_workflow_run(db_path, record)
+        loaded = load_workflow_run(db_path, record.work_item_id)
+
+        assert loaded == record
+
+
 def test_parse_github_remote_supports_ssh_and_https() -> None:
     assert parse_github_remote("git@github.com:tomanizer/risk-manager.git") is not None
     assert parse_github_remote("https://github.com/tomanizer/risk-manager.git") is not None
@@ -237,6 +265,59 @@ def test_build_pull_request_snapshots_maps_live_payload() -> None:
     assert snapshots[0].unresolved_review_threads == 1
     assert snapshots[0].review_decision == "APPROVED"
     assert snapshots[0].ci_status == "SUCCESS"
+
+
+def test_build_runner_execution_for_pm_uses_work_item_context() -> None:
+    snapshot = RuntimeSnapshot(
+        work_items=(
+            WorkItemSnapshot(
+                id="WI-1.1.4-risk-summary-core-service",
+                title="WI-1.1.4",
+                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
+                stage=WorkItemStage.READY,
+                linked_prd="docs/prds/phase-1/PRD-1.1-risk-summary-service-v2.md",
+            ),
+        )
+    )
+
+    decision = decide_next_action(snapshot)
+    execution = build_runner_execution(snapshot, decision)
+
+    assert execution is not None
+    assert execution.runner_name is RunnerName.PM
+    assert "WI-1.1.4-risk-summary-core-service" in execution.prompt
+    assert "Linked PRD" in execution.prompt
+
+
+def test_build_runner_execution_for_review_includes_pr_context() -> None:
+    snapshot = RuntimeSnapshot(
+        work_items=(
+            WorkItemSnapshot(
+                id="WI-1.1.4-risk-summary-core-service",
+                title="WI-1.1.4",
+                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
+                stage=WorkItemStage.READY,
+            ),
+        ),
+        pull_requests=(
+            PullRequestSnapshot(
+                work_item_id="WI-1.1.4-risk-summary-core-service",
+                number=52,
+                is_draft=False,
+                url="https://github.com/tomanizer/risk-manager/pull/52",
+                unresolved_review_threads=1,
+            ),
+        ),
+    )
+
+    decision = decide_next_action(snapshot)
+    execution = build_runner_execution(snapshot, decision)
+
+    assert decision.action is NextActionType.RUN_REVIEW
+    assert execution is not None
+    assert execution.runner_name is RunnerName.REVIEW
+    assert "PR #52" in execution.prompt
+    assert execution.metadata["pr_number"] == "52"
 
 
 def test_build_pull_request_snapshots_uses_exact_work_item_matching() -> None:
