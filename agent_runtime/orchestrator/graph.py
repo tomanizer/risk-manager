@@ -161,11 +161,7 @@ def main() -> int:
         )
         return 0
 
-    snapshot = (
-        build_simulation_snapshot(args.simulate)
-        if args.simulate is not None
-        else build_runtime_snapshot(repo_root, defaults.state_db_path)
-    )
+    snapshot = build_simulation_snapshot(args.simulate) if args.simulate is not None else build_runtime_snapshot(repo_root, defaults.state_db_path)
     decision = decide_next_action(snapshot)
     should_build_execution = args.execute or args.dispatch
     execution = build_runner_execution(snapshot, decision) if should_build_execution else None
@@ -213,7 +209,9 @@ def main() -> int:
                         "details": dict(runner_result.details),
                     }
                     if runner_result is not None
-                    else existing_run.result if existing_run is not None else {}
+                    else existing_run.result
+                    if existing_run is not None
+                    else {}
                 ),
                 outcome_details=existing_run.outcome_details if existing_run is not None else {},
                 completed_at=existing_run.completed_at if existing_run is not None else None,
