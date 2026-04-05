@@ -116,10 +116,10 @@ class _RiskContractBase(BaseModel):
 
         delta_abs = values.get("delta_abs")
         if delta_abs is None:
+            delta_abs = expected_delta_abs
             values["delta_abs"] = expected_delta_abs
         else:
             delta_abs = _FLOAT_ADAPTER.validate_python(delta_abs)
-        delta_abs = values["delta_abs"] if delta_abs is None else delta_abs
         if not _float_matches(delta_abs, expected_delta_abs):
             raise ValueError("delta_abs must equal current_value - previous_value")
 
