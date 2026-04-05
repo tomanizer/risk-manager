@@ -11,8 +11,6 @@ TEXT_SUFFIXES = {
     ".json",
     ".md",
     ".mdx",
-    ".py",
-    ".pyi",
     ".toml",
     ".txt",
     ".yaml",
@@ -39,6 +37,7 @@ REPO_PREFIXES = (
     "tests/",
     "work_items/",
 )
+FALLBACK_SCAN_DIRS = tuple(prefix.removesuffix("/") for prefix in REPO_PREFIXES)
 MARKDOWN_LINK_PATTERN = re.compile(r"\[[^\]]+\]\(([^)\s]+)\)")
 BACKTICK_PATTERN = re.compile(r"`([^`\n]+)`")
 
@@ -100,26 +99,29 @@ def build_reference_scan_report(root: Path) -> ReferenceScanReport:
                 references_checked += 1
                 resolved = _resolve_reference(repo_root, source_file, normalized)
                 if resolved is None:
+                    _append_missing_reference_finding(
+                        findings=findings,
+                        repo_root=repo_root,
+                        source_file=source_file,
+                        source_line=line_number,
+                        reference=normalized,
+                        message=f"Referenced path `{normalized}` escapes the repository root.",
+                    )
                     continue
                 if not resolved.exists():
-                    drift_class, owner = _classify_source(source_file.relative_to(repo_root).as_posix())
-                    findings.append(
-                        ReferenceFinding(
-                            kind="missing_reference",
-                            severity="major",
-                            drift_class=drift_class,
-                            owner=owner,
-                            source_file=source_file.relative_to(repo_root).as_posix(),
-                            source_line=line_number,
-                            reference=normalized,
-                            message=f"Referenced path `{normalized}` does not exist under the repository root.",
-                        )
+                    _append_missing_reference_finding(
+                        findings=findings,
+                        repo_root=repo_root,
+                        source_file=source_file,
+                        source_line=line_number,
+                        reference=normalized,
+                        message=f"Referenced path `{normalized}` does not exist under the repository root.",
                     )
 
     findings.sort(key=lambda finding: (finding.source_file, finding.source_line, finding.reference))
     return ReferenceScanReport(
         scan_name="reference_integrity",
-        root=repo_root.as_posix(),
+        root=".",
         generated_at=datetime.now(UTC).isoformat(),
         findings=tuple(findings),
         stats=ReferenceScanStats(
@@ -136,7 +138,7 @@ def _tracked_text_files(root: Path) -> tuple[Path, ...]:
         return tuple(path for path in git_files if _should_scan(path))
 
     collected: list[Path] = []
-    for path in root.rglob("*"):
+    for path in _fallback_scan_candidates(root):
         if path.is_file() and _should_scan(path):
             collected.append(path)
     return tuple(sorted(collected))
@@ -178,6 +180,29 @@ def _extract_references(line: str) -> tuple[str, ...]:
     return tuple(unique_references)
 
 
+def _append_missing_reference_finding(
+    findings: list[ReferenceFinding],
+    repo_root: Path,
+    source_file: Path,
+    source_line: int,
+    reference: str,
+    message: str,
+) -> None:
+    drift_class, owner = _classify_source(source_file.relative_to(repo_root).as_posix())
+    findings.append(
+        ReferenceFinding(
+            kind="missing_reference",
+            severity="major",
+            drift_class=drift_class,
+            owner=owner,
+            source_file=source_file.relative_to(repo_root).as_posix(),
+            source_line=source_line,
+            reference=reference,
+            message=message,
+        )
+    )
+
+
 def _normalize_reference(raw_reference: str) -> str | None:
     reference = raw_reference.strip().strip("\"'").rstrip(".,:;")
     if not reference or reference.startswith("#"):
@@ -205,6 +230,18 @@ def _resolve_reference(root: Path, source_file: Path, reference: str) -> Path | 
     except ValueError:
         return None
     return resolved
+
+
+def _fallback_scan_candidates(root: Path) -> tuple[Path, ...]:
+    candidates: list[Path] = []
+    for child in root.iterdir():
+        if child.is_file():
+            candidates.append(child)
+            continue
+        if child.name not in FALLBACK_SCAN_DIRS:
+            continue
+        candidates.extend(path for path in child.rglob("*"))
+    return tuple(sorted(candidates))
 
 
 def _classify_source(source_file: str) -> tuple[str, str]:

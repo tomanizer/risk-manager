@@ -52,6 +52,19 @@ def test_reference_scan_classifies_prompt_refs_as_operational_instruction_drift(
     assert finding.owner == "PM"
 
 
+def test_reference_scan_reports_escaping_paths(tmp_path: Path) -> None:
+    docs_dir = tmp_path / "docs"
+    docs_dir.mkdir()
+    (docs_dir / "guide.md").write_text("See `../../outside.md`.\n", encoding="utf-8")
+
+    report = build_reference_scan_report(tmp_path)
+
+    assert report.stats.findings_count == 1
+    finding = report.findings[0]
+    assert finding.reference == "../../outside.md"
+    assert "escapes the repository root" in finding.message
+
+
 def test_check_references_cli_writes_json_report(tmp_path: Path) -> None:
     docs_dir = tmp_path / "docs"
     docs_dir.mkdir()
@@ -77,5 +90,6 @@ def test_check_references_cli_writes_json_report(tmp_path: Path) -> None:
     written_payload = json.loads(output_path.read_text(encoding="utf-8"))
 
     assert payload["scan_name"] == "reference_integrity"
+    assert payload["root"] == "."
     assert payload == written_payload
     assert payload["stats"]["findings_count"] == 1

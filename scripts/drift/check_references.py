@@ -8,7 +8,7 @@ import sys
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Scan repo-tracked text files for broken internal file references.")
-    parser.add_argument("--root", default=".", help="Repository root to scan.")
+    parser.add_argument("--root", help="Repository root to scan. Defaults to the repo root containing this script.")
     parser.add_argument("--output", help="Optional JSON report path.")
     parser.add_argument(
         "--fail-on-findings",
@@ -27,7 +27,8 @@ def main() -> int:
     from agent_runtime.drift.reference_integrity import build_reference_scan_report
 
     args = parse_args()
-    report = build_reference_scan_report(Path(args.root))
+    scan_root = repo_root if args.root is None else _resolve_scan_root(repo_root, args.root)
+    report = build_reference_scan_report(scan_root)
     payload = json.dumps(report.to_dict(), indent=2, sort_keys=True)
     if args.output:
         output_path = Path(args.output)
@@ -37,6 +38,17 @@ def main() -> int:
     if args.fail_on_findings and report.findings:
         return 1
     return 0
+
+
+def _resolve_scan_root(repo_root: Path, raw_root: str) -> Path:
+    candidate = Path(raw_root)
+    resolved = candidate if candidate.is_absolute() else (repo_root / candidate)
+    resolved = resolved.resolve()
+    if not resolved.exists():
+        raise FileNotFoundError(f"Scan root `{resolved}` does not exist.")
+    if not resolved.is_dir():
+        raise NotADirectoryError(f"Scan root `{resolved}` is not a directory.")
+    return resolved
 
 
 if __name__ == "__main__":
