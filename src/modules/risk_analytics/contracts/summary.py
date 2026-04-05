@@ -28,6 +28,7 @@ _MIRROR_FIELD_ADAPTERS = {
     "hierarchy_scope": TypeAdapter(HierarchyScope | None),
     "legal_entity_id": TypeAdapter(str | None),
 }
+_NODE_REF_ADAPTER = TypeAdapter(NodeRef)
 _DATE_ADAPTER = TypeAdapter(date)
 _FLOAT_ADAPTER = TypeAdapter(float)
 
@@ -62,13 +63,24 @@ class _RiskContractBase(BaseModel):
         values = dict(data)
         node_ref_value = values.get("node_ref")
         if node_ref_value is not None:
-            node_ref = NodeRef.model_validate(node_ref_value)
-            updates = {
-                "node_level": node_ref.node_level,
-                "hierarchy_scope": node_ref.hierarchy_scope,
-                "legal_entity_id": node_ref.legal_entity_id,
-            }
-            for field_name, expected in updates.items():
+            if isinstance(node_ref_value, dict):
+                expected_values = {
+                    "node_level": _MIRROR_FIELD_ADAPTERS["node_level"].validate_python(node_ref_value.get("node_level")),
+                    "hierarchy_scope": _MIRROR_FIELD_ADAPTERS["hierarchy_scope"].validate_python(
+                        node_ref_value.get("hierarchy_scope")
+                    ),
+                    "legal_entity_id": _MIRROR_FIELD_ADAPTERS["legal_entity_id"].validate_python(
+                        node_ref_value.get("legal_entity_id")
+                    ),
+                }
+            else:
+                node_ref = _NODE_REF_ADAPTER.validate_python(node_ref_value)
+                expected_values = {
+                    "node_level": node_ref.node_level,
+                    "hierarchy_scope": node_ref.hierarchy_scope,
+                    "legal_entity_id": node_ref.legal_entity_id,
+                }
+            for field_name, expected in expected_values.items():
                 actual = values.get(field_name)
                 if actual is None:
                     values[field_name] = expected
@@ -120,7 +132,6 @@ class _RiskContractBase(BaseModel):
         if previous_value == 0:
             if values.get("delta_pct") is not None:
                 raise ValueError("delta_pct must be None when previous_value is zero")
-            values["delta_pct"] = None
             return values
 
         expected_delta_pct = delta_abs / previous_value
