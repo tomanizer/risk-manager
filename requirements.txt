@@ -1,1 +1,7 @@
 pydantic>=2.0,<3.0
+numpy==2.4.4
+scipy==1.17.1
+pyarrow==23.0.1
+duckdb==1.5.1
+statsmodels==0.14.6
+pandas==3.0.2
