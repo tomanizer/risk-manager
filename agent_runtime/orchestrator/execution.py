@@ -76,7 +76,7 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
             metadata=metadata,
         )
 
-    if decision.action.value == "run_review":
+    if decision.action is NextActionType.RUN_REVIEW:
         if pull_request is None:
             raise RuntimeError("review execution requires an attached pull request")
         review_input = ReviewRunnerInput(
