@@ -1,7 +1,6 @@
 """Risk analytics fixture helpers."""
 
 from .loader import (
-    DEFAULT_FIXTURE_PATH,
     FixtureIndex,
     FixtureRow,
     FixtureSnapshot,
@@ -11,7 +10,6 @@ from .loader import (
 )
 
 __all__ = [
-    "DEFAULT_FIXTURE_PATH",
     "FixtureIndex",
     "FixtureRow",
     "FixtureSnapshot",

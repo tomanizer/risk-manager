@@ -18,10 +18,10 @@ from src.modules.risk_analytics.contracts import (
     SummaryStatus,
 )
 from src.modules.risk_analytics.fixtures import (
-    DEFAULT_FIXTURE_PATH,
     build_fixture_index,
     load_risk_summary_fixture_pack,
 )
+from src.modules.risk_analytics.fixtures.loader import _resolve_default_fixture_path
 
 
 class FixtureLoaderTestCase(unittest.TestCase):
@@ -31,7 +31,6 @@ class FixtureLoaderTestCase(unittest.TestCase):
         cls.index = build_fixture_index()
 
     def test_fixture_pack_loads_with_pinned_calendar(self) -> None:
-        self.assertTrue(DEFAULT_FIXTURE_PATH.exists())
         self.assertEqual(len(self.pack.calendar), 6)
         self.assertEqual(self.pack.calendar[0], date(2026, 1, 2))
         self.assertEqual(self.pack.calendar[3], date(2026, 1, 8))
@@ -187,11 +186,25 @@ class FixtureLoaderTestCase(unittest.TestCase):
         self.assertEqual(stable_values[-1] - stable_values[-2], 17.0)
 
     def test_fixture_pack_rejects_calendar_snapshot_drift(self) -> None:
-        payload = json.loads(DEFAULT_FIXTURE_PATH.read_text(encoding="utf-8"))
+        payload = json.loads(_resolve_default_fixture_path().read_text(encoding="utf-8"))
         payload["calendar"] = payload["calendar"][:-1]
 
         with tempfile.TemporaryDirectory() as temp_dir:
             fixture_path = Path(temp_dir) / "drifted_fixture_pack.json"
+            fixture_path.write_text(json.dumps(payload), encoding="utf-8")
+
+            with self.assertRaises(ValidationError):
+                load_risk_summary_fixture_pack(fixture_path)
+
+    def test_fixture_pack_rejects_duplicate_as_of_date(self) -> None:
+        payload = json.loads(_resolve_default_fixture_path().read_text(encoding="utf-8"))
+        # duplicate the first snapshot entry with a different ID but same as_of_date
+        duplicate = dict(payload["snapshots"][0])
+        duplicate["snapshot_id"] = "SNAP-DUPLICATE"
+        payload["snapshots"] = [payload["snapshots"][0], duplicate]
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fixture_path = Path(temp_dir) / "duplicate_date_fixture_pack.json"
             fixture_path.write_text(json.dumps(payload), encoding="utf-8")
 
             with self.assertRaises(ValidationError):

@@ -36,9 +36,6 @@ def _resolve_default_fixture_path() -> Path:
     )
 
 
-DEFAULT_FIXTURE_PATH = _resolve_default_fixture_path()
-
-
 class FixtureRow(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -91,6 +88,8 @@ class RiskSummaryFixturePack(BaseModel):
         snapshot_dates = tuple(snapshot.as_of_date for snapshot in self.snapshots)
         if tuple(sorted(snapshot_dates)) != snapshot_dates:
             raise ValueError("snapshots must be ordered ascending by as_of_date")
+        if len(set(snapshot_dates)) != len(snapshot_dates):
+            raise ValueError("snapshot as_of_date values must be unique")
         calendar_dates = set(self.calendar)
         for snapshot in self.snapshots:
             if snapshot.as_of_date not in calendar_dates:
@@ -166,13 +165,14 @@ class FixtureIndex:
 
 
 def load_risk_summary_fixture_pack(
-    fixture_path: str | Path = DEFAULT_FIXTURE_PATH,
+    fixture_path: str | Path | None = None,
 ) -> RiskSummaryFixturePack:
-    payload = json.loads(Path(fixture_path).read_text(encoding="utf-8"))
+    resolved = Path(fixture_path) if fixture_path is not None else _resolve_default_fixture_path()
+    payload = json.loads(resolved.read_text(encoding="utf-8"))
     return RiskSummaryFixturePack.model_validate(payload)
 
 
 def build_fixture_index(
-    fixture_path: str | Path = DEFAULT_FIXTURE_PATH,
+    fixture_path: str | Path | None = None,
 ) -> FixtureIndex:
     return load_risk_summary_fixture_pack(fixture_path).build_index()
