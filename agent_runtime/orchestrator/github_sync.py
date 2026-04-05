@@ -218,9 +218,7 @@ def build_pull_request_snapshots(
             raw_thread_nodes = review_threads.get("nodes")
             if isinstance(raw_thread_nodes, list):
                 thread_nodes = raw_thread_nodes
-        unresolved_review_threads = len(
-            [thread for thread in thread_nodes if isinstance(thread, dict) and thread.get("isResolved") is False]
-        )
+        unresolved_review_threads = len([thread for thread in thread_nodes if isinstance(thread, dict) and thread.get("isResolved") is False])
         review_decision = str(raw_node.get("reviewDecision")) if raw_node.get("reviewDecision") else None
 
         if work_item_id in snapshots_by_work_item:
@@ -296,6 +294,8 @@ def fetch_pull_requests(
         work_items,
     )
     return snapshots, tuple(warnings) + snapshot_warnings
+
+
 def _extract_pull_request_nodes(payload: Mapping[str, object]) -> tuple[list[dict[str, object]] | None, tuple[str, ...]]:
     data = payload.get("data")
     repository = data.get("repository") if isinstance(data, dict) else None
@@ -319,7 +319,7 @@ def _extract_pull_request_page(
         return None, ("GitHub sync payload did not include pull request nodes",), {"has_next_page": False, "end_cursor": None}
     if not isinstance(page_info, dict):
         return (
-            nodes,
+            [node for node in nodes if isinstance(node, dict)],
             ("GitHub sync payload did not include pageInfo; stopping after first page",),
             {
                 "has_next_page": False,
