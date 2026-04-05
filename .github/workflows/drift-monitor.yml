@@ -14,19 +14,20 @@ on:
       - "CLAUDE.md"
       - "GEMINI.md"
       - "agent_runtime/drift/**"
-      - "artifacts/drift/README.md"
+      - "artifacts/drift/**"
       - "docs/**"
       - "prompts/**"
       - "scripts/drift/**"
-      - "tests/unit/agent_runtime/test_reference_integrity.py"
+      - "tests/unit/agent_runtime/**"
       - "work_items/**"
 
 jobs:
-  reference-integrity:
+  drift-suite:
     runs-on: ubuntu-latest
     permissions:
       actions: read
       contents: read
+      issues: write
 
     steps:
       - name: Checkout
@@ -42,94 +43,85 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
-      - name: Run reference integrity scanner
+      - name: Run deterministic drift suite
         run: |
-          python scripts/drift/check_references.py \
-            --output artifacts/drift/reference_integrity.json
-
-      - name: Run dependency hygiene scanner
-        run: |
-          python scripts/drift/check_dependency_hygiene.py \
-            --output artifacts/drift/dependency_hygiene.json
-
-      - name: Run registry alignment scanner
-        run: |
-          python scripts/drift/check_registry_alignment.py \
-            --output artifacts/drift/registry_alignment.json
+          python scripts/drift/run_all.py \
+            --artifact-dir artifacts/drift \
+            --output artifacts/drift/latest_report.json \
+            --summary-output artifacts/drift/summary.md
 
       - name: Summarize findings
+        run: cat artifacts/drift/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Render repo-health issue body
         run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
+          python scripts/drift/render_issue_body.py \
+            --report artifacts/drift/latest_report.json \
+            --output artifacts/drift/issue_body.md
 
-          lines = [
-              "## Drift Monitor",
-              "",
-          ]
-          report_specs = (
-              (
-                  "Dependency Hygiene",
-                  Path("artifacts/drift/dependency_hygiene.json"),
-                  lambda report: (
-                      f"- Runtime files scanned: `{report['stats']['runtime_python_files_scanned']}`",
-                      f"- Dev files scanned: `{report['stats']['dev_python_files_scanned']}`",
-                      f"- Workflows scanned: `{report['stats']['workflows_scanned']}`",
-                      f"- Instruction files scanned: `{report['stats']['instruction_files_scanned']}`",
-                  ),
-                  lambda finding: (
-                      f"- `{finding['severity']}` `{finding['source_path']}` "
-                      f"`{finding['dependency_name']}` -> {finding['owner']}"
-                  ),
-              ),
-              (
-                  "Reference Integrity",
-                  Path("artifacts/drift/reference_integrity.json"),
-                  lambda report: (
-                      f"- Files scanned: `{report['stats']['files_scanned']}`",
-                      f"- References checked: `{report['stats']['references_checked']}`",
-                  ),
-                  lambda finding: (
-                      f"- `{finding['severity']}` `{finding['source_file']}:{finding['source_line']}` "
-                      f"`{finding['reference']}` -> {finding['owner']}"
-                  ),
-              ),
-              (
-                  "Registry Alignment",
-                  Path("artifacts/drift/registry_alignment.json"),
-                  lambda report: (
-                      f"- Components scanned: `{report['stats']['components_scanned']}`",
-                      f"- Subcomponents scanned: `{report['stats']['subcomponents_scanned']}`",
-                      f"- Module roots discovered: `{report['stats']['module_roots_discovered']}`",
-                  ),
-                  lambda finding: (
-                      f"- `{finding['severity']}` `{finding['component_id']}` "
-                      f"`{finding['kind']}` -> {finding['owner']}"
-                  ),
-              ),
-          )
+      - name: Create or update repo-health issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
 
-          for title, report_path, stat_lines, finding_line in report_specs:
-              report = json.loads(report_path.read_text(encoding="utf-8"))
-              findings = report["findings"]
-              lines.append(f"### {title}")
-              lines.append(f"- Scan: `{report['scan_name']}`")
-              lines.append(f"- Findings: `{len(findings)}`")
-              lines.extend(stat_lines(report))
-              if findings:
-                  lines.append("- Top findings:")
-                  lines.extend(finding_line(finding) for finding in findings[:10])
-                  if len(findings) > 10:
-                      lines.append(f"- ... and `{len(findings) - 10}` more")
-              else:
-                  lines.append("- No findings detected.")
-              lines.append("")
+            const report = JSON.parse(fs.readFileSync("artifacts/drift/latest_report.json", "utf8"));
+            const issueBody = fs.readFileSync("artifacts/drift/issue_body.md", "utf8");
+            const title = "Repo Health Drift Report";
+            const marker = "<!-- drift-monitor-issue -->";
 
-          summary = "\n".join(lines) + "\n"
-          with open(Path.home() / "drift-summary.md", "w", encoding="utf-8") as handle:
-              handle.write(summary)
-          PY
-          cat ~/drift-summary.md >> "$GITHUB_STEP_SUMMARY"
+            const { owner, repo } = context.repo;
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner,
+              repo,
+              state: "all",
+              per_page: 100,
+            });
+
+            const existing = issues.find((issue) => !issue.pull_request && issue.title === title && issue.body?.includes(marker));
+            const newFindings = report.stats.new_findings;
+
+            if (newFindings > 0) {
+              if (existing) {
+                await github.rest.issues.update({
+                  owner,
+                  repo,
+                  issue_number: existing.number,
+                  title,
+                  body: issueBody,
+                  state: "open",
+                });
+                core.notice(`Updated repo-health issue #${existing.number}.`);
+              } else {
+                const { data: created } = await github.rest.issues.create({
+                  owner,
+                  repo,
+                  title,
+                  body: issueBody,
+                });
+                core.notice(`Created repo-health issue #${created.number}.`);
+              }
+              return;
+            }
+
+            if (existing && existing.state === "open") {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body: "Closing automatically because the latest drift suite run found zero net-new findings.",
+              });
+              await github.rest.issues.update({
+                owner,
+                repo,
+                issue_number: existing.number,
+                body: issueBody,
+                state: "closed",
+              });
+              core.notice(`Closed repo-health issue #${existing.number}.`);
+            } else {
+              core.notice("No net-new drift findings and no open repo-health issue to close.");
+            }
 
       - name: Upload drift artifacts
         uses: actions/upload-artifact@v4
@@ -137,6 +129,9 @@ jobs:
           name: drift-reports
           path: |
             artifacts/drift/dependency_hygiene.json
+            artifacts/drift/issue_body.md
+            artifacts/drift/latest_report.json
             artifacts/drift/reference_integrity.json
             artifacts/drift/registry_alignment.json
+            artifacts/drift/summary.md
           if-no-files-found: error

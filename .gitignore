@@ -40,6 +40,9 @@ logs/
 .tmp/
 tmp/
 artifacts/drift/*.json
+!artifacts/drift/baseline.json
+artifacts/drift/issue_body.md
+artifacts/drift/summary.md
 
 # Secrets / local config overrides
 .env.local
