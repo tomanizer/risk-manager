@@ -18,6 +18,13 @@ If the task is role-specific, also read:
 - `prompts/agents/issue_planner_instruction.md`
 - `prompts/agents/coding_agent_instruction.md`
 - `prompts/agents/review_agent_instruction.md`
+- `prompts/agents/risk_methodology_spec_agent_instruction.md`
+
+If the task is methodology-heavy, also read:
+
+- `docs/methodology/01_var_methodology_overview.md`
+- `docs/methodology/02_historical_simulation_and_shocks.md`
+- `docs/guides/risk_methodology_review_checklist.md`
 
 ## Review priorities
 

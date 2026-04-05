@@ -34,3 +34,21 @@ Managed state indicating that a desk or issue requires elevated monitoring.
 
 ### Replay
 Ability to reproduce outputs using the same inputs, snapshots, versions, and rules.
+
+### Risk Factor
+A canonical market-risk input dimension such as rate, spread, credit, FX, equity, or volatility component used in risk methodology and simulation.
+
+### Shock
+A canonical market move or factor change used in VaR or scenario-related computation.
+
+### Historical Shock
+A shock derived from an observed historical market or factor movement over a defined interval.
+
+### Simulated Shock
+A shock produced by a simulated scenario process rather than copied directly from realized history.
+
+### Shock Set
+A governed collection of shocks used together for a VaR or scenario run.
+
+### Shock Lineage
+The deterministic provenance linking source data, transformation, factor mapping, shock set, and downstream risk outputs.

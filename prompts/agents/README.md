@@ -12,6 +12,7 @@ These instructions complement the canon, PRDs, ADRs, prompts, and work items. Th
 - `coding_agent_instruction.md`
 - `review_agent_instruction.md`
 - `issue_planner_instruction.md`
+- `risk_methodology_spec_agent_instruction.md`
 
 ## Rule
 
