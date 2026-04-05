@@ -8,6 +8,7 @@ from pathlib import Path
 
 from agent_runtime.config.defaults import build_defaults
 from agent_runtime.orchestrator.execution import build_runner_execution
+from agent_runtime.runners.dispatch import dispatch_runner_execution
 from agent_runtime.storage.sqlite import WorkflowRunRecord, upsert_workflow_run
 
 from .github_sync import fetch_pull_requests
@@ -52,6 +53,11 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Build the next runner invocation and persist the resulting workflow-run record.",
     )
+    parser.add_argument(
+        "--dispatch",
+        action="store_true",
+        help="Dispatch the next runner invocation through the local deterministic runner adapters and persist the result.",
+    )
     return parser
 
 
@@ -67,9 +73,11 @@ def main() -> int:
     defaults = build_defaults(repo_root)
     snapshot = build_simulation_snapshot(args.simulate) if args.simulate is not None else build_runtime_snapshot(repo_root)
     decision = decide_next_action(snapshot)
-    execution = build_runner_execution(snapshot, decision) if args.execute else None
+    should_build_execution = args.execute or args.dispatch
+    execution = build_runner_execution(snapshot, decision) if should_build_execution else None
+    runner_result = dispatch_runner_execution(execution) if args.dispatch and execution is not None else None
 
-    if args.execute and decision.work_item_id is not None:
+    if should_build_execution and decision.work_item_id is not None:
         pr_number = None
         branch_name = None
         for pull_request in snapshot.pull_requests:
@@ -87,6 +95,7 @@ def main() -> int:
                 blocked_reason=decision.reason if decision.action is NextActionType.RUN_SPEC else None,
                 last_action=decision.action.value,
                 runner_name=execution.runner_name.value if execution is not None else None,
+                runner_status=runner_result.status.value if runner_result is not None else None,
                 details=(
                     {
                         **dict(decision.metadata),
@@ -95,6 +104,15 @@ def main() -> int:
                     if execution is not None
                     else dict(decision.metadata)
                 ),
+                result=(
+                    {
+                        "summary": runner_result.summary,
+                        "prompt": runner_result.prompt,
+                        **dict(runner_result.details),
+                    }
+                    if runner_result is not None
+                    else None
+                ),
             ),
         )
 
@@ -102,6 +120,7 @@ def main() -> int:
         json.dumps(
             {
                 "action": decision.action.value,
+                "dispatch": args.dispatch,
                 "execute": args.execute,
                 "simulation": args.simulate,
                 "work_item_id": decision.work_item_id,
@@ -117,7 +136,18 @@ def main() -> int:
                     if execution is not None
                     else None
                 ),
-                "state_db_path": str(defaults.state_db_path) if args.execute else None,
+                "runner_result": (
+                    {
+                        "name": runner_result.runner_name.value,
+                        "status": runner_result.status.value,
+                        "summary": runner_result.summary,
+                        "prompt": runner_result.prompt,
+                        "details": runner_result.details,
+                    }
+                    if runner_result is not None
+                    else None
+                ),
+                "state_db_path": str(defaults.state_db_path) if should_build_execution else None,
                 "pull_request_count": len(snapshot.pull_requests),
                 "work_item_count": len(snapshot.work_items),
                 "warnings": list(snapshot.warnings),

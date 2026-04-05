@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
+
 
 @dataclass(frozen=True)
 class CodingRunnerInput:
@@ -20,3 +22,16 @@ def build_coding_prompt(input_data: CodingRunnerInput) -> str:
     if input_data.pr_url is not None:
         prompt += f" ({input_data.pr_url})"
     return prompt
+
+
+def dispatch_coding_execution(execution: RunnerExecution) -> RunnerResult:
+    if execution.runner_name is not RunnerName.CODING:
+        raise RuntimeError("Coding dispatch received a non-coding runner execution")
+    return RunnerResult(
+        runner_name=execution.runner_name,
+        work_item_id=execution.work_item_id,
+        status=RunnerDispatchStatus.PREPARED,
+        summary=f"Prepared coding handoff for {execution.work_item_id}.",
+        prompt=execution.prompt,
+        details=dict(execution.metadata),
+    )

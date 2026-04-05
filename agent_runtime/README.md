@@ -42,6 +42,7 @@ The first orchestrator is intentionally narrow:
 - sync open GitHub PR state into a small typed model
 - choose the next action in the relay
 - build a typed runner invocation for PM/spec/coding/review
+- dispatch that invocation through deterministic local runner adapters
 - persist the resulting workflow-run state in SQLite
 - stop at the human merge gate
 
@@ -74,6 +75,15 @@ You can test relay decisions without real GitHub state:
 
 This records the current decision in `.agent_runtime/state.db` and returns the
 typed runner prompt that a later execution layer can hand to the correct agent.
+
+## Dispatch through the local runner adapters
+
+```bash
+.venv/bin/python -m agent_runtime --dispatch
+```
+
+This builds the runner invocation, routes it through the local deterministic
+runner adapter, and persists both the execution metadata and the runner result.
 
 The live mode now combines:
 

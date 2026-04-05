@@ -24,7 +24,8 @@ from agent_runtime.orchestrator.execution import build_runner_execution
 from agent_runtime.orchestrator.simulations import build_simulation_snapshot, simulation_names
 from agent_runtime.orchestrator.transitions import decide_next_action
 from agent_runtime.orchestrator.work_item_registry import load_work_items
-from agent_runtime.runners.contracts import RunnerName
+from agent_runtime.runners.contracts import RunnerDispatchStatus, RunnerName
+from agent_runtime.runners.dispatch import dispatch_runner_execution
 from agent_runtime.storage.sqlite import (
     EXPECTED_WORKFLOW_RUN_COLUMNS,
     WorkflowRunRecord,
@@ -198,7 +199,9 @@ def test_upsert_workflow_run_round_trips_extended_columns() -> None:
             blocked_reason=None,
             last_action="run_review",
             runner_name="review",
+            runner_status="prepared",
             details={"pr_url": "https://github.com/tomanizer/risk-manager/pull/51"},
+            result={"summary": "Prepared review handoff."},
         )
 
         upsert_workflow_run(db_path, record)
@@ -350,6 +353,30 @@ def test_build_runner_execution_preserves_decision_metadata() -> None:
     assert execution is not None
     assert execution.runner_name is RunnerName.CODING
     assert execution.metadata["ci_status"] == "FAILURE"
+
+
+def test_dispatch_runner_execution_returns_prepared_result() -> None:
+    snapshot = RuntimeSnapshot(
+        work_items=(
+            WorkItemSnapshot(
+                id="WI-1.1.4-risk-summary-core-service",
+                title="WI-1.1.4",
+                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
+                stage=WorkItemStage.READY,
+            ),
+        )
+    )
+
+    decision = decide_next_action(snapshot)
+    execution = build_runner_execution(snapshot, decision)
+
+    assert execution is not None
+    result = dispatch_runner_execution(execution)
+
+    assert result.runner_name is RunnerName.PM
+    assert result.status is RunnerDispatchStatus.PREPARED
+    assert "Prepared PM readiness handoff" in result.summary
+    assert result.details["target_path"].endswith("WI-1.1.4-risk-summary-core-service.md")
 
 
 def test_build_pull_request_snapshots_uses_exact_work_item_matching() -> None:
