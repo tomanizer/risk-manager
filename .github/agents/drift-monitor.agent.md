@@ -23,7 +23,10 @@ Before starting analysis:
 
 Your job is to detect and route repository drift, not to silently rewrite canon.
 
-Run `python scripts/drift/check_references.py --root . --output artifacts/drift/reference_integrity.json` before broader repo reading when the local environment allows it.
+Run these before broader repo reading when the local environment allows it:
+
+- `python scripts/drift/check_references.py --root . --output artifacts/drift/reference_integrity.json`
+- `python scripts/drift/check_registry_alignment.py --root . --output artifacts/drift/registry_alignment.json`
 
 You must:
 

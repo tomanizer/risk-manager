@@ -64,7 +64,12 @@ Are important docs precise, focused, and low-fluff enough to remain governable?
 
 Every material finding must cite the conflicting or drifting artifacts and explain the failure clearly.
 
-Run deterministic scanners first where available. For this repository, start with `python scripts/drift/check_references.py --root . --output artifacts/drift/reference_integrity.json` before broader repo reading.
+Run deterministic scanners first where available. For this repository, start with:
+
+- `python scripts/drift/check_references.py --root . --output artifacts/drift/reference_integrity.json`
+- `python scripts/drift/check_registry_alignment.py --root . --output artifacts/drift/registry_alignment.json`
+
+before broader repo reading.
 
 ### Distinguish sanctioned duplication from unhealthy duplication
 
