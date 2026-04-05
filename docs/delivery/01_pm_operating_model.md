@@ -58,6 +58,10 @@ Route to spec or methodology work when the coding agent would otherwise need to 
 
 Escalate to a human when the question is fundamentally about product intent, architectural ownership, governance policy, or methodology choice rather than implementation detail.
 
+### Route to repository maintenance
+
+Route to repository maintenance when drift-monitor findings concern packaging, CI configuration, dependency hygiene, tooling gaps, or test-harness plumbing that do not require a PRD or architecture decision. Convert the finding into a bounded work item and track it as a maintenance backlog item.
+
 ## Required output shape
 
 Every PM readiness pass should produce:

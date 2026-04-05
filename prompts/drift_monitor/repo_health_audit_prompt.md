@@ -33,10 +33,10 @@ Rules:
 Return:
 
 1. overall repo health status: `HEALTHY`, `WATCH`, or `DRIFTING`
-2. critical findings
-3. major findings
-4. minor findings
-5. drift class for each material finding
-6. sanctioned duplication noted as acceptable
-7. recommended owner for each material finding
+2. findings by severity (critical, major, minor)
+3. evidence for each material finding
+4. drift class for each material finding
+5. why each finding matters
+6. owner and routing recommendation for each material finding
+7. whether any duplication is sanctioned and acceptable
 8. smallest next action for each critical or major finding

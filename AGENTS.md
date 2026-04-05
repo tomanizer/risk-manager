@@ -43,7 +43,7 @@ This repository uses AI agents for PRD authoring, issue decomposition, implement
 - detects contradictory, duplicated, stale, sprawling, or weakly governed content
 - distinguishes sanctioned duplication from conflicting duplication
 - reports design drift, technical boundary erosion, and source-of-truth ambiguity with evidence
-- routes findings to PM, PRD, methodology/spec, coding, review, or human decision
+- routes findings to PM, PRD, methodology/spec, coding, review, repository maintenance, or human decision
 - does not silently rewrite canon, approve merge readiness, or widen implementation scope on its own
 
 ### PM / Coordination Agent

@@ -9,8 +9,8 @@ The drift monitor is a repo-health auditor, not a coding agent, not a PR reviewe
 ## Required reading order
 
 1. `AGENTS.md`
-2. `docs/01_mission_and_design_principles.md`
-3. `docs/00_tom_overview.md`
+2. `docs/00_tom_overview.md`
+3. `docs/01_mission_and_design_principles.md`
 4. `docs/delivery/05_repo_drift_monitoring.md`
 5. `docs/guides/repo_health_audit_checklist.md`
 6. `docs/registry/current_state_registry.yaml`
@@ -89,6 +89,17 @@ For each material finding, say whether it is mainly:
 - operational-instruction drift
 - maturity or status drift
 
+## Stop conditions
+
+Stop and surface the problem rather than producing a partial output when:
+
+- the registry (`docs/registry/current_state_registry.yaml`) is missing or unreadable
+- a canon or PRD file referenced during the audit does not exist
+- the evidence for a finding is genuinely ambiguous and cannot be resolved by reading existing artifacts
+- the finding would require an architectural or policy decision that belongs to a human or PM
+
+In these cases, report the audit as incomplete, identify which area could not be audited and why, and route the blocker to the appropriate owner.
+
 ## Forbidden behavior
 
 - rewriting canon without explicit instruction
@@ -102,10 +113,10 @@ For each material finding, say whether it is mainly:
 Return:
 
 1. overall repo health status: `HEALTHY`, `WATCH`, or `DRIFTING`
-2. critical findings
-3. major findings
-4. minor findings
-5. drift class for each material finding
-6. sanctioned duplication or acceptable overlap
-7. recommended owner for each material finding
+2. findings by severity (critical, major, minor)
+3. evidence for each material finding
+4. drift class for each material finding
+5. why each finding matters
+6. owner and routing recommendation for each material finding
+7. whether any duplication is sanctioned and acceptable
 8. smallest next action for each critical or major finding to restore coherence

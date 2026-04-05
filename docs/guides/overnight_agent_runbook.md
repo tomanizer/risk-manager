@@ -143,6 +143,7 @@ Inputs:
 - `AGENTS.md`
 - `docs/delivery/05_repo_drift_monitoring.md`
 - `docs/guides/repo_health_audit_checklist.md`
+- `prompts/drift_monitor/repo_health_audit_prompt.md`
 - `docs/registry/current_state_registry.yaml`
 - relevant canon, prompt, work-item, source, and test artifacts
 
