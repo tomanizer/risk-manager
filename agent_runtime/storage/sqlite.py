@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 import json
 
@@ -58,7 +58,7 @@ class WorkflowRunRecord:
     runner_name: str | None = None
     runner_status: str | None = None
     details: dict[str, str] | None = None
-    result: dict[str, str] | None = None
+    result: dict[str, object] = field(default_factory=dict)
 
 
 def _verify_workflow_runs_schema(connection: sqlite3.Connection) -> None:
@@ -134,7 +134,7 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
                 record.runner_name,
                 record.runner_status,
                 json.dumps(record.details or {}, sort_keys=True),
-                json.dumps(record.result or {}, sort_keys=True),
+                json.dumps(record.result, sort_keys=True),
             ),
         )
         connection.commit()
@@ -173,7 +173,7 @@ def load_workflow_run(db_path: Path, work_item_id: str) -> WorkflowRunRecord | N
             details_payload = json.loads(details_json)
         except json.JSONDecodeError:
             details_payload = {}
-    result_payload = {}
+    result_payload: object = {}
     result_json = row["result_json"]
     if result_json:
         try:
@@ -181,7 +181,7 @@ def load_workflow_run(db_path: Path, work_item_id: str) -> WorkflowRunRecord | N
         except json.JSONDecodeError:
             result_payload = {}
     details = details_payload if isinstance(details_payload, dict) else {}
-    result = result_payload if isinstance(result_payload, dict) else {}
+    result = {str(key): value for key, value in result_payload.items()} if isinstance(result_payload, dict) else {}
     return WorkflowRunRecord(
         work_item_id=str(row["work_item_id"]),
         branch_name=str(row["branch_name"]) if row["branch_name"] is not None else None,
@@ -192,5 +192,5 @@ def load_workflow_run(db_path: Path, work_item_id: str) -> WorkflowRunRecord | N
         runner_name=str(row["runner_name"]) if row["runner_name"] is not None else None,
         runner_status=str(row["runner_status"]) if row["runner_status"] is not None else None,
         details={str(key): str(value) for key, value in details.items()},
-        result={str(key): str(value) for key, value in result.items()},
+        result=result,
     )

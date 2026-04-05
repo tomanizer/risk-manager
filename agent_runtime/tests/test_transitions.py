@@ -201,7 +201,7 @@ def test_upsert_workflow_run_round_trips_extended_columns() -> None:
             runner_name="review",
             runner_status="prepared",
             details={"pr_url": "https://github.com/tomanizer/risk-manager/pull/51"},
-            result={"summary": "Prepared review handoff."},
+            result={"summary": "Prepared review handoff.", "details": {"pr_url": "https://github.com/tomanizer/risk-manager/pull/51"}},
         )
 
         upsert_workflow_run(db_path, record)

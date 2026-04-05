@@ -108,10 +108,10 @@ def main() -> int:
                     {
                         "summary": runner_result.summary,
                         "prompt": runner_result.prompt,
-                        **dict(runner_result.details),
+                        "details": dict(runner_result.details),
                     }
                     if runner_result is not None
-                    else None
+                    else {}
                 ),
             ),
         )
