@@ -48,6 +48,8 @@ Implement `get_risk_summary`, `get_risk_delta`, and the first-order status logic
 - explicit missing compare handling
 - status precedence follows PRD-1.1-v2
 - no collapse of `RiskDelta` into `RiskSummary`
+- `get_risk_delta` populates top-level `node_level`, `hierarchy_scope`, and `legal_entity_id` directly from `node_ref` without divergence
+- this slice introduces no new evidence/trace fields beyond the approved replay/version metadata
 - tests included
 
 ## Suggested Agent
