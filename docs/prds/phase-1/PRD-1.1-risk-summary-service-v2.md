@@ -172,7 +172,7 @@ These apply to `get_risk_summary`, `get_risk_delta`, and `get_risk_change_profil
 - the default `lookback_window` is measured in business days from the canonical risk calendar
 - the default `lookback_window` is anchored on `as_of_date`
 - the default `lookback_window` includes `as_of_date`
-- `lookback_window` does not apply to `get_risk_delta`
+- lookback_window and require_complete do not apply to get_risk_delta
 - if `require_complete=true`, partial results must return an explicit degraded error/status
 - if `snapshot_id` is provided for as-of-date retrieval, retrieval must be pinned to that snapshot
 - if `hierarchy_scope = TOP_OF_HOUSE`, `legal_entity_id` must be null
