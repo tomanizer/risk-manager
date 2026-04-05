@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+from fnmatch import fnmatch
 from pathlib import Path
 import re
 import subprocess
@@ -84,6 +85,7 @@ def build_reference_scan_report(root: Path) -> ReferenceScanReport:
     findings: list[ReferenceFinding] = []
     files_scanned = 0
     references_checked = 0
+    sanctioned_generated_outputs = _documented_generated_artifact_paths(repo_root)
 
     for source_file in _tracked_text_files(repo_root):
         files_scanned += 1
@@ -109,6 +111,8 @@ def build_reference_scan_report(root: Path) -> ReferenceScanReport:
                     )
                     continue
                 if not resolved.exists():
+                    if normalized in sanctioned_generated_outputs:
+                        continue
                     _append_missing_reference_finding(
                         findings=findings,
                         repo_root=repo_root,
@@ -201,6 +205,60 @@ def _append_missing_reference_finding(
             message=message,
         )
     )
+
+
+def _documented_generated_artifact_paths(root: Path) -> frozenset[str]:
+    ignored_artifact_patterns = _ignored_generated_artifact_patterns(root)
+    artifacts_root = root / "artifacts"
+    if not ignored_artifact_patterns or not artifacts_root.is_dir():
+        return frozenset()
+
+    documented_paths: set[str] = set()
+    for readme_path in sorted(artifacts_root.rglob("README.md")):
+        try:
+            lines = readme_path.read_text(encoding="utf-8").splitlines()
+        except UnicodeDecodeError:
+            continue
+
+        in_output_section = False
+        for line in lines:
+            stripped = line.strip()
+            if stripped.endswith(":"):
+                in_output_section = stripped == "Recommended local output paths:"
+                continue
+            if not in_output_section:
+                continue
+            if not stripped.startswith("- "):
+                if stripped:
+                    in_output_section = False
+                continue
+            for raw_reference in _extract_references(stripped):
+                normalized = _normalize_reference(raw_reference)
+                if normalized is None:
+                    continue
+                if _matches_ignored_artifact_pattern(normalized, ignored_artifact_patterns):
+                    documented_paths.add(normalized)
+    return frozenset(documented_paths)
+
+
+def _ignored_generated_artifact_patterns(root: Path) -> tuple[str, ...]:
+    gitignore_path = root / ".gitignore"
+    if not gitignore_path.is_file():
+        return ()
+
+    patterns: list[str] = []
+    for line in gitignore_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith(("#", "!")):
+            continue
+        normalized = stripped.removeprefix("./").rstrip("/")
+        if normalized.startswith("artifacts/"):
+            patterns.append(normalized)
+    return tuple(patterns)
+
+
+def _matches_ignored_artifact_pattern(reference: str, patterns: tuple[str, ...]) -> bool:
+    return any(fnmatch(reference, pattern) for pattern in patterns)
 
 
 def _normalize_reference(raw_reference: str) -> str | None:
