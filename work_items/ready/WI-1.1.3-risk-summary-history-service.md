@@ -45,6 +45,7 @@ Implement history retrieval for a node and measure.
 - invalid date ranges fail explicitly and do not fabricate a `RiskHistorySeries`
 - if `snapshot_id` is provided, it is treated as the history-request anchor snapshot and must resolve to `end_date`
 - returned history points are ordered ascending by date and remain within the inclusive requested range
+- unsupported measure handling is explicit and returns `UNSUPPORTED_MEASURE` when surfaced as a service response
 - missing snapshot returns `MISSING_SNAPSHOT`
 - missing node returns `MISSING_NODE`
 - zero valid points in range returns `MISSING_HISTORY`

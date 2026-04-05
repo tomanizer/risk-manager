@@ -332,7 +332,7 @@ Rules:
 
 For `RiskHistorySeries`, status precedence is:
 
-1. typed request validation failure
+1. `UNSUPPORTED_MEASURE`
 2. `MISSING_SNAPSHOT`
 3. `MISSING_NODE`
 4. `DEGRADED`
