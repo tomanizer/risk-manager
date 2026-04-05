@@ -52,3 +52,33 @@ A governed collection of shocks used together for a VaR or scenario run.
 
 ### Shock Lineage
 The deterministic provenance linking source data, transformation, factor mapping, shock set, and downstream risk outputs.
+
+### Weighted Historical Simulation
+A historical-simulation VaR variant that applies greater weight to more recent observations rather than using equal weight across the lookback window.
+
+### Filtered Historical Simulation
+A historical-simulation VaR variant that adjusts historical returns for changing volatility before using them in the loss distribution.
+
+### Full Revaluation
+Repricing positions under each scenario using pricing logic rather than relying only on local sensitivities.
+
+### Grid Methodology
+An approximation-based VaR repricing approach that uses precomputed valuation grids, factor-sensitivity grids, or stored portfolio-value grids and interpolates on those grids during calculation. In industry usage it may also be called grid calculation or grid valuation.
+
+### Stressed VaR
+A VaR measure calibrated to stressed market conditions, introduced in Basel 2.5 as a supplement to plain VaR for market-risk capital.
+
+### Expected Shortfall
+The average loss beyond a chosen tail threshold, used in the FRTB internal-models framework instead of VaR for market-risk capital measurement.
+
+### Liquidity Horizon
+The time assumed to exit or hedge a risk factor under stressed market conditions without materially affecting market prices.
+
+### Stress Window
+A governed historical period or calibration window chosen to represent stressed market conditions for risk measurement or capital purposes.
+
+### P&L Attribution
+A regulatory validation test comparing Risk-Theoretical P&L (RTPL) and Hypothetical P&L (HPL) to assess whether an internal market-risk model captures the risk drivers used in front-office pricing.
+
+### Non-Modellable Risk Factor
+A risk factor that lacks sufficient real-price observations for internal-model treatment under the FRTB framework and therefore requires separate capital treatment.

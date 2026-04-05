@@ -10,6 +10,7 @@ These documents exist so the repository does not drift into generic software lan
 
 - `01_var_methodology_overview.md`
 - `02_historical_simulation_and_shocks.md`
+- `03_advanced_var_methodologies_and_constraints.md`
 
 ## Rule
 

@@ -32,6 +32,7 @@ If the task is methodology-heavy, also read:
 
 - `docs/methodology/01_var_methodology_overview.md`
 - `docs/methodology/02_historical_simulation_and_shocks.md`
+- `docs/methodology/03_advanced_var_methodologies_and_constraints.md`
 - `docs/guides/risk_methodology_review_checklist.md`
 
 ## Review priorities
