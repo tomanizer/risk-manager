@@ -31,7 +31,9 @@ from agent_runtime.storage.sqlite import (
     EXPECTED_WORKTREE_LEASE_COLUMNS,
     WorkflowRunRecord,
     initialize_database,
+    load_workflow_run_by_run_id,
     load_workflow_run,
+    record_workflow_outcome,
     upsert_workflow_run,
 )
 
@@ -197,6 +199,7 @@ def test_upsert_workflow_run_round_trips_extended_columns() -> None:
         db_path = Path(temp_dir) / "runtime" / "state.db"
         record = WorkflowRunRecord(
             work_item_id="WI-1.1.4-risk-summary-core-service",
+            run_id="pm-wi-1-1-4-test-run",
             branch_name="codex/WI-1.1.4-risk-summary-core-service",
             pr_number=51,
             status="run_review",
@@ -212,6 +215,53 @@ def test_upsert_workflow_run_round_trips_extended_columns() -> None:
         loaded = load_workflow_run(db_path, record.work_item_id)
 
         assert loaded == record
+
+
+def test_record_workflow_outcome_updates_run_by_run_id() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "runtime" / "state.db"
+        record = WorkflowRunRecord(
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            run_id="pm-wi-1-1-4-test-run",
+            branch_name="codex/WI-1.1.4-risk-summary-core-service",
+            status="run_pm",
+            last_action="run_pm",
+            runner_name="pm",
+            runner_status="prepared",
+        )
+        upsert_workflow_run(db_path, record)
+
+        updated = record_workflow_outcome(
+            db_path,
+            "pm-wi-1-1-4-test-run",
+            "split_required",
+            "Need to split WI-1.1.4 before coding.",
+            {"recommended_next_step": "update_work_item"},
+        )
+
+        assert updated is not None
+        assert updated.runner_status == "completed"
+        assert updated.outcome_status == "split_required"
+        assert updated.outcome_summary == "Need to split WI-1.1.4 before coding."
+        assert updated.outcome_details["recommended_next_step"] == "update_work_item"
+        assert updated.completed_at is not None
+
+        loaded = load_workflow_run_by_run_id(db_path, "pm-wi-1-1-4-test-run")
+        assert loaded == updated
+
+
+def test_record_workflow_outcome_returns_none_for_unknown_run() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "runtime" / "state.db"
+
+        updated = record_workflow_outcome(
+            db_path,
+            "missing-run",
+            "blocked",
+            "No matching run exists.",
+        )
+
+        assert updated is None
 
 
 def test_parse_github_remote_supports_ssh_and_https() -> None:

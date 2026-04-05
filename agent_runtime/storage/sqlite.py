@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
-import json
 
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS workflow_runs (
     work_item_id TEXT PRIMARY KEY,
+    run_id TEXT,
     branch_name TEXT,
     pr_number INTEGER,
     status TEXT NOT NULL,
@@ -18,8 +19,12 @@ CREATE TABLE IF NOT EXISTS workflow_runs (
     last_action TEXT,
     runner_name TEXT,
     runner_status TEXT,
+    outcome_status TEXT,
+    outcome_summary TEXT,
     details_json TEXT NOT NULL DEFAULT '{}',
     result_json TEXT NOT NULL DEFAULT '{}',
+    outcome_details_json TEXT NOT NULL DEFAULT '{}',
+    completed_at TEXT,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -42,6 +47,7 @@ WHERE status = 'active';
 
 EXPECTED_WORKFLOW_RUN_COLUMNS = (
     "work_item_id",
+    "run_id",
     "branch_name",
     "pr_number",
     "status",
@@ -49,8 +55,12 @@ EXPECTED_WORKFLOW_RUN_COLUMNS = (
     "last_action",
     "runner_name",
     "runner_status",
+    "outcome_status",
+    "outcome_summary",
     "details_json",
     "result_json",
+    "outcome_details_json",
+    "completed_at",
     "updated_at",
 )
 
@@ -67,11 +77,16 @@ EXPECTED_WORKTREE_LEASE_COLUMNS = (
 )
 
 _DEFAULT_COLUMN_DEFINITIONS = {
+    "run_id": "TEXT",
     "last_action": "TEXT",
     "runner_name": "TEXT",
     "runner_status": "TEXT",
+    "outcome_status": "TEXT",
+    "outcome_summary": "TEXT",
     "details_json": "TEXT NOT NULL DEFAULT '{}'",
     "result_json": "TEXT NOT NULL DEFAULT '{}'",
+    "outcome_details_json": "TEXT NOT NULL DEFAULT '{}'",
+    "completed_at": "TEXT",
 }
 
 
@@ -79,14 +94,19 @@ _DEFAULT_COLUMN_DEFINITIONS = {
 class WorkflowRunRecord:
     work_item_id: str
     status: str
+    run_id: str | None = None
     branch_name: str | None = None
     pr_number: int | None = None
     blocked_reason: str | None = None
     last_action: str | None = None
     runner_name: str | None = None
     runner_status: str | None = None
+    outcome_status: str | None = None
+    outcome_summary: str | None = None
     details: dict[str, str] | None = None
     result: dict[str, object] = field(default_factory=dict)
+    outcome_details: dict[str, object] = field(default_factory=dict)
+    completed_at: str | None = None
 
 
 @dataclass(frozen=True)
@@ -153,6 +173,7 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
             """
             INSERT INTO workflow_runs (
                 work_item_id,
+                run_id,
                 branch_name,
                 pr_number,
                 status,
@@ -160,12 +181,17 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
                 last_action,
                 runner_name,
                 runner_status,
+                outcome_status,
+                outcome_summary,
                 details_json,
                 result_json,
+                outcome_details_json,
+                completed_at,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(work_item_id) DO UPDATE SET
+                run_id = excluded.run_id,
                 branch_name = excluded.branch_name,
                 pr_number = excluded.pr_number,
                 status = excluded.status,
@@ -173,12 +199,17 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
                 last_action = excluded.last_action,
                 runner_name = excluded.runner_name,
                 runner_status = excluded.runner_status,
+                outcome_status = excluded.outcome_status,
+                outcome_summary = excluded.outcome_summary,
                 details_json = excluded.details_json,
                 result_json = excluded.result_json,
+                outcome_details_json = excluded.outcome_details_json,
+                completed_at = excluded.completed_at,
                 updated_at = CURRENT_TIMESTAMP
             """,
             (
                 record.work_item_id,
+                record.run_id,
                 record.branch_name,
                 record.pr_number,
                 record.status,
@@ -186,8 +217,12 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
                 record.last_action,
                 record.runner_name,
                 record.runner_status,
+                record.outcome_status,
+                record.outcome_summary,
                 json.dumps(record.details or {}, sort_keys=True),
                 json.dumps(record.result, sort_keys=True),
+                json.dumps(record.outcome_details, sort_keys=True),
+                record.completed_at,
             ),
         )
         connection.commit()
@@ -201,6 +236,7 @@ def load_workflow_run(db_path: Path, work_item_id: str) -> WorkflowRunRecord | N
             """
             SELECT
                 work_item_id,
+                run_id,
                 branch_name,
                 pr_number,
                 status,
@@ -208,45 +244,83 @@ def load_workflow_run(db_path: Path, work_item_id: str) -> WorkflowRunRecord | N
                 last_action,
                 runner_name,
                 runner_status,
+                outcome_status,
+                outcome_summary,
                 details_json,
-                result_json
+                result_json,
+                outcome_details_json,
+                completed_at
             FROM workflow_runs
             WHERE work_item_id = ?
             """,
             (work_item_id,),
         ).fetchone()
 
-    if row is None:
-        return None
+    return _row_to_workflow_run(row)
 
-    details_payload = {}
-    details_json = row["details_json"]
-    if details_json:
-        try:
-            details_payload = json.loads(details_json)
-        except json.JSONDecodeError:
-            details_payload = {}
-    result_payload: object = {}
-    result_json = row["result_json"]
-    if result_json:
-        try:
-            result_payload = json.loads(result_json)
-        except json.JSONDecodeError:
-            result_payload = {}
-    details = details_payload if isinstance(details_payload, dict) else {}
-    result = {str(key): value for key, value in result_payload.items()} if isinstance(result_payload, dict) else {}
-    return WorkflowRunRecord(
-        work_item_id=str(row["work_item_id"]),
-        branch_name=str(row["branch_name"]) if row["branch_name"] is not None else None,
-        pr_number=int(row["pr_number"]) if row["pr_number"] is not None else None,
-        status=str(row["status"]),
-        blocked_reason=str(row["blocked_reason"]) if row["blocked_reason"] is not None else None,
-        last_action=str(row["last_action"]) if row["last_action"] is not None else None,
-        runner_name=str(row["runner_name"]) if row["runner_name"] is not None else None,
-        runner_status=str(row["runner_status"]) if row["runner_status"] is not None else None,
-        details={str(key): str(value) for key, value in details.items()},
-        result=result,
-    )
+
+def load_workflow_run_by_run_id(db_path: Path, run_id: str) -> WorkflowRunRecord | None:
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as connection:
+        connection.row_factory = sqlite3.Row
+        row = connection.execute(
+            """
+            SELECT
+                work_item_id,
+                run_id,
+                branch_name,
+                pr_number,
+                status,
+                blocked_reason,
+                last_action,
+                runner_name,
+                runner_status,
+                outcome_status,
+                outcome_summary,
+                details_json,
+                result_json,
+                outcome_details_json,
+                completed_at
+            FROM workflow_runs
+            WHERE run_id = ?
+            """,
+            (run_id,),
+        ).fetchone()
+
+    return _row_to_workflow_run(row)
+
+
+def record_workflow_outcome(
+    db_path: Path,
+    run_id: str,
+    outcome_status: str,
+    outcome_summary: str,
+    outcome_details: dict[str, object] | None = None,
+) -> WorkflowRunRecord | None:
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            UPDATE workflow_runs
+            SET
+                runner_status = 'completed',
+                outcome_status = ?,
+                outcome_summary = ?,
+                outcome_details_json = ?,
+                completed_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE run_id = ?
+            """,
+            (
+                outcome_status,
+                outcome_summary,
+                json.dumps(outcome_details or {}, sort_keys=True),
+                run_id,
+            ),
+        )
+        connection.commit()
+
+    return load_workflow_run_by_run_id(db_path, run_id)
 
 
 def insert_worktree_lease(db_path: Path, record: WorktreeLeaseRecord) -> None:
@@ -370,4 +444,58 @@ def _row_to_worktree_lease(row: sqlite3.Row | None) -> WorktreeLeaseRecord | Non
         status=str(row["status"]),
         created_at=str(row["created_at"]) if row["created_at"] is not None else None,
         released_at=str(row["released_at"]) if row["released_at"] is not None else None,
+    )
+
+
+def _row_to_workflow_run(row: sqlite3.Row | None) -> WorkflowRunRecord | None:
+    if row is None:
+        return None
+
+    details_payload: object = {}
+    details_json = row["details_json"]
+    if details_json:
+        try:
+            details_payload = json.loads(details_json)
+        except json.JSONDecodeError:
+            details_payload = {}
+
+    result_payload: object = {}
+    result_json = row["result_json"]
+    if result_json:
+        try:
+            result_payload = json.loads(result_json)
+        except json.JSONDecodeError:
+            result_payload = {}
+
+    outcome_details_payload: object = {}
+    outcome_details_json = row["outcome_details_json"]
+    if outcome_details_json:
+        try:
+            outcome_details_payload = json.loads(outcome_details_json)
+        except json.JSONDecodeError:
+            outcome_details_payload = {}
+
+    details = details_payload if isinstance(details_payload, dict) else {}
+    result = {str(key): value for key, value in result_payload.items()} if isinstance(result_payload, dict) else {}
+    outcome_details = (
+        {str(key): value for key, value in outcome_details_payload.items()}
+        if isinstance(outcome_details_payload, dict)
+        else {}
+    )
+    return WorkflowRunRecord(
+        work_item_id=str(row["work_item_id"]),
+        run_id=str(row["run_id"]) if row["run_id"] is not None else None,
+        branch_name=str(row["branch_name"]) if row["branch_name"] is not None else None,
+        pr_number=int(row["pr_number"]) if row["pr_number"] is not None else None,
+        status=str(row["status"]),
+        blocked_reason=str(row["blocked_reason"]) if row["blocked_reason"] is not None else None,
+        last_action=str(row["last_action"]) if row["last_action"] is not None else None,
+        runner_name=str(row["runner_name"]) if row["runner_name"] is not None else None,
+        runner_status=str(row["runner_status"]) if row["runner_status"] is not None else None,
+        outcome_status=str(row["outcome_status"]) if row["outcome_status"] is not None else None,
+        outcome_summary=str(row["outcome_summary"]) if row["outcome_summary"] is not None else None,
+        details={str(key): str(value) for key, value in details.items()},
+        result=result,
+        outcome_details=outcome_details,
+        completed_at=str(row["completed_at"]) if row["completed_at"] is not None else None,
     )

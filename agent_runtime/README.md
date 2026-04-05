@@ -91,6 +91,20 @@ both the execution metadata and the runner result.
 The lease is intentionally kept active after dispatch so a later execution layer
 can continue from the same isolated checkout.
 
+## Record the real manual outcome
+
+```bash
+.venv/bin/python -m agent_runtime \
+  --complete-run <run_id> \
+  --outcome-status split_required \
+  --summary "Need to split WI-1.1.4 before coding."
+```
+
+This updates the stored workflow run with the human-reviewed result of the real
+PM/spec/coding/review session. Use `--outcome-details-json` when you need a
+small structured payload, and `--release-after-complete` when the worktree is
+finished.
+
 ## Release a completed runner worktree
 
 ```bash
@@ -99,6 +113,47 @@ can continue from the same isolated checkout.
 
 Use this when a runner has finished and its isolated worktree is no longer
 needed.
+
+## Semi-Automatic Supervised Workflow
+
+The current runtime is designed for a semi-automatic loop:
+
+1. Ask the runtime what should happen next and allocate the isolated worktree:
+
+```bash
+.venv/bin/python -m agent_runtime --dispatch
+```
+
+2. Open the returned `worktree.path` and run the real PM/spec/coding/review agent
+manually in that isolated checkout using the returned `runner.prompt`.
+
+3. When that manual agent session finishes, record the reviewed outcome back into
+the runtime:
+
+```bash
+.venv/bin/python -m agent_runtime \
+  --complete-run <run_id> \
+  --outcome-status split_required \
+  --summary "Need to split WI-1.1.4 before coding." \
+  --outcome-details-json '{"recommended_next_step":"update_work_item"}'
+```
+
+4. If the run is finished and the isolated checkout is no longer needed, release
+it in the same step:
+
+```bash
+.venv/bin/python -m agent_runtime \
+  --complete-run <run_id> \
+  --outcome-status split_required \
+  --summary "Need to split WI-1.1.4 before coding." \
+  --release-after-complete
+```
+
+This keeps the runtime state authoritative even before real agent API execution
+is wired in.
+
+For the detailed operator recipe, see
+[manual_supervisor_workflow.md](/Users/thomas/Documents/Projects/risk-manager-worktrees/runtime-manual-outcomes/agent_runtime/manual_supervisor_workflow.md).
 
 The live mode now combines:
 
