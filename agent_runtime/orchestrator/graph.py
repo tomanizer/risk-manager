@@ -87,7 +87,14 @@ def main() -> int:
                 blocked_reason=decision.reason if decision.action is NextActionType.RUN_SPEC else None,
                 last_action=decision.action.value,
                 runner_name=execution.runner_name.value if execution is not None else None,
-                details=(execution.metadata if execution is not None else dict(decision.metadata)),
+                details=(
+                    {
+                        **dict(decision.metadata),
+                        **dict(execution.metadata),
+                    }
+                    if execution is not None
+                    else dict(decision.metadata)
+                ),
             ),
         )
 
