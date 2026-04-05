@@ -20,23 +20,17 @@ def validate_calendar(calendar: tuple[date, ...]) -> tuple[date, ...]:
     if not calendar:
         raise BusinessDayResolutionError("calendar must not be empty")
     if any(calendar[index] >= calendar[index + 1] for index in range(len(calendar) - 1)):
-        raise BusinessDayResolutionError(
-            "calendar must be sorted ascending and contain no duplicates"
-        )
+        raise BusinessDayResolutionError("calendar must be sorted ascending and contain no duplicates")
     return calendar
 
 
 def resolve_prior_business_day(as_of_date: date, calendar: tuple[date, ...]) -> date:
     index = bisect.bisect_left(calendar, as_of_date)
     if index >= len(calendar) or calendar[index] != as_of_date:
-        raise BusinessDayResolutionError(
-            f"as_of_date {as_of_date.isoformat()} is not present in the supplied calendar"
-        )
+        raise BusinessDayResolutionError(f"as_of_date {as_of_date.isoformat()} is not present in the supplied calendar")
 
     if index == 0:
-        raise BusinessDayResolutionError(
-            f"as_of_date {as_of_date.isoformat()} has no prior business day in the supplied calendar"
-        )
+        raise BusinessDayResolutionError(f"as_of_date {as_of_date.isoformat()} has no prior business day in the supplied calendar")
 
     return calendar[index - 1]
 

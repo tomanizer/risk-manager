@@ -47,9 +47,7 @@ class FixtureLoaderTestCase(unittest.TestCase):
                     legal_entities.add(row.node_ref.legal_entity_id)
 
         self.assertEqual(scopes, {HierarchyScope.TOP_OF_HOUSE, HierarchyScope.LEGAL_ENTITY})
-        self.assertTrue(
-            {NodeLevel.FIRM, NodeLevel.DIVISION, NodeLevel.DESK, NodeLevel.BOOK}.issubset(levels)
-        )
+        self.assertTrue({NodeLevel.FIRM, NodeLevel.DIVISION, NodeLevel.DESK, NodeLevel.BOOK}.issubset(levels))
         self.assertEqual(legal_entities, {"LE-UK-BANK", "LE-US-BROKER"})
 
     def test_same_logical_desk_differs_by_legal_entity(self) -> None:
@@ -91,12 +89,8 @@ class FixtureLoaderTestCase(unittest.TestCase):
             node_name="Rates Macro",
         )
 
-        top_of_house_row = self.index.get_row(
-            "SNAP-2026-01-09", top_of_house_desk, MeasureType.VAR_1D_99
-        )
-        legal_entity_row = self.index.get_row(
-            "SNAP-2026-01-09", legal_entity_desk, MeasureType.VAR_1D_99
-        )
+        top_of_house_row = self.index.get_row("SNAP-2026-01-09", top_of_house_desk, MeasureType.VAR_1D_99)
+        legal_entity_row = self.index.get_row("SNAP-2026-01-09", legal_entity_desk, MeasureType.VAR_1D_99)
 
         self.assertIsNotNone(top_of_house_row)
         self.assertIsNotNone(legal_entity_row)
@@ -111,12 +105,8 @@ class FixtureLoaderTestCase(unittest.TestCase):
             node_name="New Issues",
         )
 
-        self.assertIsNone(
-            self.index.get_row_by_date(date(2026, 1, 6), node_ref, MeasureType.VAR_1D_99)
-        )
-        self.assertIsNotNone(
-            self.index.get_row_by_date(date(2026, 1, 8), node_ref, MeasureType.VAR_1D_99)
-        )
+        self.assertIsNone(self.index.get_row_by_date(date(2026, 1, 6), node_ref, MeasureType.VAR_1D_99))
+        self.assertIsNotNone(self.index.get_row_by_date(date(2026, 1, 8), node_ref, MeasureType.VAR_1D_99))
 
     def test_zero_prior_and_degraded_snapshot_cases_are_present(self) -> None:
         node_ref = NodeRef(
@@ -170,14 +160,10 @@ class FixtureLoaderTestCase(unittest.TestCase):
         )
 
         elevated_values = [
-            self.index.get_row_by_date(
-                as_of_date, elevated_volatility_node, MeasureType.VAR_1D_99
-            ).value
-            for as_of_date in self.pack.calendar
+            self.index.get_row_by_date(as_of_date, elevated_volatility_node, MeasureType.VAR_1D_99).value for as_of_date in self.pack.calendar
         ]
         stable_values = [
-            self.index.get_row_by_date(as_of_date, stable_context_node, MeasureType.VAR_1D_99).value
-            for as_of_date in self.pack.calendar
+            self.index.get_row_by_date(as_of_date, stable_context_node, MeasureType.VAR_1D_99).value for as_of_date in self.pack.calendar
         ]
 
         self.assertEqual(elevated_values[-2:], [95.0, 98.0])
