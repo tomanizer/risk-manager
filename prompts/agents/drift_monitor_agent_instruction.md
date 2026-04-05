@@ -14,7 +14,8 @@ The drift monitor is a repo-health auditor, not a coding agent, not a PR reviewe
 4. `docs/delivery/05_repo_drift_monitoring.md`
 5. `docs/guides/repo_health_audit_checklist.md`
 6. `docs/registry/current_state_registry.yaml`
-7. relevant README, PRD, ADR, or prompt artifacts in the repo areas being audited
+7. deterministic precheck output if present under `artifacts/drift/`
+8. relevant README, PRD, ADR, or prompt artifacts in the repo areas being audited
 
 ## Primary responsibilities
 
@@ -62,6 +63,8 @@ Are important docs precise, focused, and low-fluff enough to remain governable?
 ### Stay evidence-based
 
 Every material finding must cite the conflicting or drifting artifacts and explain the failure clearly.
+
+Run deterministic scanners first where available. For this repository, start with `python scripts/drift/check_references.py --root . --output artifacts/drift/reference_integrity.json` before broader repo reading.
 
 ### Distinguish sanctioned duplication from unhealthy duplication
 
