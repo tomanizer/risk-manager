@@ -13,9 +13,23 @@ class RunnerName(str, Enum):
     REVIEW = "review"
 
 
+class RunnerDispatchStatus(str, Enum):
+    PREPARED = "prepared"
+
+
 @dataclass(frozen=True)
 class RunnerExecution:
     runner_name: RunnerName
     work_item_id: str
     prompt: str
     metadata: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class RunnerResult:
+    runner_name: RunnerName
+    work_item_id: str
+    status: RunnerDispatchStatus
+    summary: str
+    prompt: str
+    details: dict[str, str] = field(default_factory=dict)

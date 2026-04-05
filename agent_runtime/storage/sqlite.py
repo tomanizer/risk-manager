@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 import json
 
@@ -17,7 +17,9 @@ CREATE TABLE IF NOT EXISTS workflow_runs (
     blocked_reason TEXT,
     last_action TEXT,
     runner_name TEXT,
+    runner_status TEXT,
     details_json TEXT NOT NULL DEFAULT '{}',
+    result_json TEXT NOT NULL DEFAULT '{}',
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 """
@@ -30,14 +32,18 @@ EXPECTED_WORKFLOW_RUN_COLUMNS = (
     "blocked_reason",
     "last_action",
     "runner_name",
+    "runner_status",
     "details_json",
+    "result_json",
     "updated_at",
 )
 
 _DEFAULT_COLUMN_DEFINITIONS = {
     "last_action": "TEXT",
     "runner_name": "TEXT",
+    "runner_status": "TEXT",
     "details_json": "TEXT NOT NULL DEFAULT '{}'",
+    "result_json": "TEXT NOT NULL DEFAULT '{}'",
 }
 
 
@@ -50,7 +56,9 @@ class WorkflowRunRecord:
     blocked_reason: str | None = None
     last_action: str | None = None
     runner_name: str | None = None
+    runner_status: str | None = None
     details: dict[str, str] | None = None
+    result: dict[str, object] = field(default_factory=dict)
 
 
 def _verify_workflow_runs_schema(connection: sqlite3.Connection) -> None:
@@ -98,10 +106,12 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
                 blocked_reason,
                 last_action,
                 runner_name,
+                runner_status,
                 details_json,
+                result_json,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(work_item_id) DO UPDATE SET
                 branch_name = excluded.branch_name,
                 pr_number = excluded.pr_number,
@@ -109,7 +119,9 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
                 blocked_reason = excluded.blocked_reason,
                 last_action = excluded.last_action,
                 runner_name = excluded.runner_name,
+                runner_status = excluded.runner_status,
                 details_json = excluded.details_json,
+                result_json = excluded.result_json,
                 updated_at = CURRENT_TIMESTAMP
             """,
             (
@@ -120,7 +132,9 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
                 record.blocked_reason,
                 record.last_action,
                 record.runner_name,
+                record.runner_status,
                 json.dumps(record.details or {}, sort_keys=True),
+                json.dumps(record.result, sort_keys=True),
             ),
         )
         connection.commit()
@@ -129,6 +143,7 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
 def load_workflow_run(db_path: Path, work_item_id: str) -> WorkflowRunRecord | None:
     initialize_database(db_path)
     with sqlite3.connect(db_path) as connection:
+        connection.row_factory = sqlite3.Row
         row = connection.execute(
             """
             SELECT
@@ -139,7 +154,9 @@ def load_workflow_run(db_path: Path, work_item_id: str) -> WorkflowRunRecord | N
                 blocked_reason,
                 last_action,
                 runner_name,
-                details_json
+                runner_status,
+                details_json,
+                result_json
             FROM workflow_runs
             WHERE work_item_id = ?
             """,
@@ -150,19 +167,30 @@ def load_workflow_run(db_path: Path, work_item_id: str) -> WorkflowRunRecord | N
         return None
 
     details_payload = {}
-    if row[7]:
+    details_json = row["details_json"]
+    if details_json:
         try:
-            details_payload = json.loads(row[7])
+            details_payload = json.loads(details_json)
         except json.JSONDecodeError:
             details_payload = {}
+    result_payload: object = {}
+    result_json = row["result_json"]
+    if result_json:
+        try:
+            result_payload = json.loads(result_json)
+        except json.JSONDecodeError:
+            result_payload = {}
     details = details_payload if isinstance(details_payload, dict) else {}
+    result = {str(key): value for key, value in result_payload.items()} if isinstance(result_payload, dict) else {}
     return WorkflowRunRecord(
-        work_item_id=str(row[0]),
-        branch_name=str(row[1]) if row[1] is not None else None,
-        pr_number=int(row[2]) if row[2] is not None else None,
-        status=str(row[3]),
-        blocked_reason=str(row[4]) if row[4] is not None else None,
-        last_action=str(row[5]) if row[5] is not None else None,
-        runner_name=str(row[6]) if row[6] is not None else None,
+        work_item_id=str(row["work_item_id"]),
+        branch_name=str(row["branch_name"]) if row["branch_name"] is not None else None,
+        pr_number=int(row["pr_number"]) if row["pr_number"] is not None else None,
+        status=str(row["status"]),
+        blocked_reason=str(row["blocked_reason"]) if row["blocked_reason"] is not None else None,
+        last_action=str(row["last_action"]) if row["last_action"] is not None else None,
+        runner_name=str(row["runner_name"]) if row["runner_name"] is not None else None,
+        runner_status=str(row["runner_status"]) if row["runner_status"] is not None else None,
         details={str(key): str(value) for key, value in details.items()},
+        result=result,
     )

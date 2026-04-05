@@ -16,3 +16,4 @@ The current state store records:
 - linked PR number and branch when known
 - blocked reason for spec-routing cases
 - runner metadata needed to resume or audit the next handoff
+- the latest local runner result summary and payload
