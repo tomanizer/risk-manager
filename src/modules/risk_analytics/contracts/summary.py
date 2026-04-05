@@ -79,10 +79,7 @@ class _RiskContractBase(BaseModel):
                 }
             for field_name, expected in expected_values.items():
                 actual = values.get(field_name)
-                if actual is None:
-                    values[field_name] = expected
-                    continue
-                if actual == expected:
+                if actual is None or actual == expected:
                     values[field_name] = expected
                     continue
                 actual = _MIRROR_FIELD_ADAPTERS[field_name].validate_python(actual)
@@ -120,9 +117,9 @@ class _RiskContractBase(BaseModel):
         delta_abs = values.get("delta_abs")
         if delta_abs is None:
             values["delta_abs"] = expected_delta_abs
-            delta_abs = expected_delta_abs
         else:
             delta_abs = _FLOAT_ADAPTER.validate_python(delta_abs)
+        delta_abs = values["delta_abs"] if delta_abs is None else delta_abs
         if not _float_matches(delta_abs, expected_delta_abs):
             raise ValueError("delta_abs must equal current_value - previous_value")
 
