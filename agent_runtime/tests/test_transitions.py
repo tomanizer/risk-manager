@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sqlite3
 import tempfile
 
 from agent_runtime.orchestrator.state import (
@@ -16,6 +17,7 @@ from agent_runtime.orchestrator.graph import find_repo_root
 from agent_runtime.orchestrator.simulations import build_simulation_snapshot, simulation_names
 from agent_runtime.orchestrator.transitions import decide_next_action
 from agent_runtime.orchestrator.work_item_registry import load_work_items
+from agent_runtime.storage.sqlite import EXPECTED_WORKFLOW_RUN_COLUMNS, initialize_database
 
 
 def test_ready_item_without_pr_routes_to_pm() -> None:
@@ -102,3 +104,16 @@ def test_load_work_items_skips_unreadable_file_and_records_warning() -> None:
         assert len(work_items) == 1
         assert work_items[0].id == "WI-1-valid"
         assert len(warnings) == 1
+
+
+def test_initialize_database_creates_expected_workflow_runs_schema() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "runtime" / "state.db"
+
+        initialize_database(db_path)
+
+        with sqlite3.connect(db_path) as connection:
+            rows = connection.execute("PRAGMA table_info(workflow_runs)").fetchall()
+
+        actual_columns = tuple(row[1] for row in rows)
+        assert actual_columns == EXPECTED_WORKFLOW_RUN_COLUMNS

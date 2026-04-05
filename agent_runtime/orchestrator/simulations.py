@@ -7,6 +7,15 @@ from pathlib import Path
 from .state import PullRequestSnapshot, RuntimeSnapshot, WorkItemSnapshot, WorkItemStage
 
 
+def _stage_directory(stage: WorkItemStage) -> str:
+    return {
+        WorkItemStage.READY: "ready",
+        WorkItemStage.IN_PROGRESS: "in_progress",
+        WorkItemStage.BLOCKED: "blocked",
+        WorkItemStage.DONE: "done",
+    }[stage]
+
+
 def _work_item(
     work_item_id: str,
     stage: WorkItemStage = WorkItemStage.READY,
@@ -15,7 +24,7 @@ def _work_item(
     return WorkItemSnapshot(
         id=work_item_id,
         title=work_item_id,
-        path=Path(f"work_items/ready/{work_item_id}.md"),
+        path=Path(f"work_items/{_stage_directory(stage)}/{work_item_id}.md"),
         stage=stage,
         dependencies=dependencies,
     )

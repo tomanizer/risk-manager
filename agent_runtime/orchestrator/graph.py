@@ -13,7 +13,8 @@ from .work_item_registry import load_work_items
 
 
 def find_repo_root(start_path: Path) -> Path:
-    for candidate in (start_path, *start_path.parents):
+    search_path = start_path if start_path.is_dir() else start_path.parent
+    for candidate in (search_path, *search_path.parents):
         if (candidate / "AGENTS.md").exists() and (candidate / "work_items").is_dir():
             return candidate
     raise RuntimeError("could not determine repository root from runtime location")
