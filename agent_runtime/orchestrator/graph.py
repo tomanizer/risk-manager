@@ -49,11 +49,7 @@ def main() -> int:
         return 0
 
     repo_root = find_repo_root(Path(__file__).resolve())
-    snapshot = (
-        build_simulation_snapshot(args.simulate)
-        if args.simulate is not None
-        else build_runtime_snapshot(repo_root)
-    )
+    snapshot = build_simulation_snapshot(args.simulate) if args.simulate is not None else build_runtime_snapshot(repo_root)
     decision = decide_next_action(snapshot)
     print(
         json.dumps(

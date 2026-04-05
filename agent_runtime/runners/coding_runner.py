@@ -12,8 +12,4 @@ class CodingRunnerInput:
 
 
 def build_coding_prompt(input_data: CodingRunnerInput) -> str:
-    return (
-        "Act only as the coding agent.\n"
-        f"Implement {input_data.work_item_id}.\n"
-        f"Brief: {input_data.implementation_brief}"
-    )
+    return f"Act only as the coding agent.\nImplement {input_data.work_item_id}.\nBrief: {input_data.implementation_brief}"

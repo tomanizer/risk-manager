@@ -33,14 +33,9 @@ def _verify_workflow_runs_schema(connection: sqlite3.Connection) -> None:
         raise RuntimeError("database initialization failed: workflow_runs table was not created")
 
     actual_columns = {row[1] for row in rows}
-    missing_columns = [
-        column for column in EXPECTED_WORKFLOW_RUN_COLUMNS if column not in actual_columns
-    ]
+    missing_columns = [column for column in EXPECTED_WORKFLOW_RUN_COLUMNS if column not in actual_columns]
     if missing_columns:
-        raise RuntimeError(
-            "database initialization failed: workflow_runs table is missing columns: "
-            + ", ".join(missing_columns)
-        )
+        raise RuntimeError("database initialization failed: workflow_runs table is missing columns: " + ", ".join(missing_columns))
 
 
 def initialize_database(db_path: Path) -> None:
