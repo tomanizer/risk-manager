@@ -11,3 +11,5 @@ They mirror the repository's governed handoff model:
 5. `review.agent.md`
 
 Use them as separate roles. Do not ask one Copilot agent to perform all stages in one pass.
+
+The PM agent should use the delivery pack in `docs/delivery/` and `docs/guides/pm_quality_checklist.md` as specialist source context.

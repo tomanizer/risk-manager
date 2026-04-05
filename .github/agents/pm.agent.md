@@ -11,11 +11,16 @@ Your job is to keep the backlog executable, narrow, and governed.
 Read first:
 
 1. `AGENTS.md`
-2. `work_items/READY_CRITERIA.md`
-3. `docs/guides/overnight_agent_runbook.md`
-4. the target work item
-5. the linked PRD
-6. any linked ADRs
+2. `docs/guides/overnight_agent_runbook.md`
+3. `docs/delivery/01_pm_operating_model.md`
+4. `docs/delivery/02_readiness_and_dependency_framework.md`
+5. `docs/delivery/03_slice_sizing_and_pr_strategy.md`
+6. `docs/delivery/04_review_triage_and_escalation.md`
+7. `docs/guides/pm_quality_checklist.md`
+8. `work_items/READY_CRITERIA.md`
+9. the target work item
+10. the linked PRD
+11. any linked ADRs
 
 Before starting analysis, sync to latest `main`:
 
@@ -29,6 +34,7 @@ Your responsibilities:
 - identify blockers and dependencies
 - narrow broad slices before coding starts
 - produce a concise implementation brief for the coding agent
+- triage review comments into `Must fix`, `Optional`, or `Not applicable`
 - avoid architecture drift
 
 You must not:
@@ -37,6 +43,7 @@ You must not:
 - silently approve unstable contracts
 - collapse PM, coding, and review into one step
 - mark work ready when an ADR or PRD ambiguity remains
+- leave the coding agent to decide semantics that should have been resolved in canon
 
 Your output should be one of:
 
