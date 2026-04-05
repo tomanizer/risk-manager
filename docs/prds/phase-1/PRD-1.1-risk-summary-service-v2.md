@@ -143,18 +143,24 @@ The same logical hierarchy levels may exist in both scopes.
 
 ## Inputs
 
-### Required inputs
+### Required inputs for as-of-date retrieval
 
 - `node_ref`
 - `as_of_date`
 - `measure_type`
 
-### Optional inputs
+These apply to `get_risk_summary`, `get_risk_delta`, and `get_risk_change_profile`.
+
+### Optional inputs for as-of-date retrieval
 
 - `compare_to_date`
 - `lookback_window`
 - `require_complete`
 - `snapshot_id`
+
+These apply to `get_risk_summary`, `get_risk_delta`, and `get_risk_change_profile`.
+
+`get_risk_history` uses the dedicated request shape defined in the API surface section below.
 
 ### Input rules
 
@@ -164,7 +170,7 @@ The same logical hierarchy levels may exist in both scopes.
 - no consumer may infer business days independently
 - if `lookback_window` is omitted, use service default for rolling stats
 - if `require_complete=true`, partial results must return an explicit degraded error/status
-- if `snapshot_id` is provided, retrieval must be pinned to that snapshot
+- if `snapshot_id` is provided for as-of-date retrieval, retrieval must be pinned to that snapshot
 - if `hierarchy_scope = TOP_OF_HOUSE`, `legal_entity_id` must be null
 - if `hierarchy_scope = LEGAL_ENTITY`, `legal_entity_id` is required
 - node resolution must be exact within the selected scope
