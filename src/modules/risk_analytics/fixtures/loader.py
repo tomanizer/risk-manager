@@ -32,9 +32,7 @@ def resolve_default_fixture_path() -> Path:
         if candidate.exists():
             return candidate
 
-    raise FileNotFoundError(
-        "could not locate risk summary fixture pack from the current source tree"
-    )
+    raise FileNotFoundError("could not locate risk summary fixture pack from the current source tree")
 
 
 class FixtureRow(BaseModel):
@@ -96,9 +94,7 @@ class RiskSummaryFixturePack(BaseModel):
         calendar_dates = set(self.calendar)
         for snapshot in self.snapshots:
             if snapshot.as_of_date not in calendar_dates:
-                raise ValueError(
-                    "snapshot as_of_date values must be present in the pinned fixture calendar"
-                )
+                raise ValueError("snapshot as_of_date values must be present in the pinned fixture calendar")
 
         return self
 
