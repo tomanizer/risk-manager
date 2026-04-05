@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .state import PullRequestSnapshot, RuntimeSnapshot, TransitionDecision, WorkItemSnapshot
+from .state import NextActionType, PullRequestSnapshot, RuntimeSnapshot, TransitionDecision, WorkItemSnapshot
 from ..runners.coding_runner import CodingRunnerInput, build_coding_prompt
 from ..runners.contracts import RunnerExecution, RunnerName
 from ..runners.pm_runner import PMRunnerInput, build_pm_prompt
