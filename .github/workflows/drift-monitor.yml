@@ -47,37 +47,64 @@ jobs:
           python scripts/drift/check_references.py \
             --output artifacts/drift/reference_integrity.json
 
+      - name: Run registry alignment scanner
+        run: |
+          python scripts/drift/check_registry_alignment.py \
+            --output artifacts/drift/registry_alignment.json
+
       - name: Summarize findings
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
 
-          report_path = Path("artifacts/drift/reference_integrity.json")
-          report = json.loads(report_path.read_text(encoding="utf-8"))
-          findings = report["findings"]
-
           lines = [
               "## Drift Monitor",
               "",
-              f"- Scan: `{report['scan_name']}`",
-              f"- Findings: `{len(findings)}`",
-              f"- Files scanned: `{report['stats']['files_scanned']}`",
-              f"- References checked: `{report['stats']['references_checked']}`",
-              "",
           ]
-
-          if findings:
-              lines.append("### Findings")
-              for finding in findings[:20]:
-                  lines.append(
+          report_specs = (
+              (
+                  "Reference Integrity",
+                  Path("artifacts/drift/reference_integrity.json"),
+                  lambda report: (
+                      f"- Files scanned: `{report['stats']['files_scanned']}`",
+                      f"- References checked: `{report['stats']['references_checked']}`",
+                  ),
+                  lambda finding: (
                       f"- `{finding['severity']}` `{finding['source_file']}:{finding['source_line']}` "
                       f"`{finding['reference']}` -> {finding['owner']}"
-                  )
-              if len(findings) > 20:
-                  lines.append(f"- ... and `{len(findings) - 20}` more")
-          else:
-              lines.append("No reference-integrity findings detected.")
+                  ),
+              ),
+              (
+                  "Registry Alignment",
+                  Path("artifacts/drift/registry_alignment.json"),
+                  lambda report: (
+                      f"- Components scanned: `{report['stats']['components_scanned']}`",
+                      f"- Subcomponents scanned: `{report['stats']['subcomponents_scanned']}`",
+                      f"- Module roots discovered: `{report['stats']['module_roots_discovered']}`",
+                  ),
+                  lambda finding: (
+                      f"- `{finding['severity']}` `{finding['component_id']}` "
+                      f"`{finding['kind']}` -> {finding['owner']}"
+                  ),
+              ),
+          )
+
+          for title, report_path, stat_lines, finding_line in report_specs:
+              report = json.loads(report_path.read_text(encoding="utf-8"))
+              findings = report["findings"]
+              lines.append(f"### {title}")
+              lines.append(f"- Scan: `{report['scan_name']}`")
+              lines.append(f"- Findings: `{len(findings)}`")
+              lines.extend(stat_lines(report))
+              if findings:
+                  lines.append("- Top findings:")
+                  lines.extend(finding_line(finding) for finding in findings[:10])
+                  if len(findings) > 10:
+                      lines.append(f"- ... and `{len(findings) - 10}` more")
+              else:
+                  lines.append("- No findings detected.")
+              lines.append("")
 
           summary = "\n".join(lines) + "\n"
           with open(Path.home() / "drift-summary.md", "w", encoding="utf-8") as handle:
@@ -88,6 +115,8 @@ jobs:
       - name: Upload drift artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: drift-reference-integrity
-          path: artifacts/drift/reference_integrity.json
+          name: drift-reports
+          path: |
+            artifacts/drift/reference_integrity.json
+            artifacts/drift/registry_alignment.json
           if-no-files-found: error
