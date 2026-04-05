@@ -47,5 +47,11 @@ def resolve_compare_to_date(
     calendar: tuple[date, ...],
 ) -> date:
     if compare_to_date is not None:
+        index = bisect.bisect_left(calendar, compare_to_date)
+        if index >= len(calendar) or calendar[index] != compare_to_date:
+            raise BusinessDayResolutionError(
+                "compare_to_date "
+                f"{compare_to_date.isoformat()} is not present in the supplied calendar"
+            )
         return compare_to_date
     return resolve_prior_business_day(as_of_date, calendar)

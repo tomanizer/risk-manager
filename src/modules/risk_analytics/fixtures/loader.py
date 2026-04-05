@@ -113,10 +113,12 @@ class FixtureIndex:
         self.pack = pack
         self.snapshots_by_id = {snapshot.snapshot_id: snapshot for snapshot in pack.snapshots}
         self.snapshots_by_date = {snapshot.as_of_date: snapshot for snapshot in pack.snapshots}
-        self.rows_by_key: dict[tuple[str, str, str], FixtureRow] = {}
-        self.rows_by_date_key: dict[tuple[date, str, str], FixtureRow] = {}
+        self.rows_by_key: dict[tuple[str, tuple[str, str | None, str, str], str], FixtureRow] = {}
+        self.rows_by_date_key: dict[
+            tuple[date, tuple[str, str | None, str, str], str], FixtureRow
+        ] = {}
         self.supported_measures: set[MeasureType] = set()
-        self.available_node_measures: set[tuple[str, str]] = set()
+        self.available_node_measures: set[tuple[tuple[str, str | None, str, str], str]] = set()
 
         for snapshot in pack.snapshots:
             for row in snapshot.rows:
@@ -133,15 +135,12 @@ class FixtureIndex:
                 self.available_node_measures.add((node_key, row.measure_type.value))
 
     @staticmethod
-    def node_key(node_ref: NodeRef) -> str:
-        legal_entity = node_ref.legal_entity_id or "-"
-        return "|".join(
-            (
-                node_ref.hierarchy_scope.value,
-                legal_entity,
-                node_ref.node_level.value,
-                node_ref.node_id,
-            )
+    def node_key(node_ref: NodeRef) -> tuple[str, str | None, str, str]:
+        return (
+            node_ref.hierarchy_scope.value,
+            node_ref.legal_entity_id,
+            node_ref.node_level.value,
+            node_ref.node_id,
         )
 
     def get_snapshot(self, snapshot_id: str) -> FixtureSnapshot | None:
