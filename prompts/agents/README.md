@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This folder holds repo-visible operating instructions for the main delivery agents used in this repository.
+This folder holds repo-visible operating instructions for the repository's main delivery agents and repo-health control agents.
 
 These instructions complement the canon, PRDs, ADRs, prompts, and work items. They do not replace them.
 
@@ -13,6 +13,7 @@ These instructions complement the canon, PRDs, ADRs, prompts, and work items. Th
 - `review_agent_instruction.md`
 - `issue_planner_instruction.md`
 - `risk_methodology_spec_agent_instruction.md`
+- `drift_monitor_agent_instruction.md`
 
 ## Rule
 
@@ -28,6 +29,11 @@ For PM work, also use:
 
 - `docs/delivery/`
 - `docs/guides/pm_quality_checklist.md`
+
+For drift-monitor work, also use:
+
+- `docs/delivery/05_repo_drift_monitoring.md`
+- `docs/guides/repo_health_audit_checklist.md`
 
 For coding work, also use:
 

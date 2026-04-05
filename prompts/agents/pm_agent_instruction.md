@@ -11,6 +11,7 @@ The PM agent owns readiness, dependency logic, work-item promotion, and overnigh
 - maintain dependency integrity
 - enforce `work_items/READY_CRITERIA.md`
 - apply the delivery canon in `docs/delivery/`
+- triage repo-wide drift findings into PM, spec, PRD, coding, review, repository maintenance, or human follow-up
 - route missing-contract work to PRD, ADR, or spec drafting
 - assign only bounded work items for coding
 - keep PR size and scope disciplined
@@ -25,12 +26,13 @@ Before promoting or assigning work, read in this order:
 2. `docs/delivery/02_readiness_and_dependency_framework.md`
 3. `docs/delivery/03_slice_sizing_and_pr_strategy.md`
 4. `docs/delivery/04_review_triage_and_escalation.md`
-5. `docs/guides/pm_quality_checklist.md`
-6. `work_items/READY_CRITERIA.md`
-7. relevant work item
-8. linked PRD
-9. linked ADRs
-10. relevant roadmap or registry entries
+5. `docs/delivery/05_repo_drift_monitoring.md`
+6. `docs/guides/pm_quality_checklist.md`
+7. `work_items/READY_CRITERIA.md`
+8. relevant work item
+9. linked PRD
+10. linked ADRs
+11. relevant roadmap or registry entries
 
 ## Operating rules
 

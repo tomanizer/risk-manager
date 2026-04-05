@@ -11,7 +11,7 @@
 - **Primary owner:** Technical Owner, Risk Analytics
 - **Business owner:** Market Risk Reporting Owner
 - **Control owner:** Risk Data / Controls Owner
-- **Supersedes:** `PRD-1.1-risk-summary-service.md` for implementation planning
+- **Supersedes:** `archive/PRD-1.1-risk-summary-service-v1-archived.md` for implementation planning
 
 ## Purpose
 

@@ -12,6 +12,8 @@ It is designed to stop one coding surface from doing all jobs at once. The goal 
 4. review agent reviews the PR and any bot feedback
 5. human decides whether to merge
 
+The repository also uses a separate drift-monitoring control for repo-wide health checks. That control sits outside the delivery relay and feeds findings back into PM or human triage.
+
 ## Core rule
 
 Do not ask one agent session to:
@@ -28,7 +30,7 @@ That collapses the governance model.
 
 ## Freshness rule
 
-Before any PM, coding, or review cycle:
+Before any PM, coding, review, or drift-monitor cycle:
 
 1. git fetch origin
 2. git switch main
@@ -41,6 +43,8 @@ New work must begin from up-to-date `main`.
 Each bounded slice should use its own fresh branch created from current `main`.
 
 Agents must not rely on stale local state when the repository, PRs, or canon documents may have changed.
+
+Repo-health audits should also run from current `main` so they do not report drift against stale local guidance.
 
 ## Canonical handoff chain
 
@@ -128,6 +132,36 @@ Human remains responsible for:
 - ADR acceptance
 - scope correction
 
+## Separate repo-health control
+
+### Drift monitor agent
+
+This role is not part of the per-slice implementation handoff.
+
+Inputs:
+
+- `AGENTS.md`
+- `docs/delivery/05_repo_drift_monitoring.md`
+- `docs/guides/repo_health_audit_checklist.md`
+- `prompts/drift_monitor/repo_health_audit_prompt.md`
+- `docs/registry/current_state_registry.yaml`
+- relevant canon, prompt, work-item, source, and test artifacts
+
+Outputs:
+
+- overall repo health status
+- critical, major, and minor drift findings
+- sanctioned duplication called out as acceptable
+- owner and routing recommendation for each material finding
+
+Use this role to detect:
+
+- contradictory canon
+- duplicated or diverging source-of-truth content
+- stale guidance
+- boundary erosion
+- documentation sprawl that weakens governance
+
 ## Recommended nightly loop
 
 1. Fetch latest `main` and fast-forward local `main`
@@ -145,6 +179,17 @@ Human remains responsible for:
    - blocked
    - needs decision
    - superseded
+
+## Recommended repo-health loop
+
+Run this on a separate cadence from ordinary PR delivery:
+
+1. Fetch latest `main` and fast-forward local `main`
+2. Run the drift monitor on current `main`
+3. PM agent triages accepted findings into the correct owner queue
+4. Route canon gaps to PRD, ADR, or methodology/spec work
+5. Route implementation drift to coding or review only when canon is already clear
+6. Human decides any policy, architecture, or source-of-truth conflict
 
 ## Stop conditions
 
@@ -236,8 +281,9 @@ Use separate sessions or threads:
 1. PM session
 2. coding session
 3. review session
+4. optional drift-monitor session for repo-health audits
 
-Do not reuse the same session for all three roles if you want the governance boundaries to hold.
+Do not reuse the same session for all delivery roles if you want the governance boundaries to hold.
 
 Recommended cadence:
 
@@ -249,6 +295,8 @@ Recommended cadence:
 6. wait for GitHub comments
 7. start review session to triage the PR and bot comments
 8. if fixes are required, return to the coding session with only the accepted findings
+
+For repo-health work, run a separate drift-monitor session against current `main` and route the resulting findings through PM or a human rather than converting them directly into ad hoc coding.
 
 ### Claude Code
 
@@ -300,4 +348,5 @@ Until deterministic foundations are implemented and stable:
 - PM agent may sequence work
 - coding agent may implement only ready slices
 - review agent may block freely
+- drift monitor may audit repo health and route findings
 - human remains the merge authority
