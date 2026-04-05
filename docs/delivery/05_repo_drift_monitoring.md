@@ -232,7 +232,7 @@ Do not treat it as a mandatory gate on every ordinary PR unless the repository l
 
 The repo-health loop should prefer deterministic prechecks before LLM synthesis where possible.
 
-Initial deterministic scanner:
+Initial deterministic scanners:
 
 - `scripts/drift/check_dependency_hygiene.py`
 - `scripts/drift/check_references.py`
