@@ -53,7 +53,7 @@ Every work item in `work_items/ready/` must have all of the following:
   - unit
   - integration
   - replay
-  - documentation-only with lint validation
+  - documentation-only with manual review
 - degraded and edge-case expectations are listed where relevant
 
 ### 7. Evidence and replay clarity
