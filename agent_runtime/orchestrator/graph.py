@@ -84,7 +84,7 @@ def main() -> int:
                 branch_name=branch_name,
                 pr_number=pr_number,
                 status=decision.action.value,
-                blocked_reason=decision.reason if decision.action.value == "run_spec" else None,
+                blocked_reason=decision.reason if decision.action is NextActionType.RUN_SPEC else None,
                 last_action=decision.action.value,
                 runner_name=execution.runner_name.value if execution is not None else None,
                 details=(execution.metadata if execution is not None else dict(decision.metadata)),
