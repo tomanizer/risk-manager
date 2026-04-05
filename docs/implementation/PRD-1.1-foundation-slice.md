@@ -167,6 +167,8 @@ The contract for `delta_pct` is:
 - `volatility_regime`
 - `volatility_change_flag`
 
+`RiskChangeProfile` inherits the same top-level `node_level`, `hierarchy_scope`, and `legal_entity_id` convenience fields via `RiskSummary`. These fields must always mirror `node_ref` exactly.
+
 ### Acceptance criteria
 
 - all enums exist and are importable from the contract package
@@ -174,6 +176,7 @@ The contract for `delta_pct` is:
 - all contracts instantiate cleanly
 - unit tests cover invalid `NodeRef` combinations
 - `delta_pct` zero-handling is explicit and tested
+- replay/version metadata is preserved without inventing ad hoc evidence/trace fields
 - no service logic is included yet
 
 ## Slice B: WI-1.1.2 Deterministic fixture pack
@@ -317,6 +320,7 @@ Use this implementation brief:
 - keep `RiskDelta` first-order only
 - keep `RiskChangeProfile` separate
 - make business-day resolution depend only on the supplied canonical calendar
+- preserve replay/version metadata only for ADR-003 compatibility; do not add ad hoc `evidence_refs`, `evidence_ref`, `trace_context`, correlation, or similar evidence/trace fields in WI-1.1.1
 
 ## Reviewer focus
 

@@ -49,6 +49,8 @@ Add rolling statistics and replay tests for the Risk Summary Service.
 - volatility flags are deterministic and explicit
 - replay tests stable across repeated runs
 - degraded history handled explicitly
+- `RiskChangeProfile` retains top-level `node_level`, `hierarchy_scope`, and `legal_entity_id` fields consistent with `RiskSummary` and `node_ref`
+- replay tests pin the approved replay/version metadata only; explicit evidence/trace fields remain deferred until the shared contract exists
 
 ## Suggested Agent
 

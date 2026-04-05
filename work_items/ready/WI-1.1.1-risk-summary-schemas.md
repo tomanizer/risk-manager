@@ -51,7 +51,9 @@ Define the core enums and typed schemas for the Risk Summary Service.
 - `NodeRef` scope validation is explicit
 - `RiskDelta` remains first-order only
 - `RiskChangeProfile` remains distinct from `RiskDelta`
+- `RiskDelta` and `RiskChangeProfile` include top-level `node_level`, `hierarchy_scope`, and `legal_entity_id` fields that exactly mirror `node_ref`
 - schema choices remain compatible with structured evidence and trace metadata
+- this slice preserves replay/version metadata and does not invent ad hoc evidence/trace fields before a shared contract exists
 - unit tests validate schema behavior
 
 ## Suggested Agent

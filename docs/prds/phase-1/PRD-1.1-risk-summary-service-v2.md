@@ -229,6 +229,8 @@ Fields:
 
 - `node_ref`
 - `node_level`
+- `hierarchy_scope`
+- `legal_entity_id`
 - `measure_type`
 - `as_of_date`
 - `compare_to_date`
@@ -251,6 +253,8 @@ Fields:
 
 - `node_ref`
 - `node_level`
+- `hierarchy_scope`
+- `legal_entity_id`
 - `measure_type`
 - `as_of_date`
 - `compare_to_date`
@@ -271,6 +275,8 @@ Fields:
 - `data_version`
 - `service_version`
 - `generated_at`
+
+`RiskSummary`, `RiskDelta`, and `RiskChangeProfile` retain top-level `node_level`, `hierarchy_scope`, and `legal_entity_id` as denormalized convenience fields for exports, dashboards, and downstream consumers. These fields must always mirror `node_ref` exactly. `node_ref` remains the canonical source of truth.
 
 ### Volatility regime
 
@@ -420,6 +426,10 @@ Result:
 - fixtures must pin expected outputs
 - replay output must not depend on wall-clock execution time
 - if `generated_at` is included, it must be deterministic for a given `snapshot_id` and derived from snapshot metadata or another pinned source
+- ADR-003 application for this v1 service slice is approved as follows: the service must preserve explicit replay/version metadata now (`snapshot_id`, `data_version`, `service_version`, and deterministic `generated_at`), but it must not invent module-local evidence or trace fields
+- explicit typed evidence-reference and trace-context fields are deferred until a dedicated shared-contract slice defines the canonical repo-wide objects for them
+- until then, replayability and auditability for this service are satisfied by pinned request context plus replay/version metadata
+- `status_reasons` must not be used as a substitute for structured evidence references
 
 ## Acceptance criteria
 
