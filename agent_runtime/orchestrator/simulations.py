@@ -23,11 +23,7 @@ def _work_item(
 
 def build_simulation_snapshot(name: str) -> RuntimeSnapshot:
     if name == "ready-no-pr":
-        return RuntimeSnapshot(
-            work_items=(
-                _work_item("WI-1.1.3-risk-summary-history-service"),
-            )
-        )
+        return RuntimeSnapshot(work_items=(_work_item("WI-1.1.3-risk-summary-history-service"),))
 
     if name == "blocked-dependency":
         return RuntimeSnapshot(
@@ -42,9 +38,7 @@ def build_simulation_snapshot(name: str) -> RuntimeSnapshot:
 
     if name == "draft-pr":
         return RuntimeSnapshot(
-            work_items=(
-                _work_item("WI-1.1.3-risk-summary-history-service"),
-            ),
+            work_items=(_work_item("WI-1.1.3-risk-summary-history-service"),),
             pull_requests=(
                 PullRequestSnapshot(
                     work_item_id="WI-1.1.3-risk-summary-history-service",
@@ -56,9 +50,7 @@ def build_simulation_snapshot(name: str) -> RuntimeSnapshot:
 
     if name == "unresolved-review":
         return RuntimeSnapshot(
-            work_items=(
-                _work_item("WI-1.1.3-risk-summary-history-service"),
-            ),
+            work_items=(_work_item("WI-1.1.3-risk-summary-history-service"),),
             pull_requests=(
                 PullRequestSnapshot(
                     work_item_id="WI-1.1.3-risk-summary-history-service",
@@ -72,9 +64,7 @@ def build_simulation_snapshot(name: str) -> RuntimeSnapshot:
 
     if name == "ready-for-merge":
         return RuntimeSnapshot(
-            work_items=(
-                _work_item("WI-1.1.3-risk-summary-history-service"),
-            ),
+            work_items=(_work_item("WI-1.1.3-risk-summary-history-service"),),
             pull_requests=(
                 PullRequestSnapshot(
                     work_item_id="WI-1.1.3-risk-summary-history-service",

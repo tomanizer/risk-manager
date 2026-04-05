@@ -22,7 +22,9 @@ def _dependencies_satisfied(item: WorkItemSnapshot, snapshot: RuntimeSnapshot) -
 
 
 def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
-    prs_by_work_item = {pull_request.work_item_id: pull_request for pull_request in snapshot.pull_requests}
+    prs_by_work_item = {
+        pull_request.work_item_id: pull_request for pull_request in snapshot.pull_requests
+    }
 
     for work_item in snapshot.work_items:
         if work_item.stage is not WorkItemStage.READY:

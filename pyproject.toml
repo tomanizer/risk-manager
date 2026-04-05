@@ -36,4 +36,4 @@ line-length = 100
 python_version = "3.12"
 
 [tool.setuptools.packages.find]
-include = ["src*"]
+include = ["src*", "agent_runtime*"]
