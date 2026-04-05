@@ -110,9 +110,7 @@ class FixtureIndex:
         self.snapshots_by_id = {snapshot.snapshot_id: snapshot for snapshot in pack.snapshots}
         self.snapshots_by_date = {snapshot.as_of_date: snapshot for snapshot in pack.snapshots}
         self.rows_by_key: dict[tuple[str, tuple[str, str | None, str, str], str], FixtureRow] = {}
-        self.rows_by_date_key: dict[
-            tuple[date, tuple[str, str | None, str, str], str], FixtureRow
-        ] = {}
+        self.rows_by_date_key: dict[tuple[date, tuple[str, str | None, str, str], str], FixtureRow] = {}
         self.supported_measures: set[MeasureType] = set()
         self.available_node_measures: set[tuple[tuple[str, str | None, str, str], str]] = set()
 

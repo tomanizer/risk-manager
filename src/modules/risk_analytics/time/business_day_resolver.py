@@ -10,15 +10,11 @@ class BusinessDayResolutionError(ValueError):
     """Raised when a canonical calendar cannot resolve a business day."""
 
 
-def _require_date_in_calendar(
-    target_date: date, calendar: tuple[date, ...], field_name: str
-) -> int:
+def _require_date_in_calendar(target_date: date, calendar: tuple[date, ...], field_name: str) -> int:
     """Return the calendar index for a date that must be present."""
     index = bisect.bisect_left(calendar, target_date)
     if index >= len(calendar) or calendar[index] != target_date:
-        raise BusinessDayResolutionError(
-            f"{field_name} {target_date.isoformat()} is not present in the supplied calendar"
-        )
+        raise BusinessDayResolutionError(f"{field_name} {target_date.isoformat()} is not present in the supplied calendar")
     return index
 
 

@@ -12,7 +12,4 @@ class ReviewRunnerInput:
 
 
 def build_review_prompt(input_data: ReviewRunnerInput) -> str:
-    return (
-        "Act only as the review agent.\n"
-        f"Review PR #{input_data.pr_number} for {input_data.work_item_id}."
-    )
+    return f"Act only as the review agent.\nReview PR #{input_data.pr_number} for {input_data.work_item_id}."

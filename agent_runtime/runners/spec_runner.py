@@ -12,7 +12,4 @@ class SpecRunnerInput:
 
 
 def build_spec_prompt(input_data: SpecRunnerInput) -> str:
-    return (
-        "Act only as the spec-resolution agent.\n"
-        f"Resolve the blocker for {input_data.work_item_id}: {input_data.blocked_reason}"
-    )
+    return f"Act only as the spec-resolution agent.\nResolve the blocker for {input_data.work_item_id}: {input_data.blocked_reason}"
