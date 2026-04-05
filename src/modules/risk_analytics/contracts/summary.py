@@ -23,7 +23,7 @@ def _float_matches(actual: float, expected: float) -> bool:
     return math.isclose(actual, expected, rel_tol=1e-9, abs_tol=1e-12)
 
 
-_MIRROR_FIELD_ADAPTERS = {
+_MIRROR_FIELD_ADAPTERS: dict[str, TypeAdapter[Any]] = {
     "node_level": TypeAdapter(NodeLevel | None),
     "hierarchy_scope": TypeAdapter(HierarchyScope | None),
     "legal_entity_id": TypeAdapter(str | None),

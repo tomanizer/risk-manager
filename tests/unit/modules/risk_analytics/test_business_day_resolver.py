@@ -37,6 +37,14 @@ class BusinessDayResolverTestCase(unittest.TestCase):
             date(2026, 1, 5),
         )
 
+    def test_resolve_compare_to_date_rejects_explicit_date_not_in_calendar(self) -> None:
+        with self.assertRaises(BusinessDayResolutionError):
+            resolve_compare_to_date(
+                as_of_date=date(2026, 1, 12),
+                compare_to_date=date(2026, 1, 10),
+                calendar=CALENDAR,
+            )
+
     def test_resolve_prior_business_day_rejects_missing_as_of_date(self) -> None:
         with self.assertRaises(BusinessDayResolutionError):
             resolve_prior_business_day(date(2026, 1, 7), CALENDAR)

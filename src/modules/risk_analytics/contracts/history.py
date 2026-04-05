@@ -50,10 +50,7 @@ class RiskHistorySeries(BaseModel):
         if not self.service_version:
             raise ValueError("service_version must be non-empty")
         ordered_dates = tuple(point.date for point in self.points)
-        if any(
-            ordered_dates[index] > ordered_dates[index + 1]
-            for index in range(len(ordered_dates) - 1)
-        ):
+        if any(ordered_dates[index] > ordered_dates[index + 1] for index in range(len(ordered_dates) - 1)):
             raise ValueError("points must be ordered ascending by date")
         for point in self.points:
             if point.node_ref != self.node_ref:
@@ -61,7 +58,5 @@ class RiskHistorySeries(BaseModel):
             if point.measure_type != self.measure_type:
                 raise ValueError("all points must match series measure_type")
             if point.date < self.start_date or point.date > self.end_date:
-                raise ValueError(
-                    "all points must fall within the inclusive [start_date, end_date] range"
-                )
+                raise ValueError("all points must fall within the inclusive [start_date, end_date] range")
         return self
