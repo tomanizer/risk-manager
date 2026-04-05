@@ -122,7 +122,9 @@ class FixtureLoaderTestCase(unittest.TestCase):
             self.index.node_key(top_level_node),
             ("TOP_OF_HOUSE", None, "DESK", "A|B"),
         )
-        self.assertNotEqual(self.index.node_key(top_level_node), self.index.node_key(legal_entity_node))
+        self.assertNotEqual(
+            self.index.node_key(top_level_node), self.index.node_key(legal_entity_node)
+        )
 
     def test_missing_compare_case_is_present(self) -> None:
         node_ref = NodeRef(
