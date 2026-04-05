@@ -22,6 +22,22 @@ CREATE TABLE IF NOT EXISTS workflow_runs (
     result_json TEXT NOT NULL DEFAULT '{}',
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS worktree_leases (
+    run_id TEXT PRIMARY KEY,
+    work_item_id TEXT NOT NULL,
+    runner_name TEXT NOT NULL,
+    branch_name TEXT NOT NULL,
+    base_ref TEXT NOT NULL,
+    worktree_path TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    released_at TEXT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_worktree_leases_active_runner
+ON worktree_leases(work_item_id, runner_name)
+WHERE status = 'active';
 """
 
 EXPECTED_WORKFLOW_RUN_COLUMNS = (
@@ -36,6 +52,18 @@ EXPECTED_WORKFLOW_RUN_COLUMNS = (
     "details_json",
     "result_json",
     "updated_at",
+)
+
+EXPECTED_WORKTREE_LEASE_COLUMNS = (
+    "run_id",
+    "work_item_id",
+    "runner_name",
+    "branch_name",
+    "base_ref",
+    "worktree_path",
+    "status",
+    "created_at",
+    "released_at",
 )
 
 _DEFAULT_COLUMN_DEFINITIONS = {
@@ -61,6 +89,19 @@ class WorkflowRunRecord:
     result: dict[str, object] = field(default_factory=dict)
 
 
+@dataclass(frozen=True)
+class WorktreeLeaseRecord:
+    run_id: str
+    work_item_id: str
+    runner_name: str
+    branch_name: str
+    base_ref: str
+    worktree_path: str
+    status: str
+    created_at: str | None = None
+    released_at: str | None = None
+
+
 def _verify_workflow_runs_schema(connection: sqlite3.Connection) -> None:
     rows = connection.execute("PRAGMA table_info(workflow_runs)").fetchall()
     if not rows:
@@ -70,6 +111,17 @@ def _verify_workflow_runs_schema(connection: sqlite3.Connection) -> None:
     missing_columns = [column for column in EXPECTED_WORKFLOW_RUN_COLUMNS if column not in actual_columns]
     if missing_columns:
         raise RuntimeError("database initialization failed: workflow_runs table is missing columns: " + ", ".join(missing_columns))
+
+
+def _verify_worktree_leases_schema(connection: sqlite3.Connection) -> None:
+    rows = connection.execute("PRAGMA table_info(worktree_leases)").fetchall()
+    if not rows:
+        raise RuntimeError("database initialization failed: worktree_leases table was not created")
+
+    actual_columns = {row[1] for row in rows}
+    missing_columns = [column for column in EXPECTED_WORKTREE_LEASE_COLUMNS if column not in actual_columns]
+    if missing_columns:
+        raise RuntimeError("database initialization failed: worktree_leases table is missing columns: " + ", ".join(missing_columns))
 
 
 def _ensure_expected_columns(connection: sqlite3.Connection) -> None:
@@ -90,6 +142,7 @@ def initialize_database(db_path: Path) -> None:
         connection.executescript(SCHEMA)
         _ensure_expected_columns(connection)
         _verify_workflow_runs_schema(connection)
+        _verify_worktree_leases_schema(connection)
         connection.commit()
 
 
@@ -193,4 +246,128 @@ def load_workflow_run(db_path: Path, work_item_id: str) -> WorkflowRunRecord | N
         runner_status=str(row["runner_status"]) if row["runner_status"] is not None else None,
         details={str(key): str(value) for key, value in details.items()},
         result=result,
+    )
+
+
+def insert_worktree_lease(db_path: Path, record: WorktreeLeaseRecord) -> None:
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO worktree_leases (
+                run_id,
+                work_item_id,
+                runner_name,
+                branch_name,
+                base_ref,
+                worktree_path,
+                status,
+                created_at,
+                released_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), ?)
+            ON CONFLICT(run_id) DO UPDATE SET
+                work_item_id = excluded.work_item_id,
+                runner_name = excluded.runner_name,
+                branch_name = excluded.branch_name,
+                base_ref = excluded.base_ref,
+                worktree_path = excluded.worktree_path,
+                status = excluded.status,
+                released_at = excluded.released_at
+            """,
+            (
+                record.run_id,
+                record.work_item_id,
+                record.runner_name,
+                record.branch_name,
+                record.base_ref,
+                record.worktree_path,
+                record.status,
+                record.created_at,
+                record.released_at,
+            ),
+        )
+        connection.commit()
+
+
+def load_active_worktree_lease(db_path: Path, work_item_id: str, runner_name: str) -> WorktreeLeaseRecord | None:
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as connection:
+        connection.row_factory = sqlite3.Row
+        row = connection.execute(
+            """
+            SELECT
+                run_id,
+                work_item_id,
+                runner_name,
+                branch_name,
+                base_ref,
+                worktree_path,
+                status,
+                created_at,
+                released_at
+            FROM worktree_leases
+            WHERE work_item_id = ? AND runner_name = ? AND status = 'active'
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (work_item_id, runner_name),
+        ).fetchone()
+
+    return _row_to_worktree_lease(row)
+
+
+def load_worktree_lease(db_path: Path, run_id: str) -> WorktreeLeaseRecord | None:
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as connection:
+        connection.row_factory = sqlite3.Row
+        row = connection.execute(
+            """
+            SELECT
+                run_id,
+                work_item_id,
+                runner_name,
+                branch_name,
+                base_ref,
+                worktree_path,
+                status,
+                created_at,
+                released_at
+            FROM worktree_leases
+            WHERE run_id = ?
+            """,
+            (run_id,),
+        ).fetchone()
+
+    return _row_to_worktree_lease(row)
+
+
+def mark_worktree_lease_released(db_path: Path, run_id: str) -> None:
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            UPDATE worktree_leases
+            SET status = 'released', released_at = CURRENT_TIMESTAMP
+            WHERE run_id = ?
+            """,
+            (run_id,),
+        )
+        connection.commit()
+
+
+def _row_to_worktree_lease(row: sqlite3.Row | None) -> WorktreeLeaseRecord | None:
+    if row is None:
+        return None
+
+    return WorktreeLeaseRecord(
+        run_id=str(row["run_id"]),
+        work_item_id=str(row["work_item_id"]),
+        runner_name=str(row["runner_name"]),
+        branch_name=str(row["branch_name"]),
+        base_ref=str(row["base_ref"]),
+        worktree_path=str(row["worktree_path"]),
+        status=str(row["status"]),
+        created_at=str(row["created_at"]) if row["created_at"] is not None else None,
+        released_at=str(row["released_at"]) if row["released_at"] is not None else None,
     )

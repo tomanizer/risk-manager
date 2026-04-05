@@ -11,6 +11,7 @@ class RuntimeDefaults:
     repo_root: Path
     poll_interval_seconds: int = 600
     state_db_relative_path: str = ".agent_runtime/state.db"
+    worktree_root_dirname: str | None = None
     ready_work_items_relative_path: str = "work_items/ready"
     in_progress_work_items_relative_path: str = "work_items/in_progress"
     blocked_work_items_relative_path: str = "work_items/blocked"
@@ -18,6 +19,11 @@ class RuntimeDefaults:
     @property
     def state_db_path(self) -> Path:
         return self.repo_root / self.state_db_relative_path
+
+    @property
+    def worktree_root_path(self) -> Path:
+        dirname = self.worktree_root_dirname or f"{self.repo_root.name}-worktrees"
+        return self.repo_root.parent / dirname
 
 
 def build_defaults(repo_root: Path) -> RuntimeDefaults:
