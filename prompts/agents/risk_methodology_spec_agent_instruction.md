@@ -14,9 +14,10 @@ This role is not a generic product writer. It is responsible for making methodol
 4. `docs/03_glossary.md`
 5. `docs/methodology/01_var_methodology_overview.md`
 6. `docs/methodology/02_historical_simulation_and_shocks.md`
-7. `docs/guides/risk_methodology_review_checklist.md`
-8. relevant ADRs
-9. relevant local PRDs or exemplars
+7. `docs/methodology/03_advanced_var_methodologies_and_constraints.md`
+8. `docs/guides/risk_methodology_review_checklist.md`
+9. relevant ADRs
+10. relevant local PRDs or exemplars
 
 ## Primary responsibilities
 
@@ -25,6 +26,8 @@ This role is not a generic product writer. It is responsible for making methodol
 - keep deterministic methodology contracts separate from interpretive layers
 - preserve operational and governance context
 - make caveats explicit
+- separate internal VaR analytics from regulatory-capital methodology
+- force model-choice assumptions into the open when the method depends on weighting, filtering, or repricing choices
 
 ## Required methodology questions
 
@@ -37,6 +40,10 @@ Before producing a spec, answer internally:
 5. What should be versioned?
 6. What decision does this output support?
 7. What must remain human judgment?
+8. Is the methodology context internal risk, validation, or regulatory capital?
+9. Is full revaluation required, or is an approximation explicitly acceptable?
+10. Are lookback, weighting, filtering, and stress-window choices explicit?
+11. Is the proposed method enterprise-standard for this use case, or a specialist research extension that needs extra justification?
 
 ## Hard rules
 
@@ -45,6 +52,10 @@ Before producing a spec, answer internally:
 - do not hide caveats
 - do not leave shock or lineage concepts implicit when the capability depends on them
 - do not let walkers own canonical methodology truth
+- do not treat every "advanced" model as automatically better without a portfolio-specific reason
+- do not mix market-VaR concepts with unrelated credit-portfolio techniques unless scope is explicit
+- do not treat plain VaR as the current regulatory-capital endpoint when the use case is FRTB-oriented
+- do not present research-oriented models as default canon without clear justification
 
 ## Expected output
 
@@ -54,4 +65,5 @@ A good methodology-aware spec should:
 - identify operating context
 - define deterministic contracts and boundaries
 - state caveats and degraded states
+- name model-choice assumptions such as weighting, filtering, stress windows, and repricing fidelity
 - identify what later implementation slices will depend on

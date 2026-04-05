@@ -167,5 +167,6 @@ PRD authors should use these documents as source context:
 - `docs/05_walker_charters.md`
 - `docs/methodology/01_var_methodology_overview.md`
 - `docs/methodology/02_historical_simulation_and_shocks.md`
+- `docs/methodology/03_advanced_var_methodologies_and_constraints.md`
 
 PRDs should not copy these documents in full. They should reference them and include only the local context needed for implementation.
