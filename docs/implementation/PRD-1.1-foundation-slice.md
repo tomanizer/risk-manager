@@ -176,7 +176,7 @@ The contract for `delta_pct` is:
 - all contracts instantiate cleanly
 - unit tests cover invalid `NodeRef` combinations
 - `delta_pct` zero-handling is explicit and tested
-- replay/version metadata is preserved without inventing ad hoc evidence/trace fields
+- replay/version metadata is preserved according to each contract's explicit field list, without inventing ad hoc evidence/trace fields or expanding history-object metadata beyond the PRD
 - no service logic is included yet
 
 ## Slice B: WI-1.1.2 Deterministic fixture pack
