@@ -17,11 +17,13 @@ Where the workload fits, prefer established, widely used libraries such as:
 
 Use them directly and idiomatically where possible when they are already approved and available in the repository environment.
 
-If one of these libraries is needed but not yet available, make that an explicit dependency change by updating `requirements.txt`, give a short justification, and verify the addition in CI.
+If one of these libraries is needed but not yet available, make that an explicit dependency change by updating `pyproject.toml` package metadata, give a short justification, and verify the addition in CI.
 
 ## Approved compute stack status
 
 The `[compute]` extra in `pyproject.toml` is an approved optional analytical stack, not the default repository CI baseline.
+
+If `requirements.txt` remains in the repository, treat it only as a compatibility pointer to the package metadata declared in `pyproject.toml`, not as a second dependency source of truth.
 
 That means:
 
@@ -89,4 +91,4 @@ Prefer a small number of strong dependencies over:
 - local mini-frameworks
 - premature generalization layers
 
-Every new dependency should have a concrete reason, a corresponding `requirements.txt` update, and CI validation.
+Every new dependency should have a concrete reason, a corresponding `pyproject.toml` package metadata update, and CI validation.

@@ -50,7 +50,7 @@ If the work belongs in a deterministic service, do not introduce AI behavior or 
 
 Use established libraries such as `numpy`, `scipy`, `pyarrow`, `duckdb`, and `statsmodels` where they fit the workload and are already available in the repository environment rather than inventing custom numerical or data-processing infrastructure.
 
-If introducing one of these dependencies is necessary, make that an explicit dependency change by updating `requirements.txt`, include a brief justification, and verify the change in CI.
+If introducing one of these dependencies is necessary, make that an explicit dependency change by updating `pyproject.toml` package metadata, include a brief justification, and verify the change in CI.
 
 Treat the approved `[compute]` extra as optional repository capacity, not as guaranteed default CI presence, until a governed slice explicitly depends on it.
 
