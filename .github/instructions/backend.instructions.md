@@ -7,9 +7,9 @@ applyTo: "src/**/*.py,tests/**/*.py,fixtures/**/*.py"
 Focus on deterministic correctness and boundary discipline.
 
 ## Rules
-- Module code owns calculations, deterministic services, canonical state, and workflow state.
+- Module code owns calculations, deterministic services, and canonical business state.
 - Walker code owns typed interpretation only.
-- Orchestrator code owns workflow transitions, routing, gating, and handoff only.
+- Orchestrator code owns workflow state, workflow transitions, routing, gating, and handoff.
 - Preserve typed schemas and explicit enums.
 - Preserve evidence references, snapshot/version metadata, and replayability hooks.
 - Prefer explicit code over clever abstractions.

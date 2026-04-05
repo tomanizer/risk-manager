@@ -1,7 +1,7 @@
 # Source Layout
 
 ## Shared
-`src/shared/` for schemas, trace, config, workflow state, and utilities.
+`src/shared/` for schemas, trace, config, workflow-state types, and utilities.
 
 ## Modules
 `src/modules/` for deterministic capability modules.
@@ -10,6 +10,6 @@
 `src/walkers/` for specialist agent wrappers and typed outputs.
 
 ## Orchestrators
-`src/orchestrators/` for workflow state machines and routing.
+`src/orchestrators/` for workflow state machines, routing, gates, and handoff logic.
 
 Keep module, walker, and orchestrator responsibilities separate.
