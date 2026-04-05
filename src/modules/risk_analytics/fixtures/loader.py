@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from collections import Counter
 from datetime import date
 from pathlib import Path
 
@@ -20,7 +21,7 @@ FIXTURE_PATH_ENV_VAR = "RISK_ANALYTICS_FIXTURE_PATH"
 FIXTURE_PACK_RELATIVE_PATH = Path("fixtures/risk_analytics/risk_summary_fixture_pack.json")
 
 
-def _resolve_default_fixture_path() -> Path:
+def resolve_default_fixture_path() -> Path:
     env_path = os.environ.get(FIXTURE_PATH_ENV_VAR)
     if env_path:
         return Path(env_path).expanduser().resolve()
@@ -89,7 +90,9 @@ class RiskSummaryFixturePack(BaseModel):
         if tuple(sorted(snapshot_dates)) != snapshot_dates:
             raise ValueError("snapshots must be ordered ascending by as_of_date")
         if len(set(snapshot_dates)) != len(snapshot_dates):
-            raise ValueError("snapshot as_of_date values must be unique")
+            date_counts = Counter(snapshot_dates)
+            duplicates = sorted([d for d, cnt in date_counts.items() if cnt > 1])
+            raise ValueError(f"snapshot as_of_date values must be unique; duplicates: {duplicates}")
         calendar_dates = set(self.calendar)
         for snapshot in self.snapshots:
             if snapshot.as_of_date not in calendar_dates:
@@ -167,7 +170,7 @@ class FixtureIndex:
 def load_risk_summary_fixture_pack(
     fixture_path: str | Path | None = None,
 ) -> RiskSummaryFixturePack:
-    resolved = Path(fixture_path) if fixture_path is not None else _resolve_default_fixture_path()
+    resolved = Path(fixture_path) if fixture_path is not None else resolve_default_fixture_path()
     payload = json.loads(resolved.read_text(encoding="utf-8"))
     return RiskSummaryFixturePack.model_validate(payload)
 

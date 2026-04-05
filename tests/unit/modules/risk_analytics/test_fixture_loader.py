@@ -20,8 +20,8 @@ from src.modules.risk_analytics.contracts import (
 from src.modules.risk_analytics.fixtures import (
     build_fixture_index,
     load_risk_summary_fixture_pack,
+    resolve_default_fixture_path,
 )
-from src.modules.risk_analytics.fixtures.loader import _resolve_default_fixture_path
 
 
 class FixtureLoaderTestCase(unittest.TestCase):
@@ -186,7 +186,7 @@ class FixtureLoaderTestCase(unittest.TestCase):
         self.assertEqual(stable_values[-1] - stable_values[-2], 17.0)
 
     def test_fixture_pack_rejects_calendar_snapshot_drift(self) -> None:
-        payload = json.loads(_resolve_default_fixture_path().read_text(encoding="utf-8"))
+        payload = json.loads(resolve_default_fixture_path().read_text(encoding="utf-8"))
         payload["calendar"] = payload["calendar"][:-1]
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -197,7 +197,7 @@ class FixtureLoaderTestCase(unittest.TestCase):
                 load_risk_summary_fixture_pack(fixture_path)
 
     def test_fixture_pack_rejects_duplicate_as_of_date(self) -> None:
-        payload = json.loads(_resolve_default_fixture_path().read_text(encoding="utf-8"))
+        payload = json.loads(resolve_default_fixture_path().read_text(encoding="utf-8"))
         # duplicate the first snapshot entry with a different ID but same as_of_date
         duplicate = dict(payload["snapshots"][0])
         duplicate["snapshot_id"] = "SNAP-DUPLICATE"
