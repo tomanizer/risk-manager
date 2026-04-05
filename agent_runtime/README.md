@@ -39,11 +39,14 @@ Those paths are reserved for product code.
 The first orchestrator is intentionally narrow:
 
 - scan local work-item state
-- represent GitHub/PR state in a small typed model
+- sync open GitHub PR state into a small typed model
 - choose the next action in the relay
 - stop at the human merge gate
 
 It does not yet execute model APIs directly.
+
+Live PR sync uses the local `gh` CLI session. If `gh` is unavailable or unauthenticated,
+the runtime degrades to filesystem-only work-item decisions and emits a warning.
 
 ## Manual simulation
 
@@ -54,6 +57,20 @@ You can test relay decisions without real GitHub state:
 .venv/bin/python -m agent_runtime --simulate ready-no-pr
 .venv/bin/python -m agent_runtime --simulate unresolved-review
 ```
+
+## Live relay decision
+
+```bash
+.venv/bin/python -m agent_runtime
+```
+
+The live mode now combines:
+
+- filesystem work-item discovery
+- open GitHub PR discovery
+- unresolved review-thread counts
+- review decision state
+- latest status-check rollup state
 
 The initial built-in scenarios cover:
 

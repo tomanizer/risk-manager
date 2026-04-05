@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+from .github_sync import fetch_pull_requests
 from .state import RuntimeSnapshot
 from .simulations import build_simulation_snapshot, simulation_names
 from .transitions import decide_next_action
@@ -22,7 +23,12 @@ def find_repo_root(start_path: Path) -> Path:
 
 def build_runtime_snapshot(repo_root: Path) -> RuntimeSnapshot:
     work_items, warnings = load_work_items(repo_root)
-    return RuntimeSnapshot(work_items=work_items, warnings=warnings)
+    pull_requests, github_warnings = fetch_pull_requests(repo_root, work_items)
+    return RuntimeSnapshot(
+        work_items=work_items,
+        pull_requests=pull_requests,
+        warnings=warnings + github_warnings,
+    )
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -60,6 +66,7 @@ def main() -> int:
                 "reason": decision.reason,
                 "target_path": str(decision.target_path) if decision.target_path else None,
                 "metadata": decision.metadata,
+                "pull_request_count": len(snapshot.pull_requests),
                 "work_item_count": len(snapshot.work_items),
                 "warnings": list(snapshot.warnings),
             },
