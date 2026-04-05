@@ -15,7 +15,6 @@ Each work item should include:
 - purpose
 - exact scope
 - dependencies
-- target area
 - acceptance criteria
 - suggested agent type
 - review focus
