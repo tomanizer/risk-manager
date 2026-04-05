@@ -124,10 +124,10 @@ The current runtime is designed for a semi-automatic loop:
 .venv/bin/python -m agent_runtime --dispatch
 ```
 
-2. Open the returned `worktree.path` and run the real PM/spec/coding/review agent
+1. Open the returned `worktree.path` and run the real PM/spec/coding/review agent
 manually in that isolated checkout using the returned `runner.prompt`.
 
-3. When that manual agent session finishes, record the reviewed outcome back into
+1. When that manual agent session finishes, record the reviewed outcome back into
 the runtime:
 
 ```bash
@@ -138,7 +138,7 @@ the runtime:
   --outcome-details-json '{"recommended_next_step":"update_work_item"}'
 ```
 
-4. If the run is finished and the isolated checkout is no longer needed, release
+1. If the run is finished and the isolated checkout is no longer needed, release
 it in the same step:
 
 ```bash

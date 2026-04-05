@@ -477,11 +477,7 @@ def _row_to_workflow_run(row: sqlite3.Row | None) -> WorkflowRunRecord | None:
 
     details = details_payload if isinstance(details_payload, dict) else {}
     result = {str(key): value for key, value in result_payload.items()} if isinstance(result_payload, dict) else {}
-    outcome_details = (
-        {str(key): value for key, value in outcome_details_payload.items()}
-        if isinstance(outcome_details_payload, dict)
-        else {}
-    )
+    outcome_details = {str(key): value for key, value in outcome_details_payload.items()} if isinstance(outcome_details_payload, dict) else {}
     return WorkflowRunRecord(
         work_item_id=str(row["work_item_id"]),
         run_id=str(row["run_id"]) if row["run_id"] is not None else None,
