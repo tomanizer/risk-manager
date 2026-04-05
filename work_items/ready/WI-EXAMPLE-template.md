@@ -16,6 +16,9 @@
 ## Dependencies
 - <dependency>
 
+## Target Area
+- <package or file area>
+
 ## Acceptance Criteria
 - <criterion>
 - <criterion>

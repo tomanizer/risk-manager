@@ -33,6 +33,23 @@ This repository uses AI agents for PRD authoring, issue decomposition, implement
 - manages sequencing, dependency readiness, blockers, and milestone integrity
 - does not redesign architecture during execution
 
+## Role separation rule
+
+The repository uses a gated relay, not a single do-everything agent.
+
+The intended handoff is:
+1. PM / Coordination Agent
+2. Issue Planner or PRD Author when needed
+3. Coding Agent
+4. Review Agent
+5. Human merge decision
+
+Do not collapse planning, coding, review, and merge judgment into one agent pass when operating autonomously.
+
+Repo-visible role-specific instructions live in:
+- `prompts/agents/`
+- `docs/guides/overnight_agent_runbook.md`
+
 ## Non-negotiable repository rules
 - deterministic services own calculations and canonical state
 - walkers interpret typed outputs only

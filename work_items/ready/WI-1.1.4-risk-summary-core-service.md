@@ -2,11 +2,11 @@
 
 ## Linked PRD
 
-PRD-1.1
+PRD-1.1-v2
 
 ## Purpose
 
-Implement `get_risk_summary` and `get_risk_delta`.
+Implement `get_risk_summary`, `get_risk_delta`, and the first-order status logic they require.
 
 ## Scope
 
@@ -14,19 +14,40 @@ Implement `get_risk_summary` and `get_risk_delta`.
 - compare-to logic
 - delta computation
 - status derivation
-- reuse or define `RiskDelta`
+- `RiskDelta` implementation as a distinct first-order object
+- scope-aware retrieval behavior
 
 ## Out of scope
 
 - factor decomposition
+- `RiskChangeProfile`
 - narratives
 - agent usage
+
+## Dependencies
+
+- WI-1.1.1
+- WI-1.1.2
+- WI-1.1.3
+- WI-1.1.6
+- ADR-001
+- ADR-002
+- ADR-003
+- ADR-004
+
+## Target Area
+
+- `src/modules/risk_analytics/`
+- `tests/unit/modules/risk_analytics/`
+- `tests/replay/`
 
 ## Acceptance Criteria
 
 - correct current/prior/delta behavior
 - `delta_pct` null when prior is zero or null
 - explicit missing compare handling
+- status precedence follows PRD-1.1-v2
+- no collapse of `RiskDelta` into `RiskSummary`
 - tests included
 
 ## Suggested Agent
@@ -37,4 +58,5 @@ Coding Agent
 
 - delta correctness
 - status correctness
+- scope semantics
 - strict PRD adherence
