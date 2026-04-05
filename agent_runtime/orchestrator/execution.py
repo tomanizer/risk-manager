@@ -44,7 +44,7 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
             metadata={"target_path": str(work_item.path)},
         )
 
-    if decision.action.value == "run_spec":
+    if decision.action is NextActionType.RUN_SPEC:
         spec_input = SpecRunnerInput(
             work_item_id=work_item.id,
             blocked_reason=decision.reason,
