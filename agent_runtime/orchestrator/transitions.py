@@ -43,18 +43,7 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
             return TransitionDecision(
                 action=NextActionType.RUN_REVIEW,
                 work_item_id=work_item.id,
-                reason="PR has unresolved or newly arrived review feedback",
-                target_path=work_item.path,
-                metadata={
-                    "pr_number": str(pull_request.number),
-                    "pr_url": pull_request.url or "",
-                },
-            )
-        if pull_request.review_decision == "CHANGES_REQUESTED":
-            return TransitionDecision(
-                action=NextActionType.RUN_REVIEW,
-                work_item_id=work_item.id,
-                reason="PR has changes requested and should be triaged through review",
+                reason="PR has unresolved review feedback that should be triaged",
                 target_path=work_item.path,
                 metadata={
                     "pr_number": str(pull_request.number),
@@ -84,17 +73,6 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
                     "ci_status": pull_request.ci_status or "",
                 },
             )
-        if pull_request.review_decision in {None, "REVIEW_REQUIRED"}:
-            return TransitionDecision(
-                action=NextActionType.WAIT_FOR_REVIEWS,
-                work_item_id=work_item.id,
-                reason="PR is open and waiting for review completion",
-                target_path=work_item.path,
-                metadata={
-                    "pr_number": str(pull_request.number),
-                    "pr_url": pull_request.url or "",
-                },
-            )
         if pull_request.ci_status in _PENDING_CI_STATES:
             return TransitionDecision(
                 action=NextActionType.WAIT_FOR_REVIEWS,
@@ -105,6 +83,28 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
                     "pr_number": str(pull_request.number),
                     "pr_url": pull_request.url or "",
                     "ci_status": pull_request.ci_status or "",
+                },
+            )
+        if pull_request.review_decision == "CHANGES_REQUESTED":
+            return TransitionDecision(
+                action=NextActionType.RUN_REVIEW,
+                work_item_id=work_item.id,
+                reason="PR has changes requested and should be triaged through review",
+                target_path=work_item.path,
+                metadata={
+                    "pr_number": str(pull_request.number),
+                    "pr_url": pull_request.url or "",
+                },
+            )
+        if pull_request.review_decision in {None, "REVIEW_REQUIRED"}:
+            return TransitionDecision(
+                action=NextActionType.WAIT_FOR_REVIEWS,
+                work_item_id=work_item.id,
+                reason="PR is open and waiting for review completion",
+                target_path=work_item.path,
+                metadata={
+                    "pr_number": str(pull_request.number),
+                    "pr_url": pull_request.url or "",
                 },
             )
         if pull_request.merge_state_status not in {None, *_READY_MERGE_STATES}:

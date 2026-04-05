@@ -11,8 +11,8 @@ from pathlib import Path
 from .state import PullRequestSnapshot, WorkItemSnapshot
 
 _REMOTE_GITHUB_PATTERNS = (
-    re.compile(r"^git@github\.com:(?P<owner>[^/]+)/(?P<name>[^/.]+?)(?:\.git)?$"),
-    re.compile(r"^https://github\.com/(?P<owner>[^/]+)/(?P<name>[^/.]+?)(?:\.git)?$"),
+    re.compile(r"^git@github\.com:(?P<owner>[^/]+)/(?P<name>[^/]+?)(?:\.git)?/?$"),
+    re.compile(r"^https://github\.com/(?P<owner>[^/]+)/(?P<name>[^/]+?)(?:\.git)?/?$"),
 )
 
 _OPEN_PULL_REQUESTS_QUERY = """
@@ -123,23 +123,34 @@ def _extract_work_item_reference(
     title = str(node.get("title") or "")
     body = str(node.get("body") or "")
 
-    for candidate_id in known_work_item_ids:
-        if candidate_id in head_ref_name:
-            return candidate_id, None
+    head_ref_matches = _find_work_item_matches(head_ref_name, known_work_item_ids)
+    if len(head_ref_matches) == 1:
+        return head_ref_matches[0], None
+    if len(head_ref_matches) > 1:
+        return None, f"PR #{node.get('number')} matched multiple work items in branch: {', '.join(head_ref_matches)}"
 
-    title_matches = [candidate_id for candidate_id in known_work_item_ids if candidate_id in title]
+    title_matches = _find_work_item_matches(title, known_work_item_ids)
     if len(title_matches) == 1:
         return title_matches[0], None
     if len(title_matches) > 1:
         return None, f"PR #{node.get('number')} matched multiple work items in title: {', '.join(title_matches)}"
 
-    body_matches = [candidate_id for candidate_id in known_work_item_ids if candidate_id in body]
+    body_matches = _find_work_item_matches(body, known_work_item_ids)
     if len(body_matches) == 1:
         return body_matches[0], None
     if len(body_matches) > 1:
         return None, f"PR #{node.get('number')} matched multiple work items in body: {', '.join(body_matches)}"
 
     return None, None
+
+
+def _find_work_item_matches(text: str, known_work_item_ids: tuple[str, ...]) -> list[str]:
+    matches: list[str] = []
+    for candidate_id in sorted(known_work_item_ids, key=len, reverse=True):
+        pattern = re.compile(rf"(?<![A-Za-z0-9]){re.escape(candidate_id)}(?![A-Za-z0-9])")
+        if pattern.search(text):
+            matches.append(candidate_id)
+    return matches
 
 
 def _extract_ci_status(node: dict[str, object]) -> str | None:
@@ -166,19 +177,18 @@ def build_pull_request_snapshots(
     payload: dict[str, object],
     work_items: tuple[WorkItemSnapshot, ...],
 ) -> tuple[tuple[PullRequestSnapshot, ...], tuple[str, ...]]:
-    repository = payload.get("data", {}).get("repository") if isinstance(payload.get("data"), dict) else None
-    pull_requests = repository.get("pullRequests") if isinstance(repository, dict) else None
-    nodes = pull_requests.get("nodes") if isinstance(pull_requests, dict) else None
+    nodes, payload_warnings = _extract_pull_request_nodes(payload)
 
-    if not isinstance(nodes, list):
-        return (), ("GitHub sync payload did not include pull request nodes",)
+    if nodes is None:
+        return (), payload_warnings
 
     known_work_item_ids = tuple(item.id for item in work_items)
-    snapshots: list[PullRequestSnapshot] = []
-    warnings: list[str] = []
+    snapshots_by_work_item: dict[str, PullRequestSnapshot] = {}
+    warnings: list[str] = list(payload_warnings)
 
     for raw_node in nodes:
         if not isinstance(raw_node, dict):
+            warnings.append("GitHub sync skipped a non-dictionary pull request node")
             continue
         work_item_id, warning = _extract_work_item_reference(raw_node, known_work_item_ids)
         if warning is not None:
@@ -186,28 +196,36 @@ def build_pull_request_snapshots(
             continue
         if work_item_id is None:
             continue
+        try:
+            number = int(raw_node.get("number"))
+        except (TypeError, ValueError):
+            warnings.append(f"GitHub sync skipped malformed PR node for work item {work_item_id}: missing or invalid number")
+            continue
 
         review_threads = raw_node.get("reviewThreads")
         thread_nodes = review_threads.get("nodes") if isinstance(review_threads, dict) else []
         unresolved_review_threads = sum(1 for thread in thread_nodes if isinstance(thread, dict) and thread.get("isResolved") is False)
         review_decision = str(raw_node.get("reviewDecision")) if raw_node.get("reviewDecision") else None
 
-        snapshots.append(
-            PullRequestSnapshot(
-                work_item_id=work_item_id,
-                number=int(raw_node["number"]),
-                is_draft=bool(raw_node.get("isDraft")),
-                url=str(raw_node.get("url")) if raw_node.get("url") else None,
-                head_ref_name=str(raw_node.get("headRefName")) if raw_node.get("headRefName") else None,
-                unresolved_review_threads=unresolved_review_threads,
-                has_new_review_comments=review_decision == "CHANGES_REQUESTED",
-                review_decision=review_decision,
-                merge_state_status=str(raw_node.get("mergeStateStatus")) if raw_node.get("mergeStateStatus") else None,
-                ci_status=_extract_ci_status(raw_node),
+        if work_item_id in snapshots_by_work_item:
+            warnings.append(
+                f"GitHub sync found multiple open PRs for {work_item_id}; keeping newer PR #{snapshots_by_work_item[work_item_id].number} and skipping PR #{number}"
             )
-        )
+            continue
 
-    return tuple(snapshots), tuple(warnings)
+        snapshots_by_work_item[work_item_id] = PullRequestSnapshot(
+            work_item_id=work_item_id,
+            number=number,
+            is_draft=bool(raw_node.get("isDraft")),
+            url=str(raw_node.get("url")) if raw_node.get("url") else None,
+            head_ref_name=str(raw_node.get("headRefName")) if raw_node.get("headRefName") else None,
+            unresolved_review_threads=unresolved_review_threads,
+            has_new_review_comments=False,
+            review_decision=review_decision,
+            merge_state_status=str(raw_node.get("mergeStateStatus")) if raw_node.get("mergeStateStatus") else None,
+            ci_status=_extract_ci_status(raw_node),
+        )
+    return tuple(snapshots_by_work_item.values()), tuple(warnings)
 
 
 def fetch_pull_requests(
@@ -221,15 +239,82 @@ def fetch_pull_requests(
     if repository is None:
         return (), ("could not infer GitHub repository from remote.origin.url",)
 
+    raw_nodes: list[dict[str, object]] = []
+    warnings: list[str] = []
+    cursor: str | None = None
+
     try:
-        payload = _run_gh_graphql(
-            repo_root,
-            query=_OPEN_PULL_REQUESTS_QUERY,
-            variables={"owner": repository.owner, "name": repository.name},
-        )
+        while True:
+            payload = _run_gh_graphql(
+                repo_root,
+                query=_OPEN_PULL_REQUESTS_QUERY,
+                variables={"owner": repository.owner, "name": repository.name, "cursor": cursor},
+            )
+            page_nodes, page_warnings, page_info = _extract_pull_request_page(payload)
+            warnings.extend(page_warnings)
+            if page_nodes is None:
+                break
+            raw_nodes.extend(page_nodes)
+            if not page_info["has_next_page"]:
+                break
+            cursor = page_info["end_cursor"]
+            if cursor is None:
+                warnings.append("GitHub sync saw hasNextPage without endCursor; stopping pagination early")
+                break
     except FileNotFoundError:
         return (), ("gh CLI is not installed; skipping live GitHub PR sync",)
     except RuntimeError as exc:
         return (), (f"GitHub PR sync failed: {exc}",)
 
-    return build_pull_request_snapshots(payload, work_items)
+    snapshots, snapshot_warnings = build_pull_request_snapshots(
+        {
+            "data": {
+                "repository": {
+                    "pullRequests": {
+                        "nodes": raw_nodes,
+                    }
+                }
+            }
+        },
+        work_items,
+    )
+    return snapshots, tuple(warnings) + snapshot_warnings
+
+
+def _extract_pull_request_nodes(payload: dict[str, object]) -> tuple[list[dict[str, object]] | None, tuple[str, ...]]:
+    repository = payload.get("data", {}).get("repository") if isinstance(payload.get("data"), dict) else None
+    pull_requests = repository.get("pullRequests") if isinstance(repository, dict) else None
+    nodes = pull_requests.get("nodes") if isinstance(pull_requests, dict) else None
+    if not isinstance(nodes, list):
+        return None, ("GitHub sync payload did not include pull request nodes",)
+    return nodes, ()
+
+
+def _extract_pull_request_page(
+    payload: dict[str, object],
+) -> tuple[list[dict[str, object]] | None, tuple[str, ...], dict[str, str | bool | None]]:
+    repository = payload.get("data", {}).get("repository") if isinstance(payload.get("data"), dict) else None
+    pull_requests = repository.get("pullRequests") if isinstance(repository, dict) else None
+    nodes = pull_requests.get("nodes") if isinstance(pull_requests, dict) else None
+    page_info = pull_requests.get("pageInfo") if isinstance(pull_requests, dict) else None
+
+    if not isinstance(nodes, list):
+        return None, ("GitHub sync payload did not include pull request nodes",), {"has_next_page": False, "end_cursor": None}
+    if not isinstance(page_info, dict):
+        return (
+            nodes,
+            ("GitHub sync payload did not include pageInfo; stopping after first page",),
+            {
+                "has_next_page": False,
+                "end_cursor": None,
+            },
+        )
+
+    return (
+        nodes,
+        (),
+        {
+            "has_next_page": bool(page_info.get("hasNextPage")),
+            "end_cursor": str(page_info.get("endCursor")) if page_info.get("endCursor") else None,
+        },
+    )
