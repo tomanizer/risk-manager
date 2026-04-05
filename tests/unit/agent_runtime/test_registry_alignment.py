@@ -118,6 +118,54 @@ def test_registry_alignment_reports_unregistered_module_roots(tmp_path: Path) ->
     assert finding.kind == "unregistered_module_root"
     assert finding.implementation_path == "src/modules/limits_approvals"
     assert finding.severity == "critical"
+    assert report.stats.components_scanned == 1
+
+
+def test_registry_alignment_uses_component_id_for_module_root_mapping(tmp_path: Path) -> None:
+    _write_registry(
+        tmp_path,
+        """
+        version: 1
+        components:
+          modules:
+            - id: MOD-RISK-ANALYTICS
+              name: Risk Analytics (Renamed Display Label)
+              status: in-progress
+              contract_status: implemented
+        """,
+    )
+    (tmp_path / "src" / "modules" / "risk_analytics").mkdir(parents=True)
+
+    report = build_registry_alignment_report(tmp_path)
+
+    assert report.findings == ()
+    assert report.stats.components_scanned == 1
+
+
+def test_registry_alignment_counts_only_module_components_as_scanned(tmp_path: Path) -> None:
+    _write_registry(
+        tmp_path,
+        """
+        version: 1
+        components:
+          modules:
+            - id: MOD-RISK-ANALYTICS
+              name: Risk Analytics
+              status: in-progress
+              contract_status: implemented
+          walkers:
+            - id: WALKER-QUANT
+              name: Quant Walker
+              status: proposed
+              contract_status: draft
+        """,
+    )
+    (tmp_path / "src" / "modules" / "risk_analytics").mkdir(parents=True)
+
+    report = build_registry_alignment_report(tmp_path)
+
+    assert report.findings == ()
+    assert report.stats.components_scanned == 1
 
 
 def test_registry_alignment_supports_trailing_yaml_comments(tmp_path: Path) -> None:
@@ -184,6 +232,7 @@ def test_check_registry_alignment_cli_writes_json_report(tmp_path: Path) -> None
     assert payload["root"] == "."
     assert payload == written_payload
     assert payload["stats"]["findings_count"] == 0
+    assert payload["stats"]["components_scanned"] == 1
 
 
 def test_repo_registry_alignment_scan_has_no_findings() -> None:

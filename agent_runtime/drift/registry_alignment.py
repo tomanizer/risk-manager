@@ -75,12 +75,14 @@ def build_registry_alignment_report(root: Path) -> RegistryAlignmentReport:
     findings: list[RegistryAlignmentFinding] = []
     discovered_module_roots = _discovered_module_roots(repo_root)
     registered_module_roots: set[str] = set()
+    module_components_scanned = 0
     subcomponents_scanned = 0
 
     for component in components:
         if component.section != "modules":
             continue
-        module_root = _module_root_from_name(component.name)
+        module_components_scanned += 1
+        module_root = _module_root_from_component_id(component.component_id)
         if module_root is not None:
             registered_module_roots.add(module_root)
             _maybe_append_module_root_finding(
@@ -121,7 +123,7 @@ def build_registry_alignment_report(root: Path) -> RegistryAlignmentReport:
         generated_at=datetime.now(UTC).isoformat(),
         findings=tuple(findings),
         stats=RegistryAlignmentStats(
-            components_scanned=len(components),
+            components_scanned=module_components_scanned,
             subcomponents_scanned=subcomponents_scanned,
             module_roots_discovered=len(discovered_module_roots),
             findings_count=len(findings),
@@ -328,10 +330,10 @@ def _discovered_module_roots(root: Path) -> frozenset[str]:
     return frozenset(child.name for child in modules_root.iterdir() if child.is_dir() and not child.name.startswith((".", "__")))
 
 
-def _module_root_from_name(name: str | None) -> str | None:
-    if not name:
+def _module_root_from_component_id(component_id: str) -> str | None:
+    if not component_id.startswith("MOD-"):
         return None
-    slug = re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+    slug = re.sub(r"[^a-z0-9]+", "_", component_id.removeprefix("MOD-").lower()).strip("_")
     return slug or None
 
 
