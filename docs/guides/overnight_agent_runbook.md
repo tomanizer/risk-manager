@@ -26,6 +26,20 @@ in one pass.
 
 That collapses the governance model.
 
+## Freshness rule
+
+Before any PM, coding, or review cycle:
+
+1. `git fetch origin`
+2. `git switch main`
+3. `git pull --ff-only origin main`
+
+New work must begin from up-to-date `main`.
+
+Each bounded slice should use its own fresh branch created from current `main`.
+
+Agents must not rely on stale local state when the repository, PRs, or canon documents may have changed.
+
 ## Canonical handoff chain
 
 ### Step 1: PM agent
@@ -106,7 +120,7 @@ Human remains responsible for:
 
 ## Recommended nightly loop
 
-1. Fetch latest `main`
+1. Fetch latest `main` and fast-forward local `main`
 2. PM agent chooses one ready slice
 3. If not ready, route to issue planner or spec work
 4. Coding agent implements and opens draft PR
@@ -217,12 +231,14 @@ Do not reuse the same session for all three roles if you want the governance bou
 
 Recommended cadence:
 
-1. start PM session and get the implementation brief
-2. start coding session using only that brief plus linked artifacts
-3. push draft PR
-4. wait for GitHub comments
-5. start review session to triage the PR and bot comments
-6. if fixes are required, return to the coding session with only the accepted findings
+1. fetch and fast-forward local `main`
+2. start PM session and get the implementation brief
+3. create a fresh branch from current `main`
+4. start coding session using only that brief plus linked artifacts
+5. push draft PR
+6. wait for GitHub comments
+7. start review session to triage the PR and bot comments
+8. if fixes are required, return to the coding session with only the accepted findings
 
 ### Claude Code
 
@@ -230,11 +246,13 @@ Use separate terminal sessions or separate invocations.
 
 Recommended cadence:
 
-1. open Claude Code for PM work
-2. ask it for a readiness and implementation brief only
-3. close or stop that PM session
-4. open a fresh Claude Code session for coding
-5. open a fresh Claude Code session for review after the PR exists
+1. fetch and fast-forward local `main`
+2. open Claude Code for PM work
+3. ask it for a readiness and implementation brief only
+4. close or stop that PM session
+5. create a fresh branch from current `main`
+6. open a fresh Claude Code session for coding
+7. open a fresh Claude Code session for review after the PR exists
 
 ### GitHub Copilot coding agent
 
@@ -242,16 +260,18 @@ Use Copilot for the coding step, not the full governance chain.
 
 Recommended cadence:
 
-1. use your PM agent locally to produce the final bounded implementation brief
-2. open or update a GitHub issue with:
+1. fetch and fast-forward local `main`
+2. use your PM agent locally to produce the final bounded implementation brief
+3. open or update a GitHub issue with:
    - linked work item
    - linked PRD
    - linked ADRs
    - exact target area
    - explicit out-of-scope reminder
-3. assign the issue to Copilot coding agent or ask Copilot to create a PR
-4. wait for the Copilot PR
-5. run your review agent locally against the PR plus bot comments
+4. create the implementation branch from current `main`
+5. assign the issue to Copilot coding agent or ask Copilot to create a PR
+6. wait for the Copilot PR
+7. run your review agent locally against the PR plus bot comments
 
 ## Morning checklist
 

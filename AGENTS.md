@@ -50,6 +50,20 @@ Repo-visible role-specific instructions live in:
 - `prompts/agents/`
 - `docs/guides/overnight_agent_runbook.md`
 
+## Freshness and branching rule
+
+Before any PM, coding, or review pass:
+
+1. `git fetch origin`
+2. `git switch main`
+3. `git pull --ff-only origin main`
+
+New implementation work must start from the latest `main`.
+
+Each bounded implementation slice should use a fresh branch created from current `main`.
+
+Agents must not continue from stale local state when canon, PR state, or linked contracts may have changed.
+
 ## Non-negotiable repository rules
 - deterministic services own calculations and canonical state
 - walkers interpret typed outputs only

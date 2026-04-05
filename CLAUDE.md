@@ -36,6 +36,8 @@ Then read the role-specific instruction that matches the current session:
 
 ## Hard rules
 
+- before any new PM, coding, or review task: `git fetch origin && git switch main && git pull --ff-only origin main`
+- start each new implementation slice from a fresh branch created from current `main`
 - preserve module / walker / orchestrator boundaries
 - stay within the linked work item and PRD
 - do not silently widen scope
@@ -44,6 +46,7 @@ Then read the role-specific instruction that matches the current session:
 
 ## For coding sessions
 
+- start from current `main`, then create a fresh branch for the slice
 - implement one bounded work item only
 - add tests with the change
 - open a draft PR before treating the slice as complete

@@ -17,6 +17,12 @@ Read first:
 5. the linked PRD
 6. any linked ADRs
 
+Before starting analysis, sync to latest `main`:
+
+1. `git fetch origin`
+2. `git switch main`
+3. `git pull --ff-only origin main`
+
 Your responsibilities:
 
 - decide whether a work item is truly ready
