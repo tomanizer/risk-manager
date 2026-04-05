@@ -39,7 +39,8 @@ Implement `get_risk_summary`, `get_risk_delta`, and the first-order status logic
 
 - `src/modules/risk_analytics/`
 - `tests/unit/modules/risk_analytics/`
-- `tests/replay/`
+
+If this slice introduces replay coverage beyond unit tests, create the replay test directory in-slice instead of treating it as an already-existing target area.
 
 ## Acceptance Criteria
 

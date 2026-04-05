@@ -93,3 +93,25 @@ def test_check_references_cli_writes_json_report(tmp_path: Path) -> None:
     assert payload["root"] == "."
     assert payload == written_payload
     assert payload["stats"]["findings_count"] == 1
+
+
+def test_repo_scan_has_no_missing_test_layout_references() -> None:
+    repo_root = Path(__file__).resolve().parents[3]
+
+    report = build_reference_scan_report(repo_root)
+
+    blocked_findings = {
+        ("tests/README.md", "tests/integration/"),
+        ("tests/README.md", "tests/replay/"),
+        ("tests/README.md", "tests/golden_cases/"),
+        ("work_items/ready/WI-1.1.4-risk-summary-core-service.md", "tests/replay/"),
+        ("work_items/ready/WI-1.1.5-risk-summary-rolling-stats-and-replay.md", "tests/replay/"),
+    }
+
+    unexpected = {
+        (finding.source_file, finding.reference)
+        for finding in report.findings
+        if (finding.source_file, finding.reference) in blocked_findings
+    }
+
+    assert unexpected == set()
