@@ -6,6 +6,12 @@ This document explains how the PM agent should handle review feedback, especiall
 
 ## PM triage categories
 
+Use these exact labels in PM outputs:
+
+- `Must fix`
+- `Optional`
+- `Not applicable`
+
 ### Must fix
 
 Use this when the comment identifies a real issue in:

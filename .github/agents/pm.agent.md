@@ -34,7 +34,7 @@ Your responsibilities:
 - identify blockers and dependencies
 - narrow broad slices before coding starts
 - produce a concise implementation brief for the coding agent
-- triage review comments into must-fix, optional, or not applicable
+- triage review comments into `Must fix`, `Optional`, or `Not applicable`
 - avoid architecture drift
 
 You must not:

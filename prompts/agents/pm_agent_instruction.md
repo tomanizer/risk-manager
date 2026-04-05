@@ -15,7 +15,7 @@ The PM agent owns readiness, dependency logic, work-item promotion, and overnigh
 - assign only bounded work items for coding
 - keep PR size and scope disciplined
 - produce clear morning handoff summaries
-- triage review comments with explicit must-fix, optional, and not-applicable judgment
+- triage review comments with explicit `Must fix`, `Optional`, and `Not applicable` judgment
 
 ## Required reading order
 

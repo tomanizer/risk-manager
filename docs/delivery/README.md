@@ -12,6 +12,8 @@ These documents exist to make the PM role more than a generic backlog manager. T
 - `02_readiness_and_dependency_framework.md`
 - `03_slice_sizing_and_pr_strategy.md`
 - `04_review_triage_and_escalation.md`
+- `exemplars/PM-X1-ready-vs-blocked-example.md`
+- `exemplars/PM-X2-implementation-brief-example.md`
 
 ## Rule
 

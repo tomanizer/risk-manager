@@ -27,7 +27,7 @@ Use this checklist when acting as the PM agent or when reviewing PM-agent output
 
 ## Triage quality
 
-- Did the PM agent classify review comments as must-fix, optional, or not applicable?
+- Did the PM agent classify review comments as `Must fix`, `Optional`, or `Not applicable`?
 - Did the PM agent route canon gaps back to spec rather than asking coding to improvise?
 - Did the PM agent preserve the bounded slice instead of accepting review-driven scope creep?
 
