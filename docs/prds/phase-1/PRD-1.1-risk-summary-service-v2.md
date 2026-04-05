@@ -473,7 +473,7 @@ Result:
 - `status = MISSING_HISTORY`
 - `points = []`
 
-`MISSING_HISTORY` means the requested scoped node and measure resolves in the pinned dataset context, but zero returnable points fall within the inclusive requested range.
+`MISSING_HISTORY` means the requested scoped node and measure resolve in the pinned dataset context, but zero returnable points fall within the inclusive requested range.
 
 This status is reachable in v1 when the node exists elsewhere in the pinned dataset context but has no returnable points inside the requested date range.
 
