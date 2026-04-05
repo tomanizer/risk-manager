@@ -105,6 +105,12 @@ PM/spec/coding/review session. Use `--outcome-details-json` when you need a
 small structured payload, and `--release-after-complete` when the worktree is
 finished.
 
+The runtime now uses completed PM outcomes as control signals:
+
+- `ready` can advance a ready item to coding without asking PM again
+- `blocked` or `split_required` can stop at a human repo-update gate until the
+  work item changes
+
 ## Release a completed runner worktree
 
 ```bash

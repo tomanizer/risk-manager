@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
+from agent_runtime.storage.sqlite import WorkflowRunRecord
+
 from .state import (
     NextActionType,
     RuntimeSnapshot,
@@ -13,6 +17,8 @@ from .state import (
 _PENDING_CI_STATES = {"EXPECTED", "PENDING", "QUEUED", "IN_PROGRESS"}
 _FAILING_CI_STATES = {"ACTION_REQUIRED", "CANCELLED", "ERROR", "FAILURE", "STALE", "STARTUP_FAILURE", "TIMED_OUT"}
 _READY_MERGE_STATES = {"CLEAN", "HAS_HOOKS", "UNSTABLE"}
+_PM_READY_OUTCOMES = {"ready"}
+_PM_REPO_UPDATE_OUTCOMES = {"blocked", "split_required"}
 
 
 def _dependencies_satisfied(item: WorkItemSnapshot, snapshot: RuntimeSnapshot) -> bool:
@@ -23,8 +29,62 @@ def _dependencies_satisfied(item: WorkItemSnapshot, snapshot: RuntimeSnapshot) -
     return True
 
 
+def _work_item_changed_since_completion(item: WorkItemSnapshot, completed_at: str | None) -> bool:
+    if completed_at is None:
+        return True
+    try:
+        completed_timestamp = datetime.strptime(completed_at, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC).timestamp()
+    except ValueError:
+        return True
+    try:
+        return item.path.stat().st_mtime > completed_timestamp
+    except OSError:
+        return True
+
+
+def _decision_from_completed_pm_outcome(
+    work_item: WorkItemSnapshot,
+    workflow_run: WorkflowRunRecord | None,
+) -> TransitionDecision | None:
+    if workflow_run is None:
+        return None
+    if workflow_run.last_action != NextActionType.RUN_PM.value:
+        return None
+    if workflow_run.runner_status != "completed":
+        return None
+    if workflow_run.outcome_status is None:
+        return None
+    if _work_item_changed_since_completion(work_item, workflow_run.completed_at):
+        return None
+
+    metadata = {
+        "pm_outcome_status": workflow_run.outcome_status,
+    }
+    if workflow_run.run_id is not None:
+        metadata["pm_run_id"] = workflow_run.run_id
+
+    if workflow_run.outcome_status in _PM_READY_OUTCOMES:
+        return TransitionDecision(
+            action=NextActionType.RUN_CODING,
+            work_item_id=work_item.id,
+            reason=workflow_run.outcome_summary or "latest PM assessment marked the work item ready for implementation",
+            target_path=work_item.path,
+            metadata=metadata,
+        )
+    if workflow_run.outcome_status in _PM_REPO_UPDATE_OUTCOMES:
+        return TransitionDecision(
+            action=NextActionType.HUMAN_UPDATE_REPO,
+            work_item_id=work_item.id,
+            reason=workflow_run.outcome_summary or "latest PM assessment requires a repo update before another agent run",
+            target_path=work_item.path,
+            metadata=metadata,
+        )
+    return None
+
+
 def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
     prs_by_work_item = {pull_request.work_item_id: pull_request for pull_request in snapshot.pull_requests}
+    workflow_runs_by_work_item = {workflow_run.work_item_id: workflow_run for workflow_run in snapshot.workflow_runs}
 
     for work_item in snapshot.work_items:
         if work_item.stage is not WorkItemStage.READY:
@@ -33,6 +93,12 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
             continue
         pull_request = prs_by_work_item.get(work_item.id)
         if pull_request is None:
+            pm_outcome_decision = _decision_from_completed_pm_outcome(
+                work_item,
+                workflow_runs_by_work_item.get(work_item.id),
+            )
+            if pm_outcome_decision is not None:
+                return pm_outcome_decision
             return TransitionDecision(
                 action=NextActionType.RUN_PM,
                 work_item_id=work_item.id,

@@ -12,6 +12,8 @@ from agent_runtime.orchestrator.worktree_manager import allocate_worktree, bind_
 from agent_runtime.runners.dispatch import dispatch_runner_execution
 from agent_runtime.storage.sqlite import (
     WorkflowRunRecord,
+    load_workflow_run,
+    load_workflow_runs,
     record_workflow_outcome,
     upsert_workflow_run,
 )
@@ -31,12 +33,14 @@ def find_repo_root(start_path: Path) -> Path:
     raise RuntimeError("could not determine repository root from runtime location")
 
 
-def build_runtime_snapshot(repo_root: Path) -> RuntimeSnapshot:
+def build_runtime_snapshot(repo_root: Path, state_db_path: Path) -> RuntimeSnapshot:
     work_items, warnings = load_work_items(repo_root)
     pull_requests, github_warnings = fetch_pull_requests(repo_root, work_items)
+    workflow_runs = load_workflow_runs(state_db_path)
     return RuntimeSnapshot(
         work_items=work_items,
         pull_requests=pull_requests,
+        workflow_runs=workflow_runs,
         warnings=warnings + github_warnings,
     )
 
@@ -157,7 +161,7 @@ def main() -> int:
         )
         return 0
 
-    snapshot = build_simulation_snapshot(args.simulate) if args.simulate is not None else build_runtime_snapshot(repo_root)
+    snapshot = build_simulation_snapshot(args.simulate) if args.simulate is not None else build_runtime_snapshot(repo_root, defaults.state_db_path)
     decision = decide_next_action(snapshot)
     should_build_execution = args.execute or args.dispatch
     execution = build_runner_execution(snapshot, decision) if should_build_execution else None
@@ -175,18 +179,29 @@ def main() -> int:
                 pr_number = pull_request.number
                 branch_name = pull_request.head_ref_name
                 break
+        existing_run = load_workflow_run(defaults.state_db_path, decision.work_item_id)
         upsert_workflow_run(
             defaults.state_db_path,
             WorkflowRunRecord(
                 work_item_id=decision.work_item_id,
-                run_id=execution.metadata.get("run_id") if execution is not None else None,
+                run_id=execution.metadata.get("run_id") if execution is not None else existing_run.run_id if existing_run is not None else None,
                 branch_name=branch_name,
                 pr_number=pr_number,
                 status=decision.action.value,
                 blocked_reason=decision.reason if decision.action is NextActionType.RUN_SPEC else None,
-                last_action=decision.action.value,
-                runner_name=execution.runner_name.value if execution is not None else None,
-                runner_status=runner_result.status.value if runner_result is not None else None,
+                last_action=decision.action.value
+                if execution is not None
+                else existing_run.last_action
+                if existing_run is not None
+                else decision.action.value,
+                runner_name=execution.runner_name.value if execution is not None else existing_run.runner_name if existing_run is not None else None,
+                runner_status=runner_result.status.value
+                if runner_result is not None
+                else existing_run.runner_status
+                if existing_run is not None
+                else None,
+                outcome_status=existing_run.outcome_status if existing_run is not None else None,
+                outcome_summary=existing_run.outcome_summary if existing_run is not None else None,
                 details=(
                     {
                         **dict(decision.metadata),
@@ -202,8 +217,12 @@ def main() -> int:
                         "details": dict(runner_result.details),
                     }
                     if runner_result is not None
+                    else existing_run.result
+                    if existing_run is not None
                     else {}
                 ),
+                outcome_details=existing_run.outcome_details if existing_run is not None else {},
+                completed_at=existing_run.completed_at if existing_run is not None else None,
             ),
         )
 

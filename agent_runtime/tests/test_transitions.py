@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 import sqlite3
 import tempfile
@@ -33,6 +34,7 @@ from agent_runtime.storage.sqlite import (
     initialize_database,
     load_workflow_run_by_run_id,
     load_workflow_run,
+    load_workflow_runs,
     record_workflow_outcome,
     upsert_workflow_run,
 )
@@ -54,6 +56,117 @@ def test_ready_item_without_pr_routes_to_pm() -> None:
     decision = decide_next_action(snapshot)
 
     assert decision.action is NextActionType.RUN_PM
+
+
+def test_completed_pm_ready_outcome_routes_to_coding() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        work_item_path = Path(temp_dir) / "WI-1.1.4-risk-summary-core-service.md"
+        work_item_path.write_text("# WI-1.1.4\n", encoding="utf-8")
+        os.utime(work_item_path, (1_000_000_000, 1_000_000_000))
+
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-1.1.4-risk-summary-core-service",
+                    title="WI-1.1.4",
+                    path=work_item_path,
+                    stage=WorkItemStage.READY,
+                    dependencies=(),
+                ),
+            ),
+            workflow_runs=(
+                WorkflowRunRecord(
+                    work_item_id="WI-1.1.4-risk-summary-core-service",
+                    status="run_pm",
+                    run_id="pm-wi-1-1-4-test-run",
+                    last_action="run_pm",
+                    runner_name="pm",
+                    runner_status="completed",
+                    outcome_status="ready",
+                    outcome_summary="PM marked the work item ready for implementation.",
+                    completed_at="2026-04-06 10:00:00",
+                ),
+            ),
+        )
+
+        decision = decide_next_action(snapshot)
+
+        assert decision.action is NextActionType.RUN_CODING
+        assert decision.metadata["pm_outcome_status"] == "ready"
+        assert decision.metadata["pm_run_id"] == "pm-wi-1-1-4-test-run"
+
+
+def test_completed_pm_split_required_routes_to_human_update_repo() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        work_item_path = Path(temp_dir) / "WI-1.1.4-risk-summary-core-service.md"
+        work_item_path.write_text("# WI-1.1.4\n", encoding="utf-8")
+        os.utime(work_item_path, (1_000_000_000, 1_000_000_000))
+
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-1.1.4-risk-summary-core-service",
+                    title="WI-1.1.4",
+                    path=work_item_path,
+                    stage=WorkItemStage.READY,
+                    dependencies=(),
+                ),
+            ),
+            workflow_runs=(
+                WorkflowRunRecord(
+                    work_item_id="WI-1.1.4-risk-summary-core-service",
+                    status="run_pm",
+                    run_id="pm-wi-1-1-4-test-run",
+                    last_action="run_pm",
+                    runner_name="pm",
+                    runner_status="completed",
+                    outcome_status="split_required",
+                    outcome_summary="Need to split WI-1.1.4 before coding.",
+                    completed_at="2026-04-06 10:00:00",
+                ),
+            ),
+        )
+
+        decision = decide_next_action(snapshot)
+
+        assert decision.action is NextActionType.HUMAN_UPDATE_REPO
+        assert decision.reason == "Need to split WI-1.1.4 before coding."
+
+
+def test_completed_pm_outcome_is_ignored_after_work_item_changes() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        work_item_path = Path(temp_dir) / "WI-1.1.4-risk-summary-core-service.md"
+        work_item_path.write_text("# WI-1.1.4\n", encoding="utf-8")
+        os.utime(work_item_path, None)
+
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-1.1.4-risk-summary-core-service",
+                    title="WI-1.1.4",
+                    path=work_item_path,
+                    stage=WorkItemStage.READY,
+                    dependencies=(),
+                ),
+            ),
+            workflow_runs=(
+                WorkflowRunRecord(
+                    work_item_id="WI-1.1.4-risk-summary-core-service",
+                    status="run_pm",
+                    run_id="pm-wi-1-1-4-test-run",
+                    last_action="run_pm",
+                    runner_name="pm",
+                    runner_status="completed",
+                    outcome_status="split_required",
+                    outcome_summary="Need to split WI-1.1.4 before coding.",
+                    completed_at="2020-01-01 10:00:00",
+                ),
+            ),
+        )
+
+        decision = decide_next_action(snapshot)
+
+        assert decision.action is NextActionType.RUN_PM
 
 
 def test_open_pr_with_unresolved_reviews_routes_to_review() -> None:
@@ -194,6 +307,55 @@ def test_initialize_database_creates_expected_workflow_runs_schema() -> None:
         assert actual_worktree_columns == EXPECTED_WORKTREE_LEASE_COLUMNS
 
 
+def test_initialize_database_migrates_missing_updated_at_column() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "runtime" / "state.db"
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with sqlite3.connect(db_path) as connection:
+            connection.executescript(
+                """
+                CREATE TABLE workflow_runs (
+                    work_item_id TEXT PRIMARY KEY,
+                    run_id TEXT,
+                    branch_name TEXT,
+                    pr_number INTEGER,
+                    status TEXT NOT NULL,
+                    blocked_reason TEXT,
+                    last_action TEXT,
+                    runner_name TEXT,
+                    runner_status TEXT,
+                    outcome_status TEXT,
+                    outcome_summary TEXT,
+                    details_json TEXT NOT NULL DEFAULT '{}',
+                    result_json TEXT NOT NULL DEFAULT '{}',
+                    outcome_details_json TEXT NOT NULL DEFAULT '{}',
+                    completed_at TEXT
+                );
+                CREATE TABLE worktree_leases (
+                    run_id TEXT PRIMARY KEY,
+                    work_item_id TEXT NOT NULL,
+                    runner_name TEXT NOT NULL,
+                    branch_name TEXT NOT NULL,
+                    base_ref TEXT NOT NULL,
+                    worktree_path TEXT NOT NULL UNIQUE,
+                    status TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    released_at TEXT
+                );
+                """
+            )
+            connection.commit()
+
+        initialize_database(db_path)
+
+        with sqlite3.connect(db_path) as connection:
+            rows = connection.execute("PRAGMA table_info(workflow_runs)").fetchall()
+
+        actual_columns = tuple(row[1] for row in rows)
+        assert actual_columns == EXPECTED_WORKFLOW_RUN_COLUMNS
+
+
 def test_upsert_workflow_run_round_trips_extended_columns() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         db_path = Path(temp_dir) / "runtime" / "state.db"
@@ -214,7 +376,18 @@ def test_upsert_workflow_run_round_trips_extended_columns() -> None:
         upsert_workflow_run(db_path, record)
         loaded = load_workflow_run(db_path, record.work_item_id)
 
-        assert loaded == record
+        assert loaded is not None
+        assert loaded.work_item_id == record.work_item_id
+        assert loaded.run_id == record.run_id
+        assert loaded.branch_name == record.branch_name
+        assert loaded.pr_number == record.pr_number
+        assert loaded.status == record.status
+        assert loaded.last_action == record.last_action
+        assert loaded.runner_name == record.runner_name
+        assert loaded.runner_status == record.runner_status
+        assert loaded.details == record.details
+        assert loaded.result == record.result
+        assert loaded.updated_at is not None
 
 
 def test_record_workflow_outcome_updates_run_by_run_id() -> None:
@@ -262,6 +435,77 @@ def test_record_workflow_outcome_returns_none_for_unknown_run() -> None:
         )
 
         assert updated is None
+
+
+def test_load_workflow_runs_returns_updated_rows() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "runtime" / "state.db"
+        record = WorkflowRunRecord(
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            status="run_pm",
+            run_id="pm-wi-1-1-4-test-run",
+            last_action="run_pm",
+            runner_name="pm",
+            runner_status="completed",
+            outcome_status="ready",
+            outcome_summary="PM marked the work item ready for implementation.",
+            completed_at="2026-04-06 10:00:00",
+        )
+
+        upsert_workflow_run(db_path, record)
+        loaded = load_workflow_runs(db_path)
+
+        assert len(loaded) == 1
+        assert loaded[0].run_id == "pm-wi-1-1-4-test-run"
+        assert loaded[0].updated_at is not None
+
+
+def test_non_execution_decision_preserves_existing_pm_outcome_fields() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "runtime" / "state.db"
+        existing = WorkflowRunRecord(
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            status="run_pm",
+            run_id="pm-wi-1-1-4-test-run",
+            last_action="run_pm",
+            runner_name="pm",
+            runner_status="completed",
+            outcome_status="split_required",
+            outcome_summary="Need to split WI-1.1.4 before coding.",
+            outcome_details={"recommended_next_step": "update_work_item"},
+            completed_at="2026-04-06 10:00:00",
+            result={"summary": "Prepared PM handoff."},
+        )
+        upsert_workflow_run(db_path, existing)
+
+        updated = WorkflowRunRecord(
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            run_id=existing.run_id,
+            status=NextActionType.HUMAN_UPDATE_REPO.value,
+            last_action=existing.last_action,
+            runner_name=existing.runner_name,
+            runner_status=existing.runner_status,
+            details={"pm_outcome_status": "split_required"},
+            outcome_status=existing.outcome_status,
+            outcome_summary=existing.outcome_summary,
+            outcome_details=existing.outcome_details,
+            completed_at=existing.completed_at,
+            result=existing.result,
+        )
+        upsert_workflow_run(db_path, updated)
+
+        loaded = load_workflow_run(db_path, existing.work_item_id)
+
+        assert loaded is not None
+        assert loaded.status == NextActionType.HUMAN_UPDATE_REPO.value
+        assert loaded.last_action == "run_pm"
+        assert loaded.runner_name == "pm"
+        assert loaded.runner_status == "completed"
+        assert loaded.outcome_status == "split_required"
+        assert loaded.outcome_summary == "Need to split WI-1.1.4 before coding."
+        assert loaded.outcome_details["recommended_next_step"] == "update_work_item"
+        assert loaded.result == {"summary": "Prepared PM handoff."}
+        assert loaded.completed_at == "2026-04-06 10:00:00"
 
 
 def test_parse_github_remote_supports_ssh_and_https() -> None:

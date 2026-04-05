@@ -6,6 +6,7 @@ import json
 import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import cast
 
 
 SCHEMA = """
@@ -87,6 +88,7 @@ _DEFAULT_COLUMN_DEFINITIONS = {
     "result_json": "TEXT NOT NULL DEFAULT '{}'",
     "outcome_details_json": "TEXT NOT NULL DEFAULT '{}'",
     "completed_at": "TEXT",
+    "updated_at": "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
 }
 
 
@@ -107,6 +109,7 @@ class WorkflowRunRecord:
     result: dict[str, object] = field(default_factory=dict)
     outcome_details: dict[str, object] = field(default_factory=dict)
     completed_at: str | None = None
+    updated_at: str | None = None
 
 
 @dataclass(frozen=True)
@@ -148,7 +151,7 @@ def _ensure_expected_columns(connection: sqlite3.Connection) -> None:
     rows = connection.execute("PRAGMA table_info(workflow_runs)").fetchall()
     actual_columns = {row[1] for row in rows}
     for column_name in EXPECTED_WORKFLOW_RUN_COLUMNS:
-        if column_name in actual_columns or column_name == "updated_at":
+        if column_name in actual_columns:
             continue
         column_definition = _DEFAULT_COLUMN_DEFINITIONS.get(column_name)
         if column_definition is None:
@@ -249,7 +252,8 @@ def load_workflow_run(db_path: Path, work_item_id: str) -> WorkflowRunRecord | N
                 details_json,
                 result_json,
                 outcome_details_json,
-                completed_at
+                completed_at,
+                updated_at
             FROM workflow_runs
             WHERE work_item_id = ?
             """,
@@ -280,7 +284,8 @@ def load_workflow_run_by_run_id(db_path: Path, run_id: str) -> WorkflowRunRecord
                 details_json,
                 result_json,
                 outcome_details_json,
-                completed_at
+                completed_at,
+                updated_at
             FROM workflow_runs
             WHERE run_id = ?
             """,
@@ -288,6 +293,37 @@ def load_workflow_run_by_run_id(db_path: Path, run_id: str) -> WorkflowRunRecord
         ).fetchone()
 
     return _row_to_workflow_run(row)
+
+
+def load_workflow_runs(db_path: Path) -> tuple[WorkflowRunRecord, ...]:
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as connection:
+        connection.row_factory = sqlite3.Row
+        rows = connection.execute(
+            """
+            SELECT
+                work_item_id,
+                run_id,
+                branch_name,
+                pr_number,
+                status,
+                blocked_reason,
+                last_action,
+                runner_name,
+                runner_status,
+                outcome_status,
+                outcome_summary,
+                details_json,
+                result_json,
+                outcome_details_json,
+                completed_at,
+                updated_at
+            FROM workflow_runs
+            ORDER BY updated_at DESC
+            """
+        ).fetchall()
+
+    return tuple(cast(WorkflowRunRecord, _row_to_workflow_run(row)) for row in rows)
 
 
 def record_workflow_outcome(
@@ -494,4 +530,5 @@ def _row_to_workflow_run(row: sqlite3.Row | None) -> WorkflowRunRecord | None:
         result=result,
         outcome_details=outcome_details,
         completed_at=str(row["completed_at"]) if row["completed_at"] is not None else None,
+        updated_at=str(row["updated_at"]) if row["updated_at"] is not None else None,
     )
