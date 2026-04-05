@@ -40,7 +40,7 @@ What must be explicit in specs:
 - decay parameter or weighting regime
 - observation window
 - treatment of older stress periods
-- whether weighting affects downstream shock explain
+- whether weighting affects downstream shock explanation outputs
 
 ## Filtered historical simulation
 
