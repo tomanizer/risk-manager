@@ -19,6 +19,7 @@ If the task is role-specific, also read:
 - `prompts/agents/coding_agent_instruction.md`
 - `prompts/agents/review_agent_instruction.md`
 - `prompts/agents/risk_methodology_spec_agent_instruction.md`
+- `prompts/agents/drift_monitor_agent_instruction.md`
 
 If the task is coding-heavy, also read:
 
@@ -45,6 +46,11 @@ If the task is methodology-heavy, also read:
 - `docs/methodology/02_historical_simulation_and_shocks.md`
 - `docs/methodology/03_advanced_var_methodologies_and_constraints.md`
 - `docs/guides/risk_methodology_review_checklist.md`
+
+If the task is drift-monitor heavy, also read:
+
+- `docs/delivery/05_repo_drift_monitoring.md`
+- `docs/guides/repo_health_audit_checklist.md`
 
 ## Review priorities
 

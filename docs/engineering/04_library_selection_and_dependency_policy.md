@@ -19,6 +19,17 @@ Use them directly and idiomatically where possible when they are already approve
 
 If one of these libraries is needed but not yet available, make that an explicit dependency change by updating `requirements.txt`, give a short justification, and verify the addition in CI.
 
+## Approved compute stack status
+
+The `[compute]` extra in `pyproject.toml` is an approved optional analytical stack, not the default repository CI baseline.
+
+That means:
+
+- coding agents may prefer these libraries when the active environment already includes them
+- coding agents must not assume they are present in every CI run or every local environment by default
+- if a new slice truly depends on one of them, make that dependency explicit in the package metadata and validate it in CI for that slice
+- until the first governed in-repo consumer lands, treat the compute extra as approved capacity rather than universally provisioned baseline tooling
+
 ## Reinvention rule
 
 Do not implement custom numerical, statistical, or columnar infrastructure when an established library already provides a well-understood solution.

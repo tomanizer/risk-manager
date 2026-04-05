@@ -52,6 +52,8 @@ Use established libraries such as `numpy`, `scipy`, `pyarrow`, `duckdb`, and `st
 
 If introducing one of these dependencies is necessary, make that an explicit dependency change by updating `requirements.txt`, include a brief justification, and verify the change in CI.
 
+Treat the approved `[compute]` extra as optional repository capacity, not as guaranteed default CI presence, until a governed slice explicitly depends on it.
+
 ### Prefer the right execution shape
 
 For analytical workloads, prefer, when those libraries are already available:

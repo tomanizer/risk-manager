@@ -7,6 +7,7 @@ import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Mapping, cast
 
 from .state import PullRequestSnapshot, WorkItemSnapshot
 
@@ -112,7 +113,10 @@ def _run_gh_graphql(repo_root: Path, *, query: str, variables: dict[str, str | N
     if result.returncode != 0:
         stderr = result.stderr.strip() or "unknown gh api failure"
         raise RuntimeError(stderr)
-    return json.loads(result.stdout)
+    payload = json.loads(result.stdout)
+    if not isinstance(payload, dict):
+        raise RuntimeError("gh graphql payload was not a JSON object")
+    return cast(dict[str, object], payload)
 
 
 def _extract_work_item_reference(
@@ -174,7 +178,7 @@ def _extract_ci_status(node: dict[str, object]) -> str | None:
 
 
 def build_pull_request_snapshots(
-    payload: dict[str, object],
+    payload: Mapping[str, object],
     work_items: tuple[WorkItemSnapshot, ...],
 ) -> tuple[tuple[PullRequestSnapshot, ...], tuple[str, ...]]:
     nodes, payload_warnings = _extract_pull_request_nodes(payload)
@@ -196,14 +200,24 @@ def build_pull_request_snapshots(
             continue
         if work_item_id is None:
             continue
-        try:
-            number = int(raw_node.get("number"))
-        except (TypeError, ValueError):
+        raw_number = raw_node.get("number")
+        if isinstance(raw_number, bool) or not isinstance(raw_number, int | str):
+            number = None
+        else:
+            try:
+                number = int(raw_number)
+            except ValueError:
+                number = None
+        if number is None:
             warnings.append(f"GitHub sync skipped malformed PR node for work item {work_item_id}: missing or invalid number")
             continue
 
         review_threads = raw_node.get("reviewThreads")
-        thread_nodes = review_threads.get("nodes") if isinstance(review_threads, dict) else []
+        thread_nodes: list[object] = []
+        if isinstance(review_threads, dict):
+            raw_thread_nodes = review_threads.get("nodes")
+            if isinstance(raw_thread_nodes, list):
+                thread_nodes = raw_thread_nodes
         unresolved_review_threads = sum(1 for thread in thread_nodes if isinstance(thread, dict) and thread.get("isResolved") is False)
         review_decision = str(raw_node.get("reviewDecision")) if raw_node.get("reviewDecision") else None
 
@@ -257,7 +271,8 @@ def fetch_pull_requests(
             raw_nodes.extend(page_nodes)
             if not page_info["has_next_page"]:
                 break
-            cursor = page_info["end_cursor"]
+            raw_end_cursor = page_info["end_cursor"]
+            cursor = raw_end_cursor if isinstance(raw_end_cursor, str) else None
             if cursor is None:
                 warnings.append("GitHub sync saw hasNextPage without endCursor; stopping pagination early")
                 break
@@ -281,19 +296,21 @@ def fetch_pull_requests(
     return snapshots, tuple(warnings) + snapshot_warnings
 
 
-def _extract_pull_request_nodes(payload: dict[str, object]) -> tuple[list[dict[str, object]] | None, tuple[str, ...]]:
-    repository = payload.get("data", {}).get("repository") if isinstance(payload.get("data"), dict) else None
+def _extract_pull_request_nodes(payload: Mapping[str, object]) -> tuple[list[dict[str, object]] | None, tuple[str, ...]]:
+    data = payload.get("data")
+    repository = data.get("repository") if isinstance(data, dict) else None
     pull_requests = repository.get("pullRequests") if isinstance(repository, dict) else None
     nodes = pull_requests.get("nodes") if isinstance(pull_requests, dict) else None
     if not isinstance(nodes, list):
         return None, ("GitHub sync payload did not include pull request nodes",)
-    return nodes, ()
+    return [node for node in nodes if isinstance(node, dict)], ()
 
 
 def _extract_pull_request_page(
-    payload: dict[str, object],
+    payload: Mapping[str, object],
 ) -> tuple[list[dict[str, object]] | None, tuple[str, ...], dict[str, str | bool | None]]:
-    repository = payload.get("data", {}).get("repository") if isinstance(payload.get("data"), dict) else None
+    data = payload.get("data")
+    repository = data.get("repository") if isinstance(data, dict) else None
     pull_requests = repository.get("pullRequests") if isinstance(repository, dict) else None
     nodes = pull_requests.get("nodes") if isinstance(pull_requests, dict) else None
     page_info = pull_requests.get("pageInfo") if isinstance(pull_requests, dict) else None
@@ -302,7 +319,7 @@ def _extract_pull_request_page(
         return None, ("GitHub sync payload did not include pull request nodes",), {"has_next_page": False, "end_cursor": None}
     if not isinstance(page_info, dict):
         return (
-            nodes,
+            [node for node in nodes if isinstance(node, dict)],
             ("GitHub sync payload did not include pageInfo; stopping after first page",),
             {
                 "has_next_page": False,
@@ -311,7 +328,7 @@ def _extract_pull_request_page(
         )
 
     return (
-        nodes,
+        [node for node in nodes if isinstance(node, dict)],
         (),
         {
             "has_next_page": bool(page_info.get("hasNextPage")),
