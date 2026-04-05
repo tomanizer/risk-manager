@@ -24,6 +24,13 @@ Implement the canonical business-day resolver for compare-to defaults and replay
 
 - WI-1.1.1
 - WI-1.1.2
+- ADR-002
+- ADR-004
+
+## Target Area
+
+- `src/modules/risk_analytics/time/`
+- `tests/unit/modules/risk_analytics/`
 
 ## Acceptance Criteria
 

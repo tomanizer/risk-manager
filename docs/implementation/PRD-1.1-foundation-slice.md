@@ -12,7 +12,7 @@ The recommended first implementation PR should include:
 
 - WI-1.1.1 schemas and enums
 - WI-1.1.2 deterministic fixtures
-- WI-1.1.3 business-day resolver
+- WI-1.1.6 business-day resolver
 
 This order is intentional:
 
@@ -247,7 +247,7 @@ Provide a small loader that:
 - all required edge cases are present
 - deterministic indexing helpers exist
 
-## Slice C: WI-1.1.3 Business-day resolver
+## Slice C: WI-1.1.6 Business-day resolver
 
 ### Goal
 
