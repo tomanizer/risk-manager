@@ -307,6 +307,55 @@ def test_initialize_database_creates_expected_workflow_runs_schema() -> None:
         assert actual_worktree_columns == EXPECTED_WORKTREE_LEASE_COLUMNS
 
 
+def test_initialize_database_migrates_missing_updated_at_column() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "runtime" / "state.db"
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with sqlite3.connect(db_path) as connection:
+            connection.executescript(
+                """
+                CREATE TABLE workflow_runs (
+                    work_item_id TEXT PRIMARY KEY,
+                    run_id TEXT,
+                    branch_name TEXT,
+                    pr_number INTEGER,
+                    status TEXT NOT NULL,
+                    blocked_reason TEXT,
+                    last_action TEXT,
+                    runner_name TEXT,
+                    runner_status TEXT,
+                    outcome_status TEXT,
+                    outcome_summary TEXT,
+                    details_json TEXT NOT NULL DEFAULT '{}',
+                    result_json TEXT NOT NULL DEFAULT '{}',
+                    outcome_details_json TEXT NOT NULL DEFAULT '{}',
+                    completed_at TEXT
+                );
+                CREATE TABLE worktree_leases (
+                    run_id TEXT PRIMARY KEY,
+                    work_item_id TEXT NOT NULL,
+                    runner_name TEXT NOT NULL,
+                    branch_name TEXT NOT NULL,
+                    base_ref TEXT NOT NULL,
+                    worktree_path TEXT NOT NULL UNIQUE,
+                    status TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    released_at TEXT
+                );
+                """
+            )
+            connection.commit()
+
+        initialize_database(db_path)
+
+        with sqlite3.connect(db_path) as connection:
+            rows = connection.execute("PRAGMA table_info(workflow_runs)").fetchall()
+
+        actual_columns = tuple(row[1] for row in rows)
+        assert actual_columns == EXPECTED_WORKFLOW_RUN_COLUMNS
+
+
 def test_upsert_workflow_run_round_trips_extended_columns() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         db_path = Path(temp_dir) / "runtime" / "state.db"
@@ -409,6 +458,48 @@ def test_load_workflow_runs_returns_updated_rows() -> None:
         assert len(loaded) == 1
         assert loaded[0].run_id == "pm-wi-1-1-4-test-run"
         assert loaded[0].updated_at is not None
+
+
+def test_non_execution_decision_preserves_existing_pm_outcome_fields() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "runtime" / "state.db"
+        existing = WorkflowRunRecord(
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            status="run_pm",
+            run_id="pm-wi-1-1-4-test-run",
+            last_action="run_pm",
+            runner_name="pm",
+            runner_status="completed",
+            outcome_status="split_required",
+            outcome_summary="Need to split WI-1.1.4 before coding.",
+            outcome_details={"recommended_next_step": "update_work_item"},
+            completed_at="2026-04-06 10:00:00",
+            result={"summary": "Prepared PM handoff."},
+        )
+        upsert_workflow_run(db_path, existing)
+
+        updated = WorkflowRunRecord(
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            run_id=existing.run_id,
+            status=NextActionType.HUMAN_UPDATE_REPO.value,
+            last_action=NextActionType.HUMAN_UPDATE_REPO.value,
+            details={"pm_outcome_status": "split_required"},
+            outcome_status=existing.outcome_status,
+            outcome_summary=existing.outcome_summary,
+            outcome_details=existing.outcome_details,
+            completed_at=existing.completed_at,
+            result=existing.result,
+        )
+        upsert_workflow_run(db_path, updated)
+
+        loaded = load_workflow_run(db_path, existing.work_item_id)
+
+        assert loaded is not None
+        assert loaded.status == NextActionType.HUMAN_UPDATE_REPO.value
+        assert loaded.outcome_status == "split_required"
+        assert loaded.outcome_summary == "Need to split WI-1.1.4 before coding."
+        assert loaded.outcome_details["recommended_next_step"] == "update_work_item"
+        assert loaded.result == {"summary": "Prepared PM handoff."}
 
 
 def test_parse_github_remote_supports_ssh_and_https() -> None:

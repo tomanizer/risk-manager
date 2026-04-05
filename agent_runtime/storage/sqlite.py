@@ -6,6 +6,7 @@ import json
 import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import cast
 
 
 SCHEMA = """
@@ -87,6 +88,7 @@ _DEFAULT_COLUMN_DEFINITIONS = {
     "result_json": "TEXT NOT NULL DEFAULT '{}'",
     "outcome_details_json": "TEXT NOT NULL DEFAULT '{}'",
     "completed_at": "TEXT",
+    "updated_at": "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
 }
 
 
@@ -149,7 +151,7 @@ def _ensure_expected_columns(connection: sqlite3.Connection) -> None:
     rows = connection.execute("PRAGMA table_info(workflow_runs)").fetchall()
     actual_columns = {row[1] for row in rows}
     for column_name in EXPECTED_WORKFLOW_RUN_COLUMNS:
-        if column_name in actual_columns or column_name == "updated_at":
+        if column_name in actual_columns:
             continue
         column_definition = _DEFAULT_COLUMN_DEFINITIONS.get(column_name)
         if column_definition is None:
@@ -321,8 +323,7 @@ def load_workflow_runs(db_path: Path) -> tuple[WorkflowRunRecord, ...]:
             """
         ).fetchall()
 
-    loaded_runs = tuple(_row_to_workflow_run(row) for row in rows)
-    return tuple(run for run in loaded_runs if run is not None)
+    return tuple(cast(WorkflowRunRecord, _row_to_workflow_run(row)) for row in rows)
 
 
 def record_workflow_outcome(

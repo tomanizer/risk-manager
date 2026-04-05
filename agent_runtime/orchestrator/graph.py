@@ -12,6 +12,7 @@ from agent_runtime.orchestrator.worktree_manager import allocate_worktree, bind_
 from agent_runtime.runners.dispatch import dispatch_runner_execution
 from agent_runtime.storage.sqlite import (
     WorkflowRunRecord,
+    load_workflow_run,
     load_workflow_runs,
     record_workflow_outcome,
     upsert_workflow_run,
@@ -174,7 +175,7 @@ def main() -> int:
         execution = bind_worktree_to_execution(execution, worktree_lease)
     runner_result = dispatch_runner_execution(execution) if args.dispatch and execution is not None else None
 
-    if should_build_execution and decision.work_item_id is not None and execution is not None:
+    if should_build_execution and decision.work_item_id is not None:
         pr_number = None
         branch_name = None
         for pull_request in snapshot.pull_requests:
@@ -182,11 +183,12 @@ def main() -> int:
                 pr_number = pull_request.number
                 branch_name = pull_request.head_ref_name
                 break
+        existing_run = load_workflow_run(defaults.state_db_path, decision.work_item_id)
         upsert_workflow_run(
             defaults.state_db_path,
             WorkflowRunRecord(
                 work_item_id=decision.work_item_id,
-                run_id=execution.metadata.get("run_id") if execution is not None else None,
+                run_id=execution.metadata.get("run_id") if execution is not None else existing_run.run_id if existing_run is not None else None,
                 branch_name=branch_name,
                 pr_number=pr_number,
                 status=decision.action.value,
@@ -194,6 +196,8 @@ def main() -> int:
                 last_action=decision.action.value,
                 runner_name=execution.runner_name.value if execution is not None else None,
                 runner_status=runner_result.status.value if runner_result is not None else None,
+                outcome_status=existing_run.outcome_status if existing_run is not None else None,
+                outcome_summary=existing_run.outcome_summary if existing_run is not None else None,
                 details=(
                     {
                         **dict(decision.metadata),
@@ -209,8 +213,10 @@ def main() -> int:
                         "details": dict(runner_result.details),
                     }
                     if runner_result is not None
-                    else {}
+                    else existing_run.result if existing_run is not None else {}
                 ),
+                outcome_details=existing_run.outcome_details if existing_run is not None else {},
+                completed_at=existing_run.completed_at if existing_run is not None else None,
             ),
         )
 

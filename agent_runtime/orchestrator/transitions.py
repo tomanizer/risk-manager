@@ -29,13 +29,6 @@ def _dependencies_satisfied(item: WorkItemSnapshot, snapshot: RuntimeSnapshot) -
     return True
 
 
-def _find_workflow_run(snapshot: RuntimeSnapshot, work_item_id: str) -> WorkflowRunRecord | None:
-    for workflow_run in snapshot.workflow_runs:
-        if workflow_run.work_item_id == work_item_id:
-            return workflow_run
-    return None
-
-
 def _work_item_changed_since_completion(item: WorkItemSnapshot, completed_at: str | None) -> bool:
     if completed_at is None:
         return True
@@ -49,8 +42,10 @@ def _work_item_changed_since_completion(item: WorkItemSnapshot, completed_at: st
         return True
 
 
-def _decision_from_completed_pm_outcome(work_item: WorkItemSnapshot, snapshot: RuntimeSnapshot) -> TransitionDecision | None:
-    workflow_run = _find_workflow_run(snapshot, work_item.id)
+def _decision_from_completed_pm_outcome(
+    work_item: WorkItemSnapshot,
+    workflow_run: WorkflowRunRecord | None,
+) -> TransitionDecision | None:
     if workflow_run is None:
         return None
     if workflow_run.last_action != NextActionType.RUN_PM.value:
@@ -89,6 +84,7 @@ def _decision_from_completed_pm_outcome(work_item: WorkItemSnapshot, snapshot: R
 
 def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
     prs_by_work_item = {pull_request.work_item_id: pull_request for pull_request in snapshot.pull_requests}
+    workflow_runs_by_work_item = {workflow_run.work_item_id: workflow_run for workflow_run in snapshot.workflow_runs}
 
     for work_item in snapshot.work_items:
         if work_item.stage is not WorkItemStage.READY:
@@ -97,7 +93,10 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
             continue
         pull_request = prs_by_work_item.get(work_item.id)
         if pull_request is None:
-            pm_outcome_decision = _decision_from_completed_pm_outcome(work_item, snapshot)
+            pm_outcome_decision = _decision_from_completed_pm_outcome(
+                work_item,
+                workflow_runs_by_work_item.get(work_item.id),
+            )
             if pm_outcome_decision is not None:
                 return pm_outcome_decision
             return TransitionDecision(
