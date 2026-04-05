@@ -17,4 +17,5 @@ The current state store records:
 - blocked reason for spec-routing cases
 - runner metadata needed to resume or audit the next handoff
 - the latest local runner result summary and payload
+- the reviewed manual outcome recorded after a real PM/spec/coding/review session
 - active and released linked worktree leases per runner run

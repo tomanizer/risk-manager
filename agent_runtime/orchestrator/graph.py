@@ -10,7 +10,11 @@ from agent_runtime.config.defaults import build_defaults
 from agent_runtime.orchestrator.execution import build_runner_execution
 from agent_runtime.orchestrator.worktree_manager import allocate_worktree, bind_worktree_to_execution, release_worktree
 from agent_runtime.runners.dispatch import dispatch_runner_execution
-from agent_runtime.storage.sqlite import WorkflowRunRecord, upsert_workflow_run
+from agent_runtime.storage.sqlite import (
+    WorkflowRunRecord,
+    record_workflow_outcome,
+    upsert_workflow_run,
+)
 
 from .github_sync import fetch_pull_requests
 from .state import NextActionType, RuntimeSnapshot
@@ -64,6 +68,28 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="RUN_ID",
         help="Release a previously allocated worktree lease by run id.",
     )
+    parser.add_argument(
+        "--complete-run",
+        metavar="RUN_ID",
+        help="Record the real outcome of a manually executed runner session.",
+    )
+    parser.add_argument(
+        "--outcome-status",
+        help="Outcome status to record for --complete-run, for example ready, blocked, split_required, or pass.",
+    )
+    parser.add_argument(
+        "--summary",
+        help="Human-reviewed summary to record for --complete-run.",
+    )
+    parser.add_argument(
+        "--outcome-details-json",
+        help="Optional JSON object with structured outcome details for --complete-run.",
+    )
+    parser.add_argument(
+        "--release-after-complete",
+        action="store_true",
+        help="Release the run worktree immediately after recording its outcome.",
+    )
     return parser
 
 
@@ -84,6 +110,45 @@ def main() -> int:
                 {
                     "released_run_id": args.release_run,
                     "release_status": release_status,
+                    "state_db_path": str(defaults.state_db_path),
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return 0
+    if args.complete_run is not None:
+        if args.outcome_status is None or args.summary is None:
+            raise RuntimeError("--complete-run requires both --outcome-status and --summary")
+
+        outcome_details: dict[str, object] = {}
+        if args.outcome_details_json is not None:
+            try:
+                parsed_details = json.loads(args.outcome_details_json)
+            except json.JSONDecodeError as error:
+                raise RuntimeError("--outcome-details-json must be valid JSON") from error
+            if not isinstance(parsed_details, dict):
+                raise RuntimeError("--outcome-details-json must decode to a JSON object")
+            outcome_details = {str(key): value for key, value in parsed_details.items()}
+
+        record = record_workflow_outcome(
+            defaults.state_db_path,
+            args.complete_run,
+            args.outcome_status,
+            args.summary,
+            outcome_details,
+        )
+        completion_release_status: str | None = None
+        if args.release_after_complete:
+            completion_release_status = release_worktree(defaults, defaults.state_db_path, args.complete_run)
+        print(
+            json.dumps(
+                {
+                    "completed_run_id": args.complete_run,
+                    "found": record is not None,
+                    "outcome_status": record.outcome_status if record is not None else None,
+                    "outcome_summary": record.outcome_summary if record is not None else None,
+                    "release_status": completion_release_status,
                     "state_db_path": str(defaults.state_db_path),
                 },
                 indent=2,
@@ -114,6 +179,7 @@ def main() -> int:
             defaults.state_db_path,
             WorkflowRunRecord(
                 work_item_id=decision.work_item_id,
+                run_id=execution.metadata.get("run_id") if execution is not None else None,
                 branch_name=branch_name,
                 pr_number=pr_number,
                 status=decision.action.value,
