@@ -11,7 +11,7 @@ from agent_runtime.orchestrator.execution import build_runner_execution
 from agent_runtime.storage.sqlite import WorkflowRunRecord, upsert_workflow_run
 
 from .github_sync import fetch_pull_requests
-from .state import RuntimeSnapshot
+from .state import NextActionType, RuntimeSnapshot
 from .simulations import build_simulation_snapshot, simulation_names
 from .transitions import decide_next_action
 from .work_item_registry import load_work_items
