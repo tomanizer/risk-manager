@@ -179,6 +179,8 @@ class HistoryServiceTestCase(unittest.TestCase):
         self.assertEqual(series.points[0].date, date(2026, 1, 5))
         self.assertEqual(series.points[-1].date, date(2026, 1, 12))
         self.assertEqual(series.points[-1].snapshot_id, "SNAP-2026-01-12")
+        degraded_point = next(point for point in series.points if point.date == date(2026, 1, 9))
+        self.assertEqual(degraded_point.status, SummaryStatus.DEGRADED)
         self.assertTrue(
             any(point.status is SummaryStatus.DEGRADED for point in series.points)
         )

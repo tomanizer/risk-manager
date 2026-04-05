@@ -18,10 +18,7 @@ def _resolve_measure_status(
     measure_type: MeasureType,
     fixture_index: FixtureIndex,
 ) -> SummaryStatus | None:
-    supported_measures = {
-        row.measure_type for row in fixture_index.rows_by_key.values()
-    }
-    if measure_type not in supported_measures:
+    if measure_type not in fixture_index.supported_measures:
         return SummaryStatus.UNSUPPORTED_MEASURE
     return None
 
@@ -34,16 +31,13 @@ def _expected_dates(
     return tuple(day for day in calendar if start_date <= day <= end_date)
 
 
-def _node_exists_in_pinned_context(
+def _node_measure_exists_in_pinned_context(
     fixture_index: FixtureIndex,
     node_ref: NodeRef,
     measure_type: MeasureType,
 ) -> bool:
     node_key = fixture_index.node_key(node_ref)
-    return any(
-        row_node_key == node_key and row_measure_type == measure_type.value
-        for _, row_node_key, row_measure_type in fixture_index.rows_by_key
-    )
+    return (node_key, measure_type.value) in fixture_index.available_node_measures
 
 
 def get_risk_history(
@@ -114,7 +108,7 @@ def get_risk_history(
             service_version=pack.service_version,
         )
 
-    if not _node_exists_in_pinned_context(index, node_ref, measure_type):
+    if not _node_measure_exists_in_pinned_context(index, node_ref, measure_type):
         return RiskHistorySeries(
             node_ref=node_ref,
             measure_type=measure_type,
@@ -154,7 +148,7 @@ def get_risk_history(
                 date=as_of_date,
                 value=row.value,
                 snapshot_id=snapshot.snapshot_id,
-                status=row.status,
+                status=SummaryStatus.DEGRADED if snapshot.is_degraded else row.status,
             )
         )
 
