@@ -3,15 +3,21 @@
 from __future__ import annotations
 
 from datetime import date
+from functools import lru_cache
 
 from .contracts import MeasureType, NodeRef, RiskHistoryPoint, RiskHistorySeries, SummaryStatus
 from .fixtures import FixtureIndex, build_fixture_index
 
 
+@lru_cache(maxsize=1)
+def _default_fixture_index() -> FixtureIndex:
+    return build_fixture_index()
+
+
 def _resolve_fixture_index(fixture_index: FixtureIndex | None) -> FixtureIndex:
     if fixture_index is not None:
         return fixture_index
-    return build_fixture_index()
+    return _default_fixture_index()
 
 
 def _resolve_measure_status(
@@ -40,6 +46,10 @@ def _node_measure_exists_in_pinned_context(
     return (node_key, measure_type.value) in fixture_index.available_node_measures
 
 
+def _encode_dates_reason(reason_code: str, dates: list[date]) -> str:
+    return reason_code + ":" + ",".join(day.isoformat() for day in dates)
+
+
 def get_risk_history(
     node_ref: NodeRef,
     measure_type: MeasureType,
@@ -59,6 +69,8 @@ def get_risk_history(
 
     if start_date > end_date:
         raise ValueError("start_date must be on or before end_date")
+    if snapshot_id is not None and not snapshot_id.strip():
+        raise ValueError("snapshot_id must be non-empty when provided")
 
     index = _resolve_fixture_index(fixture_index)
     pack = index.pack
@@ -72,7 +84,7 @@ def get_risk_history(
             end_date=end_date,
             points=(),
             status=unsupported_status,
-            status_reasons=("measure is not available in the canonical fixture pack",),
+            status_reasons=("UNSUPPORTED_MEASURE_IN_FIXTURE_PACK",),
             service_version=pack.service_version,
         )
 
@@ -87,7 +99,7 @@ def get_risk_history(
                 end_date=end_date,
                 points=(),
                 status=SummaryStatus.MISSING_SNAPSHOT,
-                status_reasons=(f"anchor snapshot {snapshot_id} was not found",),
+                status_reasons=(f"ANCHOR_SNAPSHOT_NOT_FOUND:{snapshot_id}",),
                 service_version=pack.service_version,
             )
         if anchor_snapshot.as_of_date != end_date:
@@ -104,7 +116,7 @@ def get_risk_history(
             end_date=end_date,
             points=(),
             status=SummaryStatus.MISSING_SNAPSHOT,
-            status_reasons=(f"no snapshot exists for end_date {end_date.isoformat()}",),
+            status_reasons=(f"END_DATE_SNAPSHOT_NOT_FOUND:{end_date.isoformat()}",),
             service_version=pack.service_version,
         )
 
@@ -116,9 +128,7 @@ def get_risk_history(
             end_date=end_date,
             points=(),
             status=SummaryStatus.MISSING_NODE,
-            status_reasons=(
-                "node and measure do not resolve in the pinned dataset context",
-            ),
+            status_reasons=("NODE_MEASURE_NOT_IN_PINNED_DATASET_CONTEXT",),
             service_version=pack.service_version,
         )
 
@@ -160,9 +170,7 @@ def get_risk_history(
             end_date=end_date,
             points=(),
             status=SummaryStatus.MISSING_HISTORY,
-            status_reasons=(
-                "node resolves, but zero returnable history points exist in the requested range",
-            ),
+            status_reasons=("NO_RETURNABLE_POINTS_IN_RANGE",),
             service_version=pack.service_version,
         )
 
@@ -171,18 +179,15 @@ def get_risk_history(
 
     if degraded_dates:
         status = SummaryStatus.DEGRADED
-        status_reasons.append(
-            "degraded rows or snapshots present for dates: "
-            + ", ".join(day.isoformat() for day in degraded_dates)
-        )
+        status_reasons.append(_encode_dates_reason("DEGRADED_DATES", degraded_dates))
 
     if missing_dates:
-        missing_reason = "missing history dates in requested range: " + ", ".join(
-            day.isoformat() for day in missing_dates
-        )
+        missing_reason = _encode_dates_reason("MISSING_DATES", missing_dates)
         if require_complete:
             status = SummaryStatus.DEGRADED
-            status_reasons.append("require_complete=true and " + missing_reason)
+            status_reasons.append(
+                _encode_dates_reason("REQUIRE_COMPLETE_MISSING_DATES", missing_dates)
+            )
         elif status is SummaryStatus.OK:
             status = SummaryStatus.PARTIAL
             status_reasons.append(missing_reason)

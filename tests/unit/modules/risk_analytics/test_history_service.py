@@ -52,6 +52,17 @@ class HistoryServiceTestCase(unittest.TestCase):
                 fixture_index=self.index,
             )
 
+    def test_rejects_blank_snapshot_anchor(self) -> None:
+        with self.assertRaises(ValueError):
+            get_risk_history(
+                node_ref=make_top_of_house_desk(),
+                measure_type=MeasureType.VAR_1D_99,
+                start_date=date(2026, 1, 5),
+                end_date=date(2026, 1, 12),
+                snapshot_id="  ",
+                fixture_index=self.index,
+            )
+
     def test_returns_missing_snapshot_for_unknown_anchor(self) -> None:
         series = get_risk_history(
             node_ref=make_top_of_house_desk(),
@@ -64,6 +75,10 @@ class HistoryServiceTestCase(unittest.TestCase):
 
         self.assertEqual(series.status, SummaryStatus.MISSING_SNAPSHOT)
         self.assertEqual(series.points, ())
+        self.assertEqual(
+            series.status_reasons,
+            ("ANCHOR_SNAPSHOT_NOT_FOUND:SNAP-DOES-NOT-EXIST",),
+        )
 
     def test_returns_missing_snapshot_when_end_date_has_no_anchor_snapshot(self) -> None:
         series = get_risk_history(
@@ -76,6 +91,10 @@ class HistoryServiceTestCase(unittest.TestCase):
 
         self.assertEqual(series.status, SummaryStatus.MISSING_SNAPSHOT)
         self.assertEqual(series.points, ())
+        self.assertEqual(
+            series.status_reasons,
+            ("END_DATE_SNAPSHOT_NOT_FOUND:2026-01-07",),
+        )
 
     def test_returns_missing_node_when_pinned_context_cannot_resolve_node(self) -> None:
         missing_node = NodeRef(
@@ -96,6 +115,10 @@ class HistoryServiceTestCase(unittest.TestCase):
 
         self.assertEqual(series.status, SummaryStatus.MISSING_NODE)
         self.assertEqual(series.points, ())
+        self.assertEqual(
+            series.status_reasons,
+            ("NODE_MEASURE_NOT_IN_PINNED_DATASET_CONTEXT",),
+        )
 
     def test_returns_missing_history_when_node_resolves_but_range_has_no_points(self) -> None:
         node_ref = NodeRef(
@@ -116,6 +139,45 @@ class HistoryServiceTestCase(unittest.TestCase):
 
         self.assertEqual(series.status, SummaryStatus.MISSING_HISTORY)
         self.assertEqual(series.points, ())
+        self.assertEqual(series.status_reasons, ("NO_RETURNABLE_POINTS_IN_RANGE",))
+
+    def test_returns_ok_for_complete_non_degraded_history(self) -> None:
+        series = get_risk_history(
+            node_ref=make_top_of_house_desk(),
+            measure_type=MeasureType.VAR_1D_99,
+            start_date=date(2026, 1, 2),
+            end_date=date(2026, 1, 8),
+            fixture_index=self.index,
+        )
+
+        self.assertEqual(series.status, SummaryStatus.OK)
+        self.assertEqual(series.status_reasons, ())
+        self.assertEqual(
+            [point.date for point in series.points],
+            [date(2026, 1, 2), date(2026, 1, 5), date(2026, 1, 6), date(2026, 1, 8)],
+        )
+
+    def test_explicit_snapshot_anchor_can_return_successful_history(self) -> None:
+        series = get_risk_history(
+            node_ref=make_top_of_house_desk(),
+            measure_type=MeasureType.VAR_1D_99,
+            start_date=date(2026, 1, 2),
+            end_date=date(2026, 1, 8),
+            snapshot_id="SNAP-2026-01-08",
+            fixture_index=self.index,
+        )
+
+        self.assertEqual(series.status, SummaryStatus.OK)
+        self.assertEqual(series.status_reasons, ())
+        self.assertEqual(
+            [point.snapshot_id for point in series.points],
+            [
+                "SNAP-2026-01-02",
+                "SNAP-2026-01-05",
+                "SNAP-2026-01-06",
+                "SNAP-2026-01-08",
+            ],
+        )
 
     def test_returns_partial_for_sparse_history(self) -> None:
         node_ref = NodeRef(
@@ -139,8 +201,9 @@ class HistoryServiceTestCase(unittest.TestCase):
             [point.date for point in series.points],
             [date(2026, 1, 2), date(2026, 1, 5)],
         )
-        self.assertTrue(
-            any("missing history dates in requested range" in reason for reason in series.status_reasons)
+        self.assertIn(
+            "MISSING_DATES:2026-01-06,2026-01-08",
+            series.status_reasons,
         )
 
     def test_require_complete_upgrades_partial_to_degraded(self) -> None:
@@ -162,8 +225,9 @@ class HistoryServiceTestCase(unittest.TestCase):
         )
 
         self.assertEqual(series.status, SummaryStatus.DEGRADED)
-        self.assertTrue(
-            any("require_complete=true" in reason for reason in series.status_reasons)
+        self.assertIn(
+            "REQUIRE_COMPLETE_MISSING_DATES:2026-01-06,2026-01-08",
+            series.status_reasons,
         )
 
     def test_returns_degraded_when_history_contains_degraded_rows(self) -> None:
@@ -228,6 +292,10 @@ class HistoryServiceTestCase(unittest.TestCase):
 
         self.assertEqual(series.status, SummaryStatus.UNSUPPORTED_MEASURE)
         self.assertEqual(series.points, ())
+        self.assertEqual(
+            series.status_reasons,
+            ("UNSUPPORTED_MEASURE_IN_FIXTURE_PACK",),
+        )
 
 
 if __name__ == "__main__":
