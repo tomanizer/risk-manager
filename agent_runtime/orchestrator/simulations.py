@@ -36,6 +36,7 @@ def build_simulation_snapshot(name: str) -> RuntimeSnapshot:
                     "WI-1.1.3-risk-summary-history-service",
                     dependencies=("WI-1.1.2-risk-summary-fixtures",),
                 ),
+                _work_item("WI-1.1.4-risk-summary-core-service"),
             )
         )
 

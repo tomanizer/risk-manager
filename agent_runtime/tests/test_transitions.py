@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import tempfile
 
 from agent_runtime.orchestrator.state import (
     NextActionType,
@@ -11,8 +12,10 @@ from agent_runtime.orchestrator.state import (
     WorkItemSnapshot,
     WorkItemStage,
 )
+from agent_runtime.orchestrator.graph import find_repo_root
 from agent_runtime.orchestrator.simulations import build_simulation_snapshot, simulation_names
 from agent_runtime.orchestrator.transitions import decide_next_action
+from agent_runtime.orchestrator.work_item_registry import load_work_items
 
 
 def test_ready_item_without_pr_routes_to_pm() -> None:
@@ -63,7 +66,7 @@ def test_open_pr_with_unresolved_reviews_routes_to_review() -> None:
 def test_built_in_simulation_scenarios_cover_expected_actions() -> None:
     expected_actions = {
         "ready-no-pr": NextActionType.RUN_PM,
-        "blocked-dependency": NextActionType.RUN_SPEC,
+        "blocked-dependency": NextActionType.RUN_PM,
         "draft-pr": NextActionType.WAIT_FOR_REVIEWS,
         "unresolved-review": NextActionType.RUN_REVIEW,
         "ready-for-merge": NextActionType.HUMAN_MERGE,
@@ -76,3 +79,26 @@ def test_built_in_simulation_scenarios_cover_expected_actions() -> None:
         snapshot = build_simulation_snapshot(scenario_name)
         decision = decide_next_action(snapshot)
         assert decision.action is expected_action
+
+
+def test_repo_root_is_found_by_markers() -> None:
+    repo_root = find_repo_root(Path(__file__).resolve())
+    assert (repo_root / "AGENTS.md").exists()
+    assert (repo_root / "work_items").is_dir()
+
+
+def test_load_work_items_skips_unreadable_file_and_records_warning() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        repo_root = Path(temp_dir)
+        ready_dir = repo_root / "work_items" / "ready"
+        ready_dir.mkdir(parents=True)
+        valid_file = ready_dir / "WI-1-valid.md"
+        valid_file.write_text("# WI-1\n\n## Linked PRD\nPRD-1\n", encoding="utf-8")
+        unreadable_file = ready_dir / "WI-2-bad.md"
+        unreadable_file.write_bytes(b"\xff\xfe\xfd")
+
+        work_items, warnings = load_work_items(repo_root)
+
+        assert len(work_items) == 1
+        assert work_items[0].id == "WI-1-valid"
+        assert len(warnings) == 1

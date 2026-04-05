@@ -12,8 +12,16 @@ from .transitions import decide_next_action
 from .work_item_registry import load_work_items
 
 
+def find_repo_root(start_path: Path) -> Path:
+    for candidate in (start_path, *start_path.parents):
+        if (candidate / "AGENTS.md").exists() and (candidate / "work_items").is_dir():
+            return candidate
+    raise RuntimeError("could not determine repository root from runtime location")
+
+
 def build_runtime_snapshot(repo_root: Path) -> RuntimeSnapshot:
-    return RuntimeSnapshot(work_items=load_work_items(repo_root))
+    work_items, warnings = load_work_items(repo_root)
+    return RuntimeSnapshot(work_items=work_items, warnings=warnings)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -39,7 +47,7 @@ def main() -> int:
         print(json.dumps({"simulation_scenarios": simulation_names()}, indent=2))
         return 0
 
-    repo_root = Path(__file__).resolve().parents[2]
+    repo_root = find_repo_root(Path(__file__).resolve())
     snapshot = (
         build_simulation_snapshot(args.simulate)
         if args.simulate is not None
@@ -56,6 +64,7 @@ def main() -> int:
                 "target_path": str(decision.target_path) if decision.target_path else None,
                 "metadata": decision.metadata,
                 "work_item_count": len(snapshot.work_items),
+                "warnings": list(snapshot.warnings),
             },
             indent=2,
             sort_keys=True,

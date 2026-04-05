@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
-from .state import NextActionType, RuntimeSnapshot, TransitionDecision, WorkItemSnapshot
+from .state import (
+    NextActionType,
+    RuntimeSnapshot,
+    TransitionDecision,
+    WorkItemSnapshot,
+    WorkItemStage,
+)
 
 
 def _dependencies_satisfied(item: WorkItemSnapshot, snapshot: RuntimeSnapshot) -> bool:
     completed_ids = {
-        candidate.id for candidate in snapshot.work_items if candidate.stage.value == "done"
+        candidate.id for candidate in snapshot.work_items if candidate.stage is WorkItemStage.DONE
     }
     for dependency in item.dependencies:
         if dependency.startswith("WI-") and dependency not in completed_ids:
@@ -19,15 +25,10 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
     prs_by_work_item = {pull_request.work_item_id: pull_request for pull_request in snapshot.pull_requests}
 
     for work_item in snapshot.work_items:
-        if work_item.stage.value != "ready":
+        if work_item.stage is not WorkItemStage.READY:
             continue
         if not _dependencies_satisfied(work_item, snapshot):
-            return TransitionDecision(
-                action=NextActionType.RUN_SPEC,
-                work_item_id=work_item.id,
-                reason="work item dependencies are not all satisfied",
-                target_path=work_item.path,
-            )
+            continue
         pull_request = prs_by_work_item.get(work_item.id)
         if pull_request is None:
             return TransitionDecision(

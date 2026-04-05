@@ -47,6 +47,7 @@ class PullRequestSnapshot:
 class RuntimeSnapshot:
     work_items: tuple[WorkItemSnapshot, ...]
     pull_requests: tuple[PullRequestSnapshot, ...] = ()
+    warnings: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

@@ -7,15 +7,20 @@ from pathlib import Path
 from .state import WorkItemSnapshot, WorkItemStage
 
 
+def _normalize_heading(heading: str) -> str:
+    return heading.strip().lstrip("#").strip()
+
+
 def _extract_section_lines(text: str, heading: str) -> list[str]:
     lines = text.splitlines()
     in_section = False
     collected: list[str] = []
     for line in lines:
-        if line.strip() == heading:
+        normalized_line = _normalize_heading(line)
+        if normalized_line == _normalize_heading(heading):
             in_section = True
             continue
-        if in_section and line.startswith("## "):
+        if in_section and line.strip().startswith("#"):
             break
         if in_section:
             collected.append(line)
@@ -59,7 +64,7 @@ def _snapshot_from_file(path: Path, stage: WorkItemStage) -> WorkItemSnapshot:
     )
 
 
-def load_work_items(repo_root: Path) -> tuple[WorkItemSnapshot, ...]:
+def load_work_items(repo_root: Path) -> tuple[tuple[WorkItemSnapshot, ...], tuple[str, ...]]:
     stage_dirs = (
         ("work_items/ready", WorkItemStage.READY),
         ("work_items/in_progress", WorkItemStage.IN_PROGRESS),
@@ -67,10 +72,14 @@ def load_work_items(repo_root: Path) -> tuple[WorkItemSnapshot, ...]:
         ("work_items/done", WorkItemStage.DONE),
     )
     snapshots: list[WorkItemSnapshot] = []
+    warnings: list[str] = []
     for relative_dir, stage in stage_dirs:
         base_dir = repo_root / relative_dir
         if not base_dir.exists():
             continue
         for path in sorted(base_dir.glob("WI-*.md")):
-            snapshots.append(_snapshot_from_file(path, stage))
-    return tuple(snapshots)
+            try:
+                snapshots.append(_snapshot_from_file(path, stage))
+            except (OSError, UnicodeDecodeError) as exc:
+                warnings.append(f"skipped unreadable work item {path}: {exc}")
+    return tuple(snapshots), tuple(warnings)
