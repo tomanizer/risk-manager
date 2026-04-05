@@ -1,0 +1,686 @@
+{
+  "service_version": "risk-summary-fixture-pack-v1",
+  "data_version": "synthetic-risk-analytics-v1",
+  "calendar": [
+    "2026-01-02",
+    "2026-01-05",
+    "2026-01-06",
+    "2026-01-08",
+    "2026-01-09",
+    "2026-01-12"
+  ],
+  "snapshots": [
+    {
+      "snapshot_id": "SNAP-2026-01-02",
+      "as_of_date": "2026-01-02",
+      "is_degraded": false,
+      "rows": [
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "FIRM", "node_id": "FIRM_GRP", "node_name": "Firm Group"},
+          "measure_type": "VAR_1D_99",
+          "value": 120.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DIVISION", "node_id": "DIV_GM", "node_name": "Global Markets"},
+          "measure_type": "VAR_1D_99",
+          "value": 70.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DIVISION", "node_id": "DIV_CR", "node_name": "Credit"},
+          "measure_type": "VAR_1D_99",
+          "value": 50.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 40.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_CREDIT_INDEX", "node_name": "Credit Index"},
+          "measure_type": "VAR_1D_99",
+          "value": 100.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_MACRO_FLOW", "node_name": "Macro Flow"},
+          "measure_type": "VAR_1D_99",
+          "value": 50.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_RATES_G10", "node_name": "Rates G10"},
+          "measure_type": "VAR_1D_99",
+          "value": 21.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_RATES_EM", "node_name": "Rates EM"},
+          "measure_type": "VAR_1D_99",
+          "value": 12.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_CDX", "node_name": "CDX"},
+          "measure_type": "VAR_1D_99",
+          "value": 48.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_TRS", "node_name": "TRS"},
+          "measure_type": "VAR_1D_99",
+          "value": 52.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_MACRO_FLOW_G10", "node_name": "Macro Flow G10"},
+          "measure_type": "VAR_1D_99",
+          "value": 25.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_MACRO_FLOW_EM", "node_name": "Macro Flow EM"},
+          "measure_type": "VAR_1D_99",
+          "value": 25.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-UK-BANK", "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 18.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-US-BROKER", "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 22.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "FIRM", "node_id": "FIRM_GRP", "node_name": "Firm Group"},
+          "measure_type": "ES_97_5",
+          "value": 145.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-UK-BANK", "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "ES_97_5",
+          "value": 24.0,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "snapshot_id": "SNAP-2026-01-05",
+      "as_of_date": "2026-01-05",
+      "is_degraded": false,
+      "rows": [
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "FIRM", "node_id": "FIRM_GRP", "node_name": "Firm Group"},
+          "measure_type": "VAR_1D_99",
+          "value": 123.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DIVISION", "node_id": "DIV_GM", "node_name": "Global Markets"},
+          "measure_type": "VAR_1D_99",
+          "value": 71.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DIVISION", "node_id": "DIV_CR", "node_name": "Credit"},
+          "measure_type": "VAR_1D_99",
+          "value": 52.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 42.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_CREDIT_INDEX", "node_name": "Credit Index"},
+          "measure_type": "VAR_1D_99",
+          "value": 60.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_MACRO_FLOW", "node_name": "Macro Flow"},
+          "measure_type": "VAR_1D_99",
+          "value": 51.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_RATES_G10", "node_name": "Rates G10"},
+          "measure_type": "VAR_1D_99",
+          "value": 20.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_RATES_EM", "node_name": "Rates EM"},
+          "measure_type": "VAR_1D_99",
+          "value": 14.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_CDX", "node_name": "CDX"},
+          "measure_type": "VAR_1D_99",
+          "value": 28.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_TRS", "node_name": "TRS"},
+          "measure_type": "VAR_1D_99",
+          "value": 32.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_MACRO_FLOW_G10", "node_name": "Macro Flow G10"},
+          "measure_type": "VAR_1D_99",
+          "value": 26.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_MACRO_FLOW_EM", "node_name": "Macro Flow EM"},
+          "measure_type": "VAR_1D_99",
+          "value": 25.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-UK-BANK", "node_level": "DIVISION", "node_id": "DIV_GM", "node_name": "Global Markets"},
+          "measure_type": "VAR_1D_99",
+          "value": 31.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-US-BROKER", "node_level": "DIVISION", "node_id": "DIV_GM", "node_name": "Global Markets"},
+          "measure_type": "VAR_1D_99",
+          "value": 40.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-UK-BANK", "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 19.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-US-BROKER", "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 23.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "FIRM", "node_id": "FIRM_GRP", "node_name": "Firm Group"},
+          "measure_type": "ES_97_5",
+          "value": 147.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-UK-BANK", "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "ES_97_5",
+          "value": 25.0,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "snapshot_id": "SNAP-2026-01-06",
+      "as_of_date": "2026-01-06",
+      "is_degraded": false,
+      "rows": [
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "FIRM", "node_id": "FIRM_GRP", "node_name": "Firm Group"},
+          "measure_type": "VAR_1D_99",
+          "value": 121.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DIVISION", "node_id": "DIV_GM", "node_name": "Global Markets"},
+          "measure_type": "VAR_1D_99",
+          "value": 69.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DIVISION", "node_id": "DIV_CR", "node_name": "Credit"},
+          "measure_type": "VAR_1D_99",
+          "value": 52.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 41.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_CREDIT_INDEX", "node_name": "Credit Index"},
+          "measure_type": "VAR_1D_99",
+          "value": 140.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_MACRO_FLOW", "node_name": "Macro Flow"},
+          "measure_type": "VAR_1D_99",
+          "value": 50.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_RATES_G10", "node_name": "Rates G10"},
+          "measure_type": "VAR_1D_99",
+          "value": 20.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_RATES_EM", "node_name": "Rates EM"},
+          "measure_type": "VAR_1D_99",
+          "value": 11.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_CDX", "node_name": "CDX"},
+          "measure_type": "VAR_1D_99",
+          "value": 70.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_TRS", "node_name": "TRS"},
+          "measure_type": "VAR_1D_99",
+          "value": 70.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_MACRO_FLOW_G10", "node_name": "Macro Flow G10"},
+          "measure_type": "VAR_1D_99",
+          "value": 25.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_MACRO_FLOW_EM", "node_name": "Macro Flow EM"},
+          "measure_type": "VAR_1D_99",
+          "value": 25.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-UK-BANK", "node_level": "DIVISION", "node_id": "DIV_GM", "node_name": "Global Markets"},
+          "measure_type": "VAR_1D_99",
+          "value": 32.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-US-BROKER", "node_level": "DIVISION", "node_id": "DIV_GM", "node_name": "Global Markets"},
+          "measure_type": "VAR_1D_99",
+          "value": 39.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-UK-BANK", "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 18.5,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-US-BROKER", "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 22.5,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "FIRM", "node_id": "FIRM_GRP", "node_name": "Firm Group"},
+          "measure_type": "ES_97_5",
+          "value": 144.0,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "snapshot_id": "SNAP-2026-01-08",
+      "as_of_date": "2026-01-08",
+      "is_degraded": false,
+      "rows": [
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "FIRM", "node_id": "FIRM_GRP", "node_name": "Firm Group"},
+          "measure_type": "VAR_1D_99",
+          "value": 126.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DIVISION", "node_id": "DIV_GM", "node_name": "Global Markets"},
+          "measure_type": "VAR_1D_99",
+          "value": 72.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DIVISION", "node_id": "DIV_CR", "node_name": "Credit"},
+          "measure_type": "VAR_1D_99",
+          "value": 54.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 43.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_CREDIT_INDEX", "node_name": "Credit Index"},
+          "measure_type": "VAR_1D_99",
+          "value": 90.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_MACRO_FLOW", "node_name": "Macro Flow"},
+          "measure_type": "VAR_1D_99",
+          "value": 52.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_RATES_G10", "node_name": "Rates G10"},
+          "measure_type": "VAR_1D_99",
+          "value": 21.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_RATES_EM", "node_name": "Rates EM"},
+          "measure_type": "VAR_1D_99",
+          "value": 0.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_CDX", "node_name": "CDX"},
+          "measure_type": "VAR_1D_99",
+          "value": 44.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_TRS", "node_name": "TRS"},
+          "measure_type": "VAR_1D_99",
+          "value": 46.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_MACRO_FLOW_G10", "node_name": "Macro Flow G10"},
+          "measure_type": "VAR_1D_99",
+          "value": 26.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_MACRO_FLOW_EM", "node_name": "Macro Flow EM"},
+          "measure_type": "VAR_1D_99",
+          "value": 26.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-UK-BANK", "node_level": "DIVISION", "node_id": "DIV_GM", "node_name": "Global Markets"},
+          "measure_type": "VAR_1D_99",
+          "value": 33.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-US-BROKER", "node_level": "DIVISION", "node_id": "DIV_GM", "node_name": "Global Markets"},
+          "measure_type": "VAR_1D_99",
+          "value": 41.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-UK-BANK", "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 19.5,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-US-BROKER", "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 23.5,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_NEW_ISSUES", "node_name": "New Issues"},
+          "measure_type": "VAR_1D_99",
+          "value": 6.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "FIRM", "node_id": "FIRM_GRP", "node_name": "Firm Group"},
+          "measure_type": "ES_97_5",
+          "value": 148.0,
+          "status": "OK"
+        }
+      ]
+    },
+    {
+      "snapshot_id": "SNAP-2026-01-09",
+      "as_of_date": "2026-01-09",
+      "is_degraded": true,
+      "rows": [
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "FIRM", "node_id": "FIRM_GRP", "node_name": "Firm Group"},
+          "measure_type": "VAR_1D_99",
+          "value": 124.0,
+          "status": "DEGRADED"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DIVISION", "node_id": "DIV_GM", "node_name": "Global Markets"},
+          "measure_type": "VAR_1D_99",
+          "value": 71.0,
+          "status": "DEGRADED"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DIVISION", "node_id": "DIV_CR", "node_name": "Credit"},
+          "measure_type": "VAR_1D_99",
+          "value": 53.0,
+          "status": "DEGRADED"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 44.0,
+          "status": "DEGRADED"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_CREDIT_INDEX", "node_name": "Credit Index"},
+          "measure_type": "VAR_1D_99",
+          "value": 95.0,
+          "status": "DEGRADED"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_MACRO_FLOW", "node_name": "Macro Flow"},
+          "measure_type": "VAR_1D_99",
+          "value": 53.0,
+          "status": "DEGRADED"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_RATES_G10", "node_name": "Rates G10"},
+          "measure_type": "VAR_1D_99",
+          "value": 22.0,
+          "status": "DEGRADED"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_RATES_EM", "node_name": "Rates EM"},
+          "measure_type": "VAR_1D_99",
+          "value": 15.0,
+          "status": "DEGRADED"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_CDX", "node_name": "CDX"},
+          "measure_type": "VAR_1D_99",
+          "value": 47.0,
+          "status": "DEGRADED"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_TRS", "node_name": "TRS"},
+          "measure_type": "VAR_1D_99",
+          "value": 48.0,
+          "status": "DEGRADED"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_MACRO_FLOW_G10", "node_name": "Macro Flow G10"},
+          "measure_type": "VAR_1D_99",
+          "value": 27.0,
+          "status": "DEGRADED"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_MACRO_FLOW_EM", "node_name": "Macro Flow EM"},
+          "measure_type": "VAR_1D_99",
+          "value": 43.0,
+          "status": "DEGRADED"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-UK-BANK", "node_level": "DIVISION", "node_id": "DIV_GM", "node_name": "Global Markets"},
+          "measure_type": "VAR_1D_99",
+          "value": 33.5,
+          "status": "DEGRADED"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-US-BROKER", "node_level": "DIVISION", "node_id": "DIV_GM", "node_name": "Global Markets"},
+          "measure_type": "VAR_1D_99",
+          "value": 42.0,
+          "status": "DEGRADED"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-UK-BANK", "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 19.8,
+          "status": "DEGRADED"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-US-BROKER", "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 24.1,
+          "status": "DEGRADED"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_NEW_ISSUES", "node_name": "New Issues"},
+          "measure_type": "VAR_1D_99",
+          "value": 6.5,
+          "status": "DEGRADED"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "FIRM", "node_id": "FIRM_GRP", "node_name": "Firm Group"},
+          "measure_type": "ES_97_5",
+          "value": 146.0,
+          "status": "DEGRADED"
+        }
+      ]
+    },
+    {
+      "snapshot_id": "SNAP-2026-01-12",
+      "as_of_date": "2026-01-12",
+      "is_degraded": false,
+      "rows": [
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "FIRM", "node_id": "FIRM_GRP", "node_name": "Firm Group"},
+          "measure_type": "VAR_1D_99",
+          "value": 128.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DIVISION", "node_id": "DIV_GM", "node_name": "Global Markets"},
+          "measure_type": "VAR_1D_99",
+          "value": 74.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DIVISION", "node_id": "DIV_CR", "node_name": "Credit"},
+          "measure_type": "VAR_1D_99",
+          "value": 54.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 45.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_CREDIT_INDEX", "node_name": "Credit Index"},
+          "measure_type": "VAR_1D_99",
+          "value": 98.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "DESK", "node_id": "DESK_MACRO_FLOW", "node_name": "Macro Flow"},
+          "measure_type": "VAR_1D_99",
+          "value": 70.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_RATES_G10", "node_name": "Rates G10"},
+          "measure_type": "VAR_1D_99",
+          "value": 23.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_RATES_EM", "node_name": "Rates EM"},
+          "measure_type": "VAR_1D_99",
+          "value": 16.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_CDX", "node_name": "CDX"},
+          "measure_type": "VAR_1D_99",
+          "value": 48.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_TRS", "node_name": "TRS"},
+          "measure_type": "VAR_1D_99",
+          "value": 50.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_MACRO_FLOW_G10", "node_name": "Macro Flow G10"},
+          "measure_type": "VAR_1D_99",
+          "value": 36.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_MACRO_FLOW_EM", "node_name": "Macro Flow EM"},
+          "measure_type": "VAR_1D_99",
+          "value": 34.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-UK-BANK", "node_level": "DIVISION", "node_id": "DIV_GM", "node_name": "Global Markets"},
+          "measure_type": "VAR_1D_99",
+          "value": 34.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-US-BROKER", "node_level": "DIVISION", "node_id": "DIV_GM", "node_name": "Global Markets"},
+          "measure_type": "VAR_1D_99",
+          "value": 43.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-UK-BANK", "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 20.2,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "LEGAL_ENTITY", "legal_entity_id": "LE-US-BROKER", "node_level": "DESK", "node_id": "DESK_RATES_MACRO", "node_name": "Rates Macro"},
+          "measure_type": "VAR_1D_99",
+          "value": 24.8,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "BOOK", "node_id": "BOOK_NEW_ISSUES", "node_name": "New Issues"},
+          "measure_type": "VAR_1D_99",
+          "value": 7.0,
+          "status": "OK"
+        },
+        {
+          "node_ref": {"hierarchy_scope": "TOP_OF_HOUSE", "legal_entity_id": null, "node_level": "FIRM", "node_id": "FIRM_GRP", "node_name": "Firm Group"},
+          "measure_type": "ES_97_5",
+          "value": 150.0,
+          "status": "OK"
+        }
+      ]
+    }
+  ]
+}
