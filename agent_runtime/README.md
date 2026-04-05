@@ -41,9 +41,11 @@ The first orchestrator is intentionally narrow:
 - scan local work-item state
 - sync open GitHub PR state into a small typed model
 - choose the next action in the relay
+- build a typed runner invocation for PM/spec/coding/review
+- persist the resulting workflow-run state in SQLite
 - stop at the human merge gate
 
-It does not yet execute model APIs directly.
+It does not yet execute model APIs directly or run as a background daemon.
 
 Live PR sync uses the local `gh` CLI session. If `gh` is unavailable or unauthenticated,
 the runtime degrades to filesystem-only work-item decisions and emits a warning.
@@ -63,6 +65,15 @@ You can test relay decisions without real GitHub state:
 ```bash
 .venv/bin/python -m agent_runtime
 ```
+
+## Build the next runner invocation
+
+```bash
+.venv/bin/python -m agent_runtime --execute
+```
+
+This records the current decision in `.agent_runtime/state.db` and returns the
+typed runner prompt that a later execution layer can hand to the correct agent.
 
 The live mode now combines:
 
