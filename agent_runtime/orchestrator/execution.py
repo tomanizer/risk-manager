@@ -30,6 +30,7 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
 
     work_item = _find_work_item(snapshot, decision.work_item_id)
     pull_request = _find_pull_request(snapshot, decision.work_item_id)
+    base_metadata = dict(decision.metadata)
 
     if decision.action is NextActionType.RUN_PM:
         pm_input = PMRunnerInput(
@@ -41,7 +42,7 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
             runner_name=RunnerName.PM,
             work_item_id=work_item.id,
             prompt=build_pm_prompt(pm_input),
-            metadata={"target_path": str(work_item.path)},
+            metadata={**base_metadata, "target_path": str(work_item.path)},
         )
 
     if decision.action is NextActionType.RUN_SPEC:
@@ -54,7 +55,7 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
             runner_name=RunnerName.SPEC,
             work_item_id=work_item.id,
             prompt=build_spec_prompt(spec_input),
-            metadata={"target_path": str(work_item.path)},
+            metadata={**base_metadata, "target_path": str(work_item.path)},
         )
 
     if decision.action is NextActionType.RUN_CODING:
@@ -64,7 +65,7 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
             pr_number=pull_request.number if pull_request is not None else None,
             pr_url=pull_request.url if pull_request is not None else None,
         )
-        metadata = {"target_path": str(work_item.path)}
+        metadata = {**base_metadata, "target_path": str(work_item.path)}
         if pull_request is not None:
             metadata["pr_number"] = str(pull_request.number)
             if pull_request.url is not None:
@@ -85,6 +86,7 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
             pr_url=pull_request.url,
         )
         metadata = {
+            **base_metadata,
             "target_path": str(work_item.path),
             "pr_number": str(pull_request.number),
         }

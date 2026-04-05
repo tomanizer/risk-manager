@@ -320,6 +320,38 @@ def test_build_runner_execution_for_review_includes_pr_context() -> None:
     assert execution.metadata["pr_number"] == "52"
 
 
+def test_build_runner_execution_preserves_decision_metadata() -> None:
+    snapshot = RuntimeSnapshot(
+        work_items=(
+            WorkItemSnapshot(
+                id="WI-1.1.4-risk-summary-core-service",
+                title="WI-1.1.4",
+                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
+                stage=WorkItemStage.READY,
+            ),
+        ),
+        pull_requests=(
+            PullRequestSnapshot(
+                work_item_id="WI-1.1.4-risk-summary-core-service",
+                number=52,
+                is_draft=False,
+                url="https://github.com/tomanizer/risk-manager/pull/52",
+                ci_status="FAILURE",
+                merge_state_status="DIRTY",
+                review_decision="APPROVED",
+            ),
+        ),
+    )
+
+    decision = decide_next_action(snapshot)
+    execution = build_runner_execution(snapshot, decision)
+
+    assert decision.action is NextActionType.RUN_CODING
+    assert execution is not None
+    assert execution.runner_name is RunnerName.CODING
+    assert execution.metadata["ci_status"] == "FAILURE"
+
+
 def test_build_pull_request_snapshots_uses_exact_work_item_matching() -> None:
     work_items = (
         WorkItemSnapshot(id="WI-1", title="WI-1", path=Path("work_items/ready/WI-1.md"), stage=WorkItemStage.READY),
