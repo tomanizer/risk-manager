@@ -62,6 +62,9 @@ A historical-simulation VaR variant that adjusts historical returns for changing
 ### Full Revaluation
 Repricing positions under each scenario using pricing logic rather than relying only on local sensitivities.
 
+### Grid Methodology
+An approximation-based VaR repricing approach that uses precomputed valuation grids, factor-sensitivity grids, or stored portfolio-value grids and interpolates on those grids during calculation. In industry usage it may also be called grid calculation or grid valuation.
+
 ### Stressed VaR
 A VaR measure calibrated to stressed market conditions, introduced in Basel 2.5 as a supplement to plain VaR for market-risk capital.
 

@@ -56,9 +56,9 @@ What must be explicit in specs:
 - what calibration window governs the filter
 - how transformed shocks remain replayable and explainable
 
-## Full revaluation versus local approximations
+## Full revaluation versus local approximations and grid methods
 
-For portfolios with meaningful nonlinearity, the distinction between full revaluation and local approximations is fundamental.
+For portfolios with meaningful nonlinearity, the distinction between full revaluation and approximation-based repricing is fundamental.
 
 ### Full revaluation
 
@@ -89,6 +89,31 @@ Risks:
 - tail behavior may be mismeasured
 - discontinuous or strongly nonlinear payoffs may be missed
 - explain surfaces may overstate precision if the approximation is hidden
+
+### Grid methods or grid calculation
+
+Some institutions also use grid terminology, such as:
+
+- grid calculation
+- grid methodology
+- grid valuation
+- grid-based approximation
+
+This usually refers to precomputed valuation surfaces, factor-sensitivity grids, or stored grids of portfolio values that are later interpolated during VaR calculation.
+
+Important boundary:
+
+- a grid method belongs to the approximation family
+- but it is not identical to a plain local Taylor approximation such as delta or delta-gamma
+
+In other words, both local sensitivity methods and grid methods are alternatives to full revaluation, but they are not interchangeable labels in a strict technical sense.
+
+What must be explicit in specs:
+
+- whether "grid" means a stored sensitivity grid, a stored portfolio-value grid, or another interpolation surface
+- whether the grid is being used instead of full repricing
+- what approximation error is accepted
+- whether the use case still requires explainability of repricing lineage
 
 ## Monte Carlo and scenario-simulation approaches
 
@@ -195,6 +220,28 @@ The relevant question is whether the method is better aligned to:
 - the required tail fidelity
 - the regime behavior of the market data
 - the regulatory or governance context
+
+## Industry aliases and naming conventions
+
+Methodology specs should add aliases when industry usage is known to vary across desks, vendors, or regulators.
+
+The purpose is not to multiply jargon. The purpose is to stop agents from mistaking two labels for two different concepts, or collapsing two genuinely different concepts into one label.
+
+Useful examples:
+
+- weighted historical simulation = hybrid historical simulation
+- full revaluation = full repricing
+- local sensitivity approximation may be called approximation VaR, delta-based VaR, or local approximation
+- grid calculation or grid methodology usually refers to a grid-based approximation method, not to full revaluation
+- expected shortfall may also appear as ES, and older material may still use CVaR or expected tail loss in adjacent contexts
+- stressed calibration period may also be called a stress window or stressed window
+
+Rule:
+
+- when two labels are true aliases, say so explicitly
+- when one label is only a nearby industry shorthand, say that too
+- do not present grid methods as exact synonyms for plain local Taylor approximations
+- do not present older regulatory labels as if they were current endpoint methodology without context
 
 ## What the spec agent should force into the open
 

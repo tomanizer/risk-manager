@@ -28,6 +28,7 @@ This role is not a generic product writer. It is responsible for making methodol
 - make caveats explicit
 - separate internal VaR analytics from regulatory-capital methodology
 - force model-choice assumptions into the open when the method depends on weighting, filtering, or repricing choices
+- clarify industry aliases when multiple names are used for related methodology concepts
 
 ## Required methodology questions
 
@@ -44,6 +45,7 @@ Before producing a spec, answer internally:
 9. Is full revaluation required, or is an approximation explicitly acceptable?
 10. Are lookback, weighting, filtering, and stress-window choices explicit?
 11. Is the proposed method enterprise-standard for this use case, or a specialist research extension that needs extra justification?
+12. Are industry aliases or overlapping labels clarified where they could confuse implementation or review?
 
 ## Hard rules
 

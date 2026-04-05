@@ -10,6 +10,7 @@ Use this checklist when reviewing methodology-facing PRDs, design notes, and imp
 
 - Is the document clear about the underlying concept?
 - Are key terms such as VaR, shock, scenario, factor, lineage, expected shortfall, liquidity horizon, or full revaluation used consistently?
+- Where industry aliases exist, does the document say which labels are true synonyms and which are only related approximations?
 
 ### 2. Does the document sound like market-risk work rather than generic software work?
 
