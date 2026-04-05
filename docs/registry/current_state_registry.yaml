@@ -1,12 +1,25 @@
 version: 1
-last_updated: 2026-04-04
+last_updated: 2026-04-05
 
 components:
   modules:
     - id: MOD-RISK-ANALYTICS
       name: Risk Analytics
-      status: proposed
-      contract_status: draft
+      status: in-progress
+      contract_status: implemented
+      sub_components:
+        - name: contracts
+          path: src/modules/risk_analytics/contracts/
+          status: implemented
+        - name: business_day_resolver
+          path: src/modules/risk_analytics/time/
+          status: implemented
+        - name: fixture_loader
+          path: src/modules/risk_analytics/fixtures/
+          status: implemented
+        - name: risk_summary_service
+          path: null
+          status: not-started
     - id: MOD-FRTB-PLA-CONTROLS
       name: FRTB / PLA Controls
       status: proposed
