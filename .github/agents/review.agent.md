@@ -17,6 +17,15 @@ Read first:
 7. changed files and tests
 8. Gemini and Copilot review comments if present
 
+Before reviewing:
+
+1. `git fetch origin`
+2. `git switch main`
+3. `git pull --ff-only origin main`
+4. inspect the latest PR head and latest review comments
+
+Do not review from stale local state when the PR or canon may have changed.
+
 Your job is to review against approved artifacts, not personal style preference.
 
 Priorities:

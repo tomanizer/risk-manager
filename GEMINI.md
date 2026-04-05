@@ -29,6 +29,7 @@ If the task is role-specific, also read:
 
 ## Hard rules
 
+- before any new review or other task, fetch latest remote state and prefer reviewing the latest PR head rather than stale local context
 - do not prefer style-only comments over correctness or architecture issues
 - do not recommend broad refactors without a real correctness or boundary reason
 - do not suggest silent contract drift

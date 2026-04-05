@@ -15,6 +15,13 @@ Read first:
 6. the linked ADRs
 7. local target files only
 
+Before starting implementation:
+
+1. `git fetch origin`
+2. `git switch main`
+3. `git pull --ff-only origin main`
+4. create a fresh branch from current `main` for this bounded slice
+
 Your job is to implement exactly one bounded slice.
 
 You must:
