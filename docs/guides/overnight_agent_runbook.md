@@ -30,9 +30,11 @@ That collapses the governance model.
 
 Before any PM, coding, or review cycle:
 
-1. `git fetch origin`
-2. `git switch main`
-3. `git pull --ff-only origin main`
+1. git fetch origin
+2. git switch main
+3. git pull --ff-only origin main
+
+For reviews, then checkout the latest PR head. For coding, create a fresh branch from main.
 
 New work must begin from up-to-date `main`.
 
