@@ -153,7 +153,7 @@ This keeps the runtime state authoritative even before real agent API execution
 is wired in.
 
 For the detailed operator recipe, see
-[manual_supervisor_workflow.md](/Users/thomas/Documents/Projects/risk-manager-worktrees/runtime-manual-outcomes/agent_runtime/manual_supervisor_workflow.md).
+[manual_supervisor_workflow.md](manual_supervisor_workflow.md).
 
 The live mode now combines:
 

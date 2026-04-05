@@ -123,7 +123,10 @@ def main() -> int:
 
         outcome_details: dict[str, object] = {}
         if args.outcome_details_json is not None:
-            parsed_details = json.loads(args.outcome_details_json)
+            try:
+                parsed_details = json.loads(args.outcome_details_json)
+            except json.JSONDecodeError as error:
+                raise RuntimeError("--outcome-details-json must be valid JSON") from error
             if not isinstance(parsed_details, dict):
                 raise RuntimeError("--outcome-details-json must decode to a JSON object")
             outcome_details = {str(key): value for key, value in parsed_details.items()}
