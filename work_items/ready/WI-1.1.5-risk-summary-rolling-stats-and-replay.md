@@ -34,6 +34,7 @@ Add rolling statistics and replay tests for the Risk Summary Service.
 - WI-1.1.6
 - ADR-001
 - ADR-002
+- ADR-003
 
 ## Target Area
 

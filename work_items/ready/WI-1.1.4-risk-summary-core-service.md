@@ -32,6 +32,7 @@ Implement `get_risk_summary`, `get_risk_delta`, and the first-order status logic
 - WI-1.1.6
 - ADR-001
 - ADR-002
+- ADR-003
 - ADR-004
 
 ## Target Area

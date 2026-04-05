@@ -35,6 +35,7 @@ Define the core enums and typed schemas for the Risk Summary Service.
 - docs/implementation/PRD-1.1-foundation-slice.md
 - ADR-001
 - ADR-002
+- ADR-003
 - ADR-004
 
 ## Target Area
@@ -50,6 +51,7 @@ Define the core enums and typed schemas for the Risk Summary Service.
 - `NodeRef` scope validation is explicit
 - `RiskDelta` remains first-order only
 - `RiskChangeProfile` remains distinct from `RiskDelta`
+- schema choices remain compatible with structured evidence and trace metadata
 - unit tests validate schema behavior
 
 ## Suggested Agent

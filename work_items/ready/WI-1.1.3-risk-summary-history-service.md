@@ -30,6 +30,7 @@ Implement history retrieval for a node and measure.
 - WI-1.1.6
 - ADR-001
 - ADR-002
+- ADR-003
 - ADR-004
 
 ## Target Area
