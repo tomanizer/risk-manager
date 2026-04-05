@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from datetime import date
 from pathlib import Path
+from unittest.mock import patch
 
 from pydantic import ValidationError
 
@@ -18,6 +19,10 @@ from src.modules.risk_analytics.contracts import (
     SummaryStatus,
 )
 from src.modules.risk_analytics.fixtures import (
+    FixtureIndex,
+    FixtureRow,
+    FixtureSnapshot,
+    RiskSummaryFixturePack,
     build_fixture_index,
     load_risk_summary_fixture_pack,
     resolve_default_fixture_path,
@@ -209,6 +214,52 @@ class FixtureLoaderTestCase(unittest.TestCase):
 
             with self.assertRaises(ValidationError):
                 load_risk_summary_fixture_pack(fixture_path)
+
+    def test_fixture_index_rejects_duplicate_snapshot_row(self) -> None:
+        node_ref = NodeRef(
+            hierarchy_scope=HierarchyScope.TOP_OF_HOUSE,
+            legal_entity_id=None,
+            node_level=NodeLevel.DESK,
+            node_id="DESK_CREDIT_INDEX",
+            node_name="Credit Index",
+        )
+        duplicate_row = FixtureRow(
+            node_ref=node_ref,
+            measure_type=MeasureType.VAR_1D_99,
+            value=95.0,
+            status=SummaryStatus.OK,
+        )
+        pack = RiskSummaryFixturePack(
+            service_version="risk-summary-service-v1",
+            data_version="synthetic-risk-analytics-v1",
+            calendar=(
+                date(2026, 1, 2),
+                date(2026, 1, 5),
+                date(2026, 1, 6),
+                date(2026, 1, 8),
+                date(2026, 1, 9),
+            ),
+            snapshots=(
+                FixtureSnapshot(
+                    snapshot_id="SNAP-2026-01-09",
+                    as_of_date=date(2026, 1, 9),
+                    is_degraded=False,
+                    rows=(duplicate_row, duplicate_row),
+                ),
+            ),
+        )
+
+        with self.assertRaises(ValueError):
+            FixtureIndex(pack)
+
+    def test_resolve_default_fixture_path_raises_when_no_env_or_parent_fixture_exists(self) -> None:
+        with patch.dict("os.environ", clear=True):
+            with patch(
+                "src.modules.risk_analytics.fixtures.loader.__file__",
+                "/tmp/no-fixture-pack/src/modules/risk_analytics/fixtures/loader.py",
+            ):
+                with self.assertRaises(FileNotFoundError):
+                    resolve_default_fixture_path()
 
 
 if __name__ == "__main__":

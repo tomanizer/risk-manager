@@ -369,6 +369,103 @@ class ContractTestCase(unittest.TestCase):
                 service_version="risk-summary-service-v1",
             )
 
+    def test_history_series_rejects_point_with_mismatched_node_ref(self) -> None:
+        point = RiskHistoryPoint(
+            node_ref=make_node_ref().model_copy(
+                update={"node_id": "DESK_OTHER", "node_name": "Other Desk"}
+            ),
+            measure_type=MeasureType.VAR_1D_99,
+            date=date(2026, 1, 8),
+            value=90.0,
+            snapshot_id="SNAP-2026-01-08",
+            status=SummaryStatus.OK,
+        )
+
+        with self.assertRaises(ValidationError):
+            RiskHistorySeries(
+                node_ref=make_node_ref(),
+                measure_type=MeasureType.VAR_1D_99,
+                start_date=date(2026, 1, 8),
+                end_date=date(2026, 1, 9),
+                points=(point,),
+                status=SummaryStatus.OK,
+                service_version="risk-summary-service-v1",
+            )
+
+    def test_history_series_rejects_point_with_mismatched_measure_type(self) -> None:
+        point = RiskHistoryPoint(
+            node_ref=make_node_ref(),
+            measure_type=MeasureType.ES_97_5,
+            date=date(2026, 1, 8),
+            value=90.0,
+            snapshot_id="SNAP-2026-01-08",
+            status=SummaryStatus.OK,
+        )
+
+        with self.assertRaises(ValidationError):
+            RiskHistorySeries(
+                node_ref=make_node_ref(),
+                measure_type=MeasureType.VAR_1D_99,
+                start_date=date(2026, 1, 8),
+                end_date=date(2026, 1, 9),
+                points=(point,),
+                status=SummaryStatus.OK,
+                service_version="risk-summary-service-v1",
+            )
+
+    def test_history_point_rejects_empty_snapshot_id(self) -> None:
+        with self.assertRaises(ValidationError):
+            RiskHistoryPoint(
+                node_ref=make_node_ref(),
+                measure_type=MeasureType.VAR_1D_99,
+                date=date(2026, 1, 8),
+                value=90.0,
+                snapshot_id="",
+                status=SummaryStatus.OK,
+            )
+
+    def test_history_series_rejects_empty_service_version(self) -> None:
+        point = RiskHistoryPoint(
+            node_ref=make_node_ref(),
+            measure_type=MeasureType.VAR_1D_99,
+            date=date(2026, 1, 8),
+            value=90.0,
+            snapshot_id="SNAP-2026-01-08",
+            status=SummaryStatus.OK,
+        )
+
+        with self.assertRaises(ValidationError):
+            RiskHistorySeries(
+                node_ref=make_node_ref(),
+                measure_type=MeasureType.VAR_1D_99,
+                start_date=date(2026, 1, 8),
+                end_date=date(2026, 1, 9),
+                points=(point,),
+                status=SummaryStatus.OK,
+                service_version="",
+            )
+
+    def test_history_series_rejects_start_date_after_end_date(self) -> None:
+        point = RiskHistoryPoint(
+            node_ref=make_node_ref(),
+            measure_type=MeasureType.VAR_1D_99,
+            date=date(2026, 1, 8),
+            value=90.0,
+            snapshot_id="SNAP-2026-01-08",
+            status=SummaryStatus.OK,
+        )
+
+        with self.assertRaises(ValidationError):
+            RiskHistorySeries(
+                node_ref=make_node_ref(),
+                measure_type=MeasureType.VAR_1D_99,
+                start_date=date(2026, 1, 9),
+                end_date=date(2026, 1, 8),
+                points=(point,),
+                status=SummaryStatus.OK,
+                service_version="risk-summary-service-v1",
+            )
+
     def test_risk_delta_rejects_mirrored_field_mismatch(self) -> None:
         self.assert_mirrored_field_mismatch_rejected(RiskDelta)
 
