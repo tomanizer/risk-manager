@@ -35,16 +35,25 @@ Implement history retrieval for a node and measure.
 
 ## Target Area
 
-- `src/modules/risk_analytics/`
+- `src/modules/risk_analytics/service.py`
+- `src/modules/risk_analytics/__init__.py`
 - `tests/unit/modules/risk_analytics/`
 
 ## Acceptance Criteria
 
-- returns correct ordered history
-- invalid date ranges handled explicitly
-- missing node and missing data handled explicitly
+- `get_risk_history` uses explicit `start_date` and `end_date` inputs with inclusive range semantics
+- invalid date ranges fail explicitly and do not fabricate a `RiskHistorySeries`
+- if `snapshot_id` is provided, it is treated as the history-request anchor snapshot and must resolve to `end_date`
+- returned history points are ordered ascending by date and remain within the inclusive requested range
+- missing snapshot returns `MISSING_SNAPSHOT`
+- missing node returns `MISSING_NODE`
+- zero valid points in range returns `MISSING_HISTORY`
+- sparse valid points in range return `PARTIAL`
+- degraded snapshot rows return `DEGRADED`
+- `require_complete=true` upgrades otherwise partial history results to `DEGRADED`
 - node resolution is exact within scope
-- unit tests included
+- unit tests cover status behavior and snapshot-anchor semantics
+- dedicated replay-suite coverage is deferred to WI-1.1.5
 
 ## Suggested Agent
 
@@ -52,7 +61,9 @@ Coding Agent
 
 ## Review Focus
 
-- correctness
-- degraded handling
+- history-status correctness
+- snapshot-anchor semantics
 - scope fidelity
+- ordering and range correctness
 - no hidden aggregation logic
+- no replay-scope creep beyond WI-1.1.3

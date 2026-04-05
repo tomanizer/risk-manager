@@ -169,6 +169,11 @@ The same logical hierarchy levels may exist in both scopes.
 - if `hierarchy_scope = LEGAL_ENTITY`, `legal_entity_id` is required
 - node resolution must be exact within the selected scope
 - a node identifier valid in one scope must not be assumed valid in another scope
+- for `get_risk_history`, `start_date` and `end_date` define an inclusive date range
+- for `get_risk_history`, `start_date` must be on or before `end_date`
+- for `get_risk_history`, if `snapshot_id` is provided, it is the anchor snapshot for the request and must resolve to a snapshot whose `as_of_date` equals `end_date`
+- for `get_risk_history`, `snapshot_id` pins the request context, but returned `RiskHistoryPoint.snapshot_id` values remain the per-point source snapshot ids for each returned date
+- for `get_risk_history`, `require_complete=true` upgrades otherwise partial history results to `DEGRADED`
 
 ## Outputs
 
@@ -325,6 +330,16 @@ Rules:
   7. `PARTIAL`
   8. `OK`
 
+For `RiskHistorySeries`, status precedence is:
+
+1. typed request validation failure
+2. `MISSING_SNAPSHOT`
+3. `MISSING_NODE`
+4. `DEGRADED`
+5. `MISSING_HISTORY`
+6. `PARTIAL`
+7. `OK`
+
 ## Volatility-aware change concepts
 
 This service distinguishes between:
@@ -349,6 +364,19 @@ Return current summary plus comparison and rolling stats.
 
 Purpose:
 Return dated history for a node and measure.
+
+Inputs:
+
+- `node_ref`
+- `measure_type`
+- `start_date`
+- `end_date`
+- `require_complete=False`
+- `snapshot_id=None`
+
+Returns:
+
+- `RiskHistorySeries`
 
 ### `get_risk_delta`
 
@@ -380,6 +408,13 @@ Return first-order change plus second-order volatility context for consumers tha
 
 ## Degraded and error cases
 
+### Case: invalid history date range
+
+Result:
+
+- typed request validation failure
+- no `RiskHistorySeries` is returned
+
 ### Case: current point missing
 
 Result:
@@ -405,6 +440,53 @@ Result:
   - mean/min/max require at least 1 point
   - std requires at least 2 points
 - `status = MISSING_HISTORY`
+
+### Case: history snapshot missing
+
+Result:
+
+- `status = MISSING_SNAPSHOT`
+- `points = []`
+
+### Case: history node missing
+
+Result:
+
+- `status = MISSING_NODE`
+- `points = []`
+
+`MISSING_NODE` means the requested scoped node and measure cannot be resolved in the pinned dataset context.
+
+### Case: no history points in requested range
+
+Result:
+
+- `status = MISSING_HISTORY`
+- `points = []`
+
+`MISSING_HISTORY` means the node resolves, but zero valid points fall within the inclusive requested range.
+
+### Case: sparse history points in requested range
+
+Result:
+
+- available valid points returned in ascending date order
+- `status = PARTIAL`
+
+### Case: degraded history rows in requested range
+
+Result:
+
+- available points returned in ascending date order
+- `status = DEGRADED`
+- include reason codes for degraded dates or snapshots
+
+### Case: `require_complete=true` for history retrieval
+
+Result:
+
+- any history result that would otherwise be `PARTIAL` must return `status = DEGRADED`
+- available ordered points may still be returned
 
 ### Case: unsupported measure
 
@@ -440,6 +522,8 @@ Result:
   - history range bounds when relevant
   - `require_complete`
   - `snapshot_id` when provided
+- for `get_risk_history`, pinned request context must include `start_date`, `end_date`, `require_complete`, and `snapshot_id` when provided
+- for `get_risk_history`, when `snapshot_id` is provided, it is the anchor snapshot for the request and must remain explicit in replay fixtures and replay test artifacts
 - this deferral does not expand `RiskHistoryPoint` or `RiskHistorySeries` metadata beyond the fields explicitly listed in their v1 contracts
 - `status_reasons` must not be used as a substitute for structured evidence references
 
