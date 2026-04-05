@@ -22,8 +22,8 @@ Implement the canonical business-day resolver for compare-to defaults and replay
 
 ## Dependencies
 
-- WI-1.1.1
-- WI-1.1.2
+- WI-1.1.1-risk-summary-schemas
+- WI-1.1.2-risk-summary-fixtures
 - ADR-002
 - ADR-004
 

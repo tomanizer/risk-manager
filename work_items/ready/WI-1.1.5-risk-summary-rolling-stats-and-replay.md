@@ -27,11 +27,11 @@ Add rolling statistics and replay tests for the Risk Summary Service.
 
 ## Dependencies
 
-- WI-1.1.1
-- WI-1.1.2
-- WI-1.1.3
-- WI-1.1.4
-- WI-1.1.6
+- WI-1.1.1-risk-summary-schemas
+- WI-1.1.2-risk-summary-fixtures
+- WI-1.1.3-risk-summary-history-service
+- WI-1.1.4-risk-summary-core-service
+- WI-1.1.6-risk-summary-business-day-resolver
 - ADR-001
 - ADR-002
 - ADR-003
