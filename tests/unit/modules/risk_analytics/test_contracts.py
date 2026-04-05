@@ -33,7 +33,7 @@ def make_node_ref() -> NodeRef:
     )
 
 
-def make_legal_entity_node_ref() -> NodeRef:
+def make_legal_entity_scoped_desk_node_ref() -> NodeRef:
     return NodeRef(
         hierarchy_scope=HierarchyScope.LEGAL_ENTITY,
         legal_entity_id="LE1",
@@ -171,8 +171,8 @@ class ContractTestCase(unittest.TestCase):
         self.assertEqual(risk_delta.delta_abs, 3.0)
         self.assertAlmostEqual(risk_delta.delta_pct, 3.0 / 95.0)
 
-    def test_risk_delta_normalizes_mirrored_legal_entity_from_raw_node_ref_input(self) -> None:
-        raw_node_ref = make_legal_entity_node_ref().model_dump(mode="python")
+    def test_risk_delta_normalizes_whitespace_in_legal_entity_id(self) -> None:
+        raw_node_ref = make_legal_entity_scoped_desk_node_ref().model_dump(mode="python")
         raw_node_ref["legal_entity_id"] = " LE1 "
 
         risk_delta = RiskDelta(
