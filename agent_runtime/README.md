@@ -44,3 +44,22 @@ The first orchestrator is intentionally narrow:
 - stop at the human merge gate
 
 It does not yet execute model APIs directly.
+
+## Manual simulation
+
+You can test relay decisions without real GitHub state:
+
+```bash
+.venv/bin/python -m agent_runtime --list-scenarios
+.venv/bin/python -m agent_runtime --simulate ready-no-pr
+.venv/bin/python -m agent_runtime --simulate unresolved-review
+```
+
+The initial built-in scenarios cover:
+
+- ready item with no PR
+- blocked dependency chain
+- draft PR waiting for reviews
+- unresolved review feedback
+- PR ready for human merge
+- no runnable work
