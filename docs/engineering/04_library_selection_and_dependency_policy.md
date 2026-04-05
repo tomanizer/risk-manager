@@ -17,17 +17,19 @@ Where the workload fits, prefer established, widely used libraries such as:
 
 Use them directly and idiomatically where possible when they are already approved and available in the repository environment.
 
-If one of these libraries is needed but not yet available, make that an explicit dependency change by updating `requirements.txt`, give a short justification, and verify the addition in CI.
+If one of these libraries is needed but not yet available, make that an explicit dependency change by updating the relevant dependency section in `pyproject.toml` (for example, `[project.dependencies]` or `[project.optional-dependencies]`), give a short justification, and verify the addition in CI.
 
 ## Approved compute stack status
 
 The `[compute]` extra in `pyproject.toml` is an approved optional analytical stack, not the default repository CI baseline.
 
+If `requirements.txt` remains in the repository, treat it only as a compatibility pointer to the dependency declarations in `pyproject.toml`, not as a second dependency source of truth.
+
 That means:
 
 - coding agents may prefer these libraries when the active environment already includes them
 - coding agents must not assume they are present in every CI run or every local environment by default
-- if a new slice truly depends on one of them, make that dependency explicit in the package metadata and validate it in CI for that slice
+- if a new slice truly depends on one of them, make that dependency explicit in the relevant dependency section in `pyproject.toml` and validate it in CI for that slice
 - until the first governed in-repo consumer lands, treat the compute extra as approved capacity rather than universally provisioned baseline tooling
 
 ## Reinvention rule
@@ -89,4 +91,4 @@ Prefer a small number of strong dependencies over:
 - local mini-frameworks
 - premature generalization layers
 
-Every new dependency should have a concrete reason, a corresponding `requirements.txt` update, and CI validation.
+Every new dependency should have a concrete reason, a corresponding update to the relevant dependency section in `pyproject.toml`, and CI validation.
