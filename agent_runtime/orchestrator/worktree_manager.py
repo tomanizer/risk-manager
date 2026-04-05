@@ -26,13 +26,18 @@ def _slugify(value: str) -> str:
 
 
 def _git(repo_root: Path, *args: str) -> None:
-    subprocess.run(
-        ["git", *args],
-        cwd=repo_root,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        subprocess.run(
+            ["git", *args],
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as error:
+        stderr = error.stderr.strip()
+        detail = f"\n{stderr}" if stderr else ""
+        raise RuntimeError(f"git command failed: {' '.join(error.cmd)}{detail}") from error
 
 
 def _build_run_id(execution: RunnerExecution) -> str:
@@ -53,7 +58,8 @@ def allocate_worktree(
 ) -> WorktreeLeaseRecord:
     existing = load_active_worktree_lease(db_path, execution.work_item_id, execution.runner_name.value)
     if existing is not None:
-        if Path(existing.worktree_path).exists():
+        worktree_path = Path(existing.worktree_path)
+        if worktree_path.exists() and (worktree_path / ".git").exists():
             return existing
         mark_worktree_lease_released(db_path, existing.run_id)
 
@@ -97,6 +103,6 @@ def release_worktree(defaults: RuntimeDefaults, db_path: Path, run_id: str) -> N
     if lease is None or lease.status != "active":
         return
 
-    _git(defaults.repo_root, "worktree", "remove", lease.worktree_path)
+    _git(defaults.repo_root, "worktree", "remove", "--force", lease.worktree_path)
     _git(defaults.repo_root, "branch", "-D", lease.branch_name)
     mark_worktree_lease_released(db_path, run_id)

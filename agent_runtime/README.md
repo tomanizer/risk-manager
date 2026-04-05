@@ -88,6 +88,18 @@ This builds the runner invocation, routes it through the local deterministic
 runner adapter, allocates or reuses a dedicated linked worktree, and persists
 both the execution metadata and the runner result.
 
+The lease is intentionally kept active after dispatch so a later execution layer
+can continue from the same isolated checkout.
+
+## Release a completed runner worktree
+
+```bash
+.venv/bin/python -m agent_runtime --release-run <run_id>
+```
+
+Use this when a runner has finished and its isolated worktree is no longer
+needed.
+
 The live mode now combines:
 
 - filesystem work-item discovery
