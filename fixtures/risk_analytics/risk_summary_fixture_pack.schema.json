@@ -22,6 +22,7 @@
     "calendar": {
       "type": "array",
       "minItems": 5,
+      "uniqueItems": true,
       "items": {
         "type": "string",
         "format": "date"
@@ -41,8 +42,7 @@
       "required": [
         "snapshot_id",
         "as_of_date",
-        "is_degraded",
-        "rows"
+        "is_degraded"
       ],
       "properties": {
         "snapshot_id": {
@@ -110,8 +110,7 @@
         "hierarchy_scope",
         "legal_entity_id",
         "node_level",
-        "node_id",
-        "node_name"
+        "node_id"
       ],
       "properties": {
         "hierarchy_scope": {

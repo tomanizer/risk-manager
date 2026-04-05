@@ -198,9 +198,8 @@ class FixtureLoaderTestCase(unittest.TestCase):
                 load_risk_summary_fixture_pack(fixture_path)
 
     def test_fixture_pack_matches_standalone_json_schema(self) -> None:
-        repo_root = Path(__file__).resolve().parents[4]
-        fixture_path = repo_root / "fixtures/risk_analytics/risk_summary_fixture_pack.json"
-        schema_path = repo_root / "fixtures/risk_analytics/risk_summary_fixture_pack.schema.json"
+        fixture_path = resolve_default_fixture_path()
+        schema_path = fixture_path.with_name("risk_summary_fixture_pack.schema.json")
 
         fixture_payload = json.loads(fixture_path.read_text(encoding="utf-8"))
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
