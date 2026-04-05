@@ -1,3 +1,5 @@
+> **Archived.** Superseded by PRD-1.1-risk-summary-service-v2.md.
+
 # PRD-1.1: Risk Summary Service
 
 ## Header
