@@ -32,6 +32,7 @@ When implementing deterministic services:
 - keep business logic in functions or small modules
 - make canonical state transitions explicit
 - keep replay-sensitive behavior visible
+- follow explicit metadata contracts for replayability rather than expanding history-object metadata ad hoc
 - do not bury core logic behind thin indirection layers
 
 ## Simplicity rule

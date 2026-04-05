@@ -13,6 +13,7 @@ Where the workload fits, prefer established, widely used libraries such as:
 - `pyarrow`
 - `duckdb`
 - `statsmodels`
+- `pandas` for interface or glue work, while preferring `duckdb` and `pyarrow` for hot analytical paths
 
 Use them directly and idiomatically where possible.
 
@@ -52,6 +53,12 @@ Use for established numerical and scientific routines rather than bespoke implem
 ### `statsmodels`
 
 Use for time-series or statistical modeling tasks where its routines fit the governed method.
+
+### `pandas`
+
+Use for interface, interoperability, or light tabular glue where it is the simplest fit.
+
+Do not assume it is the default hot-path engine for analytical workloads.
 
 ### `pyarrow`
 
