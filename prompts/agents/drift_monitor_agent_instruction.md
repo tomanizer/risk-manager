@@ -66,6 +66,7 @@ Every material finding must cite the conflicting or drifting artifacts and expla
 
 Run deterministic scanners first where available. For this repository, start with:
 
+- `python scripts/drift/check_dependency_hygiene.py --root . --output artifacts/drift/dependency_hygiene.json`
 - `python scripts/drift/check_references.py --root . --output artifacts/drift/reference_integrity.json`
 - `python scripts/drift/check_registry_alignment.py --root . --output artifacts/drift/registry_alignment.json`
 

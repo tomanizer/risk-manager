@@ -25,6 +25,7 @@ Your job is to detect and route repository drift, not to silently rewrite canon.
 
 Run these before broader repo reading when the local environment allows it:
 
+- `python scripts/drift/check_dependency_hygiene.py --root . --output artifacts/drift/dependency_hygiene.json`
 - `python scripts/drift/check_references.py --root . --output artifacts/drift/reference_integrity.json`
 - `python scripts/drift/check_registry_alignment.py --root . --output artifacts/drift/registry_alignment.json`
 
