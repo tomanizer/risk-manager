@@ -33,6 +33,8 @@ Why teams use it:
 - react faster to recent volatility conditions than flat-weight historical simulation
 - avoid a full normality assumption
 
+One practical motivation is to reduce the ghost effect of flat-window historical simulation, where a large event keeps equal weight until it suddenly drops out of the sample window.
+
 What must be explicit in specs:
 
 - decay parameter or weighting regime
@@ -55,6 +57,11 @@ What must be explicit in specs:
 - whether filtering is done at factor level or portfolio level
 - what calibration window governs the filter
 - how transformed shocks remain replayable and explainable
+
+Methodology note:
+
+- filtered historical simulation is often implemented by standardizing residuals with the chosen volatility model and then re-scaling those residuals to the current volatility forecast
+- for multi-day horizons, path simulation is often more methodologically coherent than naive square-root-of-time scaling
 
 ## Full revaluation versus local approximations and grid methods
 
@@ -79,6 +86,13 @@ Costs:
 
 Use delta, delta-gamma, or similar local approximations instead of full repricing.
 
+In industry language this may also appear as:
+
+- Greeks-based VaR
+- delta-normal VaR for linear portfolios
+- delta-gamma VaR
+- delta-gamma-theta VaR
+
 Benefits:
 
 - speed
@@ -89,6 +103,9 @@ Risks:
 - tail behavior may be mismeasured
 - discontinuous or strongly nonlinear payoffs may be missed
 - explain surfaces may overstate precision if the approximation is hidden
+- cross-partial effects may be ignored or under-modelled
+- theta or other non-price sensitivities may be handled inconsistently across desks
+- local approximations can fail badly under large shocks because the expansion is only valid near the reference point
 
 ### Grid methods or grid calculation
 
@@ -114,6 +131,12 @@ What must be explicit in specs:
 - whether the grid is being used instead of full repricing
 - what approximation error is accepted
 - whether the use case still requires explainability of repricing lineage
+
+Do not confuse this with:
+
+- a compute grid or HPC grid used to distribute calculations across infrastructure
+
+That is an implementation architecture choice, not a VaR methodology synonym.
 
 ## Monte Carlo and scenario-simulation approaches
 
@@ -172,6 +195,7 @@ Key points:
 - clustering of violations matters
 - a model can appear acceptable on raw exception rate and still adapt poorly to regime change
 - regulatory internal-model contexts also care about P&L attribution, not just raw backtesting counts
+- crisis periods can generate clusters of exceptions that reveal stale calibration, under-reactive volatility treatment, or a true methodology gap
 
 If a service will be used in validation or governance workflows, these distinctions should be preserved explicitly.
 
@@ -201,6 +225,22 @@ If the use case depends materially on:
 - basis blowouts driven by stress liquidity
 
 then the spec should say so explicitly rather than implying that a standard VaR engine captures it.
+
+## Computational frameworks and runtime realism
+
+Runtime matters because some methodology choices are only credible if the institution can actually run them in time.
+
+Examples:
+
+- full revaluation may require substantial parallel compute or GPU acceleration to be operationally viable
+- Monte Carlo and pathwise filtered-historical-simulation methods may require materially more compute than flat historical simulation
+- some desks therefore use approximation methods intraday and reserve full revaluation for overnight or targeted books
+
+Repository rule:
+
+- compute architecture is not itself methodology canon
+- but specifications should say when a claimed methodology depends on runtime assumptions that require a distinct implementation strategy
+- do not blur valuation-grid methodology with compute-grid infrastructure
 
 ## What does not belong in market-VaR canon by default
 

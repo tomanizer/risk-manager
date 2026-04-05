@@ -46,6 +46,7 @@ Before producing a spec, answer internally:
 10. Are lookback, weighting, filtering, and stress-window choices explicit?
 11. Is the proposed method enterprise-standard for this use case, or a specialist research extension that needs extra justification?
 12. Are industry aliases or overlapping labels clarified where they could confuse implementation or review?
+13. If the spec says "grid", is that a valuation-grid approximation or a compute-grid infrastructure reference?
 
 ## Hard rules
 
