@@ -255,11 +255,15 @@ class FixtureLoaderTestCase(unittest.TestCase):
     def test_resolve_default_fixture_path_raises_when_no_env_or_parent_fixture_exists(self) -> None:
         with patch.dict("os.environ", clear=True):
             with patch(
-                "src.modules.risk_analytics.fixtures.loader.__file__",
-                "/tmp/no-fixture-pack/src/modules/risk_analytics/fixtures/loader.py",
+                "src.modules.risk_analytics.fixtures.loader.FIXTURE_PACK_RELATIVE_PATH",
+                Path("fixtures/risk_analytics/__definitely_missing_fixture_pack_for_test__.json"),
             ):
-                with self.assertRaises(FileNotFoundError):
-                    resolve_default_fixture_path()
+                with patch(
+                    "src.modules.risk_analytics.fixtures.loader.__file__",
+                    "/tmp/no-fixture-pack/src/modules/risk_analytics/fixtures/loader.py",
+                ):
+                    with self.assertRaises(FileNotFoundError):
+                        resolve_default_fixture_path()
 
 
 if __name__ == "__main__":
