@@ -115,6 +115,8 @@ class FixtureIndex:
         self.snapshots_by_date = {snapshot.as_of_date: snapshot for snapshot in pack.snapshots}
         self.rows_by_key: dict[tuple[str, str, str], FixtureRow] = {}
         self.rows_by_date_key: dict[tuple[date, str, str], FixtureRow] = {}
+        self.supported_measures: set[MeasureType] = set()
+        self.available_node_measures: set[tuple[str, str]] = set()
 
         for snapshot in pack.snapshots:
             for row in snapshot.rows:
@@ -127,6 +129,8 @@ class FixtureIndex:
                     raise ValueError(f"duplicate dated row for key {date_key}")
                 self.rows_by_key[key] = row
                 self.rows_by_date_key[date_key] = row
+                self.supported_measures.add(row.measure_type)
+                self.available_node_measures.add((node_key, row.measure_type.value))
 
     @staticmethod
     def node_key(node_ref: NodeRef) -> str:
