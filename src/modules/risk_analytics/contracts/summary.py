@@ -63,27 +63,20 @@ class _RiskContractBase(BaseModel):
         values = dict(data)
         node_ref_value = values.get("node_ref")
         if node_ref_value is not None:
-            if isinstance(node_ref_value, dict):
-                expected_values = {}
-                for field_name, adapter in _MIRROR_FIELD_ADAPTERS.items():
-                    if field_name in node_ref_value:
-                        expected_values[field_name] = adapter.validate_python(node_ref_value[field_name])
-                    else:
-                        expected_values[field_name] = None
-            else:
-                node_ref = _NODE_REF_ADAPTER.validate_python(node_ref_value)
-                expected_values = {
-                    "node_level": node_ref.node_level,
-                    "hierarchy_scope": node_ref.hierarchy_scope,
-                    "legal_entity_id": node_ref.legal_entity_id,
-                }
+            node_ref = _NODE_REF_ADAPTER.validate_python(node_ref_value)
+            values["node_ref"] = node_ref
+            expected_values = {
+                "node_level": node_ref.node_level,
+                "hierarchy_scope": node_ref.hierarchy_scope,
+                "legal_entity_id": node_ref.legal_entity_id,
+            }
             for field_name, expected in expected_values.items():
-                actual = values.get(field_name)
-                if actual is None or actual == expected:
+                raw_actual = values.get(field_name)
+                if raw_actual is None or raw_actual == expected:
                     values[field_name] = expected
                     continue
-                actual = _MIRROR_FIELD_ADAPTERS[field_name].validate_python(actual)
-                if actual is not None and actual != expected:
+                validated_actual = _MIRROR_FIELD_ADAPTERS[field_name].validate_python(raw_actual)
+                if validated_actual is not None and validated_actual != expected:
                     raise ValueError(f"{field_name} must mirror node_ref exactly")
                 values[field_name] = expected
 
