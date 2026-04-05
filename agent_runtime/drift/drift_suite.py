@@ -87,6 +87,12 @@ class DriftSuiteReport:
 
 
 @dataclass(frozen=True, slots=True)
+class _CollectedDriftSuite:
+    report: DriftSuiteReport
+    scanner_payloads: dict[str, str]
+
+
+@dataclass(frozen=True, slots=True)
 class _ScannerSpec:
     scan_name: str
     title: str
@@ -123,6 +129,10 @@ _SIGNATURE_FIELDS: dict[str, tuple[str, ...]] = {
 
 
 def build_drift_suite_report(root: Path, *, baseline_path: Path | None = None, artifact_dir: Path | None = None) -> DriftSuiteReport:
+    return _collect_drift_suite(root, baseline_path=baseline_path, artifact_dir=artifact_dir).report
+
+
+def _collect_drift_suite(root: Path, *, baseline_path: Path | None = None, artifact_dir: Path | None = None) -> _CollectedDriftSuite:
     repo_root = root.resolve()
     resolved_baseline_path = _resolve_baseline_path(repo_root, baseline_path)
     baseline_entries = _load_baseline_entries(resolved_baseline_path)
@@ -131,17 +141,16 @@ def build_drift_suite_report(root: Path, *, baseline_path: Path | None = None, a
     scan_summaries: list[DriftScanSummary] = []
     all_new_findings: list[DriftSuiteFinding] = []
     all_waived_findings: list[DriftSuiteFinding] = []
+    scanner_payloads: dict[str, str] = {}
     total_findings = 0
 
     for scanner in _SCANNERS:
         report = scanner.build_report(repo_root)
         raw_payload = report.to_dict()
-        raw_findings = raw_payload["findings"]
-        assert isinstance(raw_findings, list)
+        raw_findings = _require_list(raw_payload.get("findings"), scan_name=scanner.scan_name, field_name="findings")
         new_findings, waived_findings = _partition_findings(scanner.scan_name, raw_findings, baseline_entries)
         artifact_path = _display_path(resolved_artifact_dir / scanner.artifact_name, repo_root)
-        raw_stats = raw_payload["stats"]
-        assert isinstance(raw_stats, dict)
+        raw_stats = _require_dict(raw_payload.get("stats"), scan_name=scanner.scan_name, field_name="stats")
         scan_summaries.append(
             DriftScanSummary(
                 scan_name=scanner.scan_name,
@@ -156,23 +165,27 @@ def build_drift_suite_report(root: Path, *, baseline_path: Path | None = None, a
         total_findings += len(raw_findings)
         all_new_findings.extend(new_findings)
         all_waived_findings.extend(waived_findings)
+        scanner_payloads[scanner.artifact_name] = json.dumps(raw_payload, indent=2, sort_keys=True)
 
     all_new_findings.sort(key=_sort_suite_finding)
     all_waived_findings.sort(key=_sort_suite_finding)
-    return DriftSuiteReport(
-        scan_name="drift_suite",
-        root=".",
-        generated_at=datetime.now(UTC).isoformat(),
-        baseline_path=_display_path(resolved_baseline_path, repo_root),
-        scans=tuple(scan_summaries),
-        findings=tuple(all_new_findings),
-        waived_findings=tuple(all_waived_findings),
-        stats=DriftSuiteStats(
-            scans_run=len(_SCANNERS),
-            total_findings=total_findings,
-            new_findings=len(all_new_findings),
-            waived_findings=len(all_waived_findings),
+    return _CollectedDriftSuite(
+        report=DriftSuiteReport(
+            scan_name="drift_suite",
+            root=".",
+            generated_at=datetime.now(UTC).isoformat(),
+            baseline_path=_display_path(resolved_baseline_path, repo_root),
+            scans=tuple(scan_summaries),
+            findings=tuple(all_new_findings),
+            waived_findings=tuple(all_waived_findings),
+            stats=DriftSuiteStats(
+                scans_run=len(_SCANNERS),
+                total_findings=total_findings,
+                new_findings=len(all_new_findings),
+                waived_findings=len(all_waived_findings),
+            ),
         ),
+        scanner_payloads=scanner_payloads,
     )
 
 
@@ -191,16 +204,15 @@ def write_drift_suite_artifacts(
     resolved_baseline_path = _resolve_baseline_path(repo_root, baseline_path)
 
     resolved_artifact_dir.mkdir(parents=True, exist_ok=True)
-    report = build_drift_suite_report(
+    collected = _collect_drift_suite(
         repo_root,
         baseline_path=resolved_baseline_path,
         artifact_dir=resolved_artifact_dir,
     )
+    report = collected.report
 
-    for scanner in _SCANNERS:
-        scanner_report = scanner.build_report(repo_root)
-        scanner_payload = json.dumps(scanner_report.to_dict(), indent=2, sort_keys=True)
-        (resolved_artifact_dir / scanner.artifact_name).write_text(scanner_payload + "\n", encoding="utf-8")
+    for artifact_name, scanner_payload in collected.scanner_payloads.items():
+        (resolved_artifact_dir / artifact_name).write_text(scanner_payload + "\n", encoding="utf-8")
 
     resolved_output_path.parent.mkdir(parents=True, exist_ok=True)
     resolved_output_path.write_text(json.dumps(report.to_dict(), indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -381,6 +393,18 @@ def _load_baseline_entries(baseline_path: Path) -> dict[tuple[str, str], DriftBa
         )
         entries[(scan_name, signature)] = entry
     return entries
+
+
+def _require_list(value: object, *, scan_name: str, field_name: str) -> list[object]:
+    if isinstance(value, list):
+        return value
+    raise ValueError(f"Scanner `{scan_name}` emitted invalid `{field_name}` data; expected a list.")
+
+
+def _require_dict(value: object, *, scan_name: str, field_name: str) -> dict[str, object]:
+    if isinstance(value, dict):
+        return {str(key): item for key, item in value.items()}
+    raise ValueError(f"Scanner `{scan_name}` emitted invalid `{field_name}` data; expected an object.")
 
 
 def _partition_findings(

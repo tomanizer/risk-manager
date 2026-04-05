@@ -8,7 +8,7 @@ import sys
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from agent_runtime.drift.drift_suite import DriftSuiteFinding, DriftSuiteReport
+    from agent_runtime.drift.drift_suite import DriftScanSummary, DriftSuiteFinding, DriftSuiteReport
 
 
 def parse_args() -> argparse.Namespace:
@@ -40,14 +40,10 @@ def main() -> int:
 def _report_from_payload(payload: dict[str, object]) -> "DriftSuiteReport":
     from agent_runtime.drift.drift_suite import DriftSuiteReport, DriftSuiteStats, DriftScanSummary
 
-    raw_scans = payload["scans"]
-    assert isinstance(raw_scans, list)
-    raw_findings = payload["findings"]
-    assert isinstance(raw_findings, list)
-    raw_waived_findings = payload["waived_findings"]
-    assert isinstance(raw_waived_findings, list)
-    raw_stats = payload["stats"]
-    assert isinstance(raw_stats, dict)
+    raw_scans = _require_list(payload.get("scans"), field_name="scans")
+    raw_findings = _require_list(payload.get("findings"), field_name="findings")
+    raw_waived_findings = _require_list(payload.get("waived_findings"), field_name="waived_findings")
+    raw_stats = _require_mapping(payload.get("stats"), field_name="stats")
 
     return DriftSuiteReport(
         scan_name=str(payload["scan_name"]),
@@ -55,24 +51,16 @@ def _report_from_payload(payload: dict[str, object]) -> "DriftSuiteReport":
         generated_at=str(payload["generated_at"]),
         baseline_path=str(payload["baseline_path"]),
         scans=tuple(
-            DriftScanSummary(
-                scan_name=str(scan["scan_name"]),
-                title=str(scan["title"]),
-                artifact_path=str(scan["artifact_path"]),
-                stats=_mapping_to_dict(scan["stats"]),
-                total_findings=int(scan["total_findings"]),
-                new_findings=tuple(_finding_from_payload(item) for item in scan["new_findings"]),
-                waived_findings=tuple(_finding_from_payload(item) for item in scan["waived_findings"]),
-            )
+            _scan_summary_from_payload(scan)
             for scan in raw_scans
         ),
         findings=tuple(_finding_from_payload(item) for item in raw_findings),
         waived_findings=tuple(_finding_from_payload(item) for item in raw_waived_findings),
         stats=DriftSuiteStats(
-            scans_run=int(raw_stats["scans_run"]),
-            total_findings=int(raw_stats["total_findings"]),
-            new_findings=int(raw_stats["new_findings"]),
-            waived_findings=int(raw_stats["waived_findings"]),
+            scans_run=_require_int(raw_stats.get("scans_run"), field_name="stats.scans_run"),
+            total_findings=_require_int(raw_stats.get("total_findings"), field_name="stats.total_findings"),
+            new_findings=_require_int(raw_stats.get("new_findings"), field_name="stats.new_findings"),
+            waived_findings=_require_int(raw_stats.get("waived_findings"), field_name="stats.waived_findings"),
         ),
     )
 
@@ -80,7 +68,8 @@ def _report_from_payload(payload: dict[str, object]) -> "DriftSuiteReport":
 def _finding_from_payload(item: object) -> "DriftSuiteFinding":
     from agent_runtime.drift.drift_suite import DriftSuiteFinding
 
-    assert isinstance(item, dict)
+    if not isinstance(item, dict):
+        raise ValueError("Drift suite finding payload must be an object.")
     return DriftSuiteFinding(
         scan_name=str(item["scan_name"]),
         signature=str(item["signature"]),
@@ -96,9 +85,47 @@ def _finding_from_payload(item: object) -> "DriftSuiteFinding":
     )
 
 
+def _scan_summary_from_payload(item: object) -> "DriftScanSummary":
+    from agent_runtime.drift.drift_suite import DriftScanSummary
+
+    scan = _require_mapping(item, field_name="scans[]")
+    return DriftScanSummary(
+        scan_name=str(scan["scan_name"]),
+        title=str(scan["title"]),
+        artifact_path=str(scan["artifact_path"]),
+        stats=_mapping_to_dict(scan["stats"]),
+        total_findings=_require_int(scan.get("total_findings"), field_name="scans[].total_findings"),
+        new_findings=tuple(_finding_from_payload(payload) for payload in _require_list(scan["new_findings"], field_name="scans[].new_findings")),
+        waived_findings=tuple(
+            _finding_from_payload(payload) for payload in _require_list(scan["waived_findings"], field_name="scans[].waived_findings")
+        ),
+    )
+
+
 def _mapping_to_dict(value: object) -> dict[str, object]:
-    assert isinstance(value, Mapping)
+    if not isinstance(value, Mapping):
+        raise ValueError("Expected an object in drift suite payload.")
     return {str(key): item for key, item in value.items()}
+
+
+def _require_list(value: object, *, field_name: str) -> list[object]:
+    if isinstance(value, list):
+        return value
+    raise ValueError(f"Drift suite payload field `{field_name}` must be a list.")
+
+
+def _require_mapping(value: object, *, field_name: str) -> dict[str, object]:
+    if isinstance(value, Mapping):
+        return {str(key): item for key, item in value.items()}
+    raise ValueError(f"Drift suite payload field `{field_name}` must be an object.")
+
+
+def _require_int(value: object, *, field_name: str) -> int:
+    if isinstance(value, bool):
+        raise ValueError(f"Drift suite payload field `{field_name}` must be an integer, not a boolean.")
+    if isinstance(value, int):
+        return value
+    raise ValueError(f"Drift suite payload field `{field_name}` must be an integer.")
 
 
 if __name__ == "__main__":
