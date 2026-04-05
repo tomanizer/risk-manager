@@ -101,6 +101,10 @@ Typical criteria for this repo:
 
 Record the decision briefly and explicitly.
 
+Architectural decisions from Layer 1, 2, or 3 belong in an ADR under `docs/adr/`.
+
+Local implementation choices belong in the relevant PR description, issue, or work item notes.
+
 ### 7. What remains reversible?
 
 A good decision note separates:

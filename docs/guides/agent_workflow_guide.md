@@ -96,7 +96,7 @@ Good prompt shape:
 
 ## Codex
 
-OpenAI’s Codex app and related Codex surfaces are designed to manage multiple agents, run parallel work, and collaborate over longer-running coding tasks. The Codex app launched for macOS in February 2026 and was updated in March 2026 to be available on Windows. OpenAI describes Codex as usable in the app, CLI, IDE, and cloud. citeturn677500search8
+OpenAI Codex can be useful for parallel work, longer-running coding tasks, and supervised multi-agent workflows. Refer to the official product page for current capabilities and supported surfaces: [OpenAI Codex](https://openai.com/codex/).
 
 Best use:
 
@@ -115,7 +115,7 @@ For this repo, do not ask one Codex session to redesign architecture and impleme
 
 ## Cursor
 
-Cursor supports reusable rules, including project rules stored in `.cursor/rules`, user rules, and legacy `.cursorrules`. The rules act as persistent project-level instructions for agent and inline edit behavior. citeturn677500search5
+Cursor supports reusable rules, including project rules stored in `.cursor/rules`, user rules, and legacy `.cursorrules`. Refer to the official documentation for current rule behavior and project configuration.
 
 Best use:
 
@@ -140,7 +140,7 @@ Good Cursor rule themes:
 
 ## GitHub Copilot coding agent
 
-GitHub Copilot coding agent can work on issues or open pull requests, works in the background, and can be customized through repository custom instructions, MCP servers, custom agents, and hooks. GitHub also documents custom agent profiles and repository custom instructions files such as `copilot-instructions.md` and path-specific `.instructions.md` files. citeturn677500search0turn677500search2turn677500search6turn677500search7
+GitHub Copilot coding agent can work on issues or open pull requests, works in the background, and can be customized through repository custom instructions, MCP servers, custom agents, and hooks. GitHub also documents custom agent profiles and repository custom instructions files such as `copilot-instructions.md` and path-specific `.instructions.md` files. See [About GitHub Copilot coding agent](https://docs.github.com/en/copilot/using-github-copilot/coding-agent/about-github-copilot-coding-agent), [Adding repository custom instructions for GitHub Copilot](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-repository-instructions), [Creating custom agents for GitHub Copilot](https://docs.github.com/en/copilot/how-tos/provide-context/use-custom-agents), and [Adding personal custom instructions for GitHub Copilot](https://docs.github.com/en/copilot/how-tos/configure-custom-instructions/add-personal-instructions).
 
 Best use:
 
@@ -191,14 +191,15 @@ Good pattern:
 
 ## Recommended repo-visible agent setup
 
-For this project, keep four canonical prompt/instruction docs in the repo:
+For this project, keep the canonical repo-visible instructions aligned to the sources that already exist:
 
-- coding agent instruction
-- PM agent instruction
-- review agent instruction
-- issue planner instruction
+- `AGENTS.md` for coding-agent and repository operating instructions
+- `prompts/README.md` as the index for the prompt set
+- prompt files in `prompts/` for PM, review, issue planning, PRD generation, and related workflow templates
 
-Then map those into whichever tool you use:
+If you later add a dedicated coding-agent prompt file, make sure this guide and `prompts/README.md` are updated together.
+
+Then map those sources into whichever tool you use:
 
 - Cursor rules
 - Copilot custom instructions or custom agents
