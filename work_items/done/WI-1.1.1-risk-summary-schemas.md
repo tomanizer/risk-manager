@@ -33,7 +33,6 @@ Define the core enums and typed schemas for the Risk Summary Service.
 ## Dependencies
 
 - docs/implementation/PRD-1.1-foundation-slice.md
-- docs/implementation/PRD-1.1-foundation-slice.md
 - ADR-001
 - ADR-002
 - ADR-003

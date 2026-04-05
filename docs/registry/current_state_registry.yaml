@@ -17,7 +17,10 @@ components:
         - name: fixture_loader
           path: src/modules/risk_analytics/fixtures/
           status: implemented
-        - name: risk_summary_service
+        - name: risk_history_service
+          path: src/modules/risk_analytics/service.py
+          status: implemented
+        - name: risk_summary_core_service
           path: null
           status: not-started
     - id: MOD-FRTB-PLA-CONTROLS

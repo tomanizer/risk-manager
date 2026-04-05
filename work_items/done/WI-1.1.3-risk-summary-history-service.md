@@ -25,9 +25,9 @@ Implement history retrieval for a node and measure.
 
 ## Dependencies
 
-- WI-1.1.1
-- WI-1.1.2
-- WI-1.1.6
+- WI-1.1.1-risk-summary-schemas
+- WI-1.1.2-risk-summary-fixtures
+- WI-1.1.6-risk-summary-business-day-resolver
 - ADR-001
 - ADR-002
 - ADR-003

@@ -30,7 +30,7 @@ Create a deterministic synthetic fixture pack for risk summary testing and repla
 
 ## Dependencies
 
-- WI-1.1.1
+- WI-1.1.1-risk-summary-schemas
 - docs/implementation/PRD-1.1-foundation-slice.md
 - ADR-002
 - ADR-004
