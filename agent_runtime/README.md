@@ -8,6 +8,7 @@ It is the home for:
 
 - workflow orchestration
 - agent handoff state
+- isolated git worktree allocation per agent run
 - polling and resume behavior
 - runner wrappers for PM, spec, coding, and review roles
 - local durable state for autonomous delivery loops
@@ -43,6 +44,7 @@ The first orchestrator is intentionally narrow:
 - choose the next action in the relay
 - build a typed runner invocation for PM/spec/coding/review
 - dispatch that invocation through deterministic local runner adapters
+- allocate or reuse an isolated linked git worktree for dispatched runners
 - persist the resulting workflow-run state in SQLite
 - stop at the human merge gate
 
@@ -83,7 +85,8 @@ typed runner prompt that a later execution layer can hand to the correct agent.
 ```
 
 This builds the runner invocation, routes it through the local deterministic
-runner adapter, and persists both the execution metadata and the runner result.
+runner adapter, allocates or reuses a dedicated linked worktree, and persists
+both the execution metadata and the runner result.
 
 The live mode now combines:
 

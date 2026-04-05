@@ -30,7 +30,11 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
 
     work_item = _find_work_item(snapshot, decision.work_item_id)
     pull_request = _find_pull_request(snapshot, decision.work_item_id)
-    base_metadata = dict(decision.metadata)
+    default_base_ref = f"origin/{pull_request.head_ref_name}" if pull_request is not None and pull_request.head_ref_name else "origin/main"
+    base_metadata = {
+        **dict(decision.metadata),
+        "base_ref": default_base_ref,
+    }
 
     if decision.action is NextActionType.RUN_PM:
         pm_input = PMRunnerInput(

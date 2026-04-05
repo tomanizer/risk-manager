@@ -28,6 +28,7 @@ from agent_runtime.runners.contracts import RunnerDispatchStatus, RunnerName
 from agent_runtime.runners.dispatch import dispatch_runner_execution
 from agent_runtime.storage.sqlite import (
     EXPECTED_WORKFLOW_RUN_COLUMNS,
+    EXPECTED_WORKTREE_LEASE_COLUMNS,
     WorkflowRunRecord,
     initialize_database,
     load_workflow_run,
@@ -183,9 +184,12 @@ def test_initialize_database_creates_expected_workflow_runs_schema() -> None:
 
         with sqlite3.connect(db_path) as connection:
             rows = connection.execute("PRAGMA table_info(workflow_runs)").fetchall()
+            worktree_rows = connection.execute("PRAGMA table_info(worktree_leases)").fetchall()
 
         actual_columns = tuple(row[1] for row in rows)
+        actual_worktree_columns = tuple(row[1] for row in worktree_rows)
         assert actual_columns == EXPECTED_WORKFLOW_RUN_COLUMNS
+        assert actual_worktree_columns == EXPECTED_WORKTREE_LEASE_COLUMNS
 
 
 def test_upsert_workflow_run_round_trips_extended_columns() -> None:
