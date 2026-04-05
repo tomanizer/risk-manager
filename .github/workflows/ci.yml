@@ -38,6 +38,12 @@ jobs:
             mypy src/
           else
             echo 'No Python files found. Skipping mypy.'
+      - name: Ruff format
+        run: |
+          if git ls-files '*.py' '*.pyi' | grep . >/dev/null; then
+            ruff format --check .
+          else
+            echo 'No Python files found. Skipping Ruff format check.'
           fi
 
       - name: Pytest

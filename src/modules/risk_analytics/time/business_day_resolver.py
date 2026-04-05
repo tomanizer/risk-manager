@@ -19,10 +19,7 @@ def validate_calendar(calendar: tuple[date, ...]) -> tuple[date, ...]:
     """
     if not calendar:
         raise BusinessDayResolutionError("calendar must not be empty")
-    if any(
-        calendar[index] >= calendar[index + 1]
-        for index in range(len(calendar) - 1)
-    ):
+    if any(calendar[index] >= calendar[index + 1] for index in range(len(calendar) - 1)):
         raise BusinessDayResolutionError(
             "calendar must be sorted ascending and contain no duplicates"
         )
