@@ -12,6 +12,7 @@ from agent_runtime.orchestrator.worktree_manager import allocate_worktree, bind_
 from agent_runtime.runners.dispatch import dispatch_runner_execution
 from agent_runtime.storage.sqlite import (
     WorkflowRunRecord,
+    load_workflow_runs,
     record_workflow_outcome,
     upsert_workflow_run,
 )
@@ -31,12 +32,14 @@ def find_repo_root(start_path: Path) -> Path:
     raise RuntimeError("could not determine repository root from runtime location")
 
 
-def build_runtime_snapshot(repo_root: Path) -> RuntimeSnapshot:
+def build_runtime_snapshot(repo_root: Path, state_db_path: Path) -> RuntimeSnapshot:
     work_items, warnings = load_work_items(repo_root)
     pull_requests, github_warnings = fetch_pull_requests(repo_root, work_items)
+    workflow_runs = load_workflow_runs(state_db_path)
     return RuntimeSnapshot(
         work_items=work_items,
         pull_requests=pull_requests,
+        workflow_runs=workflow_runs,
         warnings=warnings + github_warnings,
     )
 
@@ -157,7 +160,11 @@ def main() -> int:
         )
         return 0
 
-    snapshot = build_simulation_snapshot(args.simulate) if args.simulate is not None else build_runtime_snapshot(repo_root)
+    snapshot = (
+        build_simulation_snapshot(args.simulate)
+        if args.simulate is not None
+        else build_runtime_snapshot(repo_root, defaults.state_db_path)
+    )
     decision = decide_next_action(snapshot)
     should_build_execution = args.execute or args.dispatch
     execution = build_runner_execution(snapshot, decision) if should_build_execution else None
@@ -167,7 +174,7 @@ def main() -> int:
         execution = bind_worktree_to_execution(execution, worktree_lease)
     runner_result = dispatch_runner_execution(execution) if args.dispatch and execution is not None else None
 
-    if should_build_execution and decision.work_item_id is not None:
+    if should_build_execution and decision.work_item_id is not None and execution is not None:
         pr_number = None
         branch_name = None
         for pull_request in snapshot.pull_requests:

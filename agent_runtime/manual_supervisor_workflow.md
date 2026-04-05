@@ -138,6 +138,13 @@ The runtime is the supervisor, but the repository remains the final source of tr
 
 This reevaluates the repo after the last completed manual step and allocates the next run.
 
+For completed PM runs, the runtime now uses the recorded outcome as a control
+signal:
+
+- `ready` can advance the item to coding on the next dispatch
+- `blocked` or `split_required` can stop at a human repo-update gate until the
+  work item file changes
+
 ## Suggested outcome statuses
 
 The runtime does not yet enforce a closed outcome enum. Use short, stable values such as:

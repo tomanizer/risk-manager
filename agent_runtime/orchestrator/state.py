@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from agent_runtime.storage.sqlite import WorkflowRunRecord
 
 
 class WorkItemStage(str, Enum):
@@ -21,6 +25,7 @@ class NextActionType(str, Enum):
     WAIT_FOR_REVIEWS = "wait_for_reviews"
     RUN_REVIEW = "run_review"
     HUMAN_MERGE = "human_merge"
+    HUMAN_UPDATE_REPO = "human_update_repo"
     NOOP = "noop"
 
 
@@ -52,6 +57,7 @@ class PullRequestSnapshot:
 class RuntimeSnapshot:
     work_items: tuple[WorkItemSnapshot, ...]
     pull_requests: tuple[PullRequestSnapshot, ...] = ()
+    workflow_runs: tuple[WorkflowRunRecord, ...] = ()
     warnings: tuple[str, ...] = ()
 
 
