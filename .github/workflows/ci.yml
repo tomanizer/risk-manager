@@ -38,6 +38,7 @@ jobs:
             mypy src/
           else
             echo 'No Python files found. Skipping mypy.'
+          fi
       - name: Ruff format
         run: |
           if git ls-files '*.py' '*.pyi' | grep . >/dev/null; then

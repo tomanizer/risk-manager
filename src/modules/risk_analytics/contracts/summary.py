@@ -23,7 +23,7 @@ def _float_matches(actual: float, expected: float) -> bool:
     return math.isclose(actual, expected, rel_tol=1e-9, abs_tol=1e-12)
 
 
-_MIRROR_FIELD_ADAPTERS = {
+_MIRROR_FIELD_ADAPTERS: dict[str, TypeAdapter[Any]] = {
     "node_level": TypeAdapter(NodeLevel | None),
     "hierarchy_scope": TypeAdapter(HierarchyScope | None),
     "legal_entity_id": TypeAdapter(str | None),
@@ -127,11 +127,7 @@ class _RiskContractBase(BaseModel):
             values["delta_pct"] = expected_delta_pct
             return values
 
-        expected_delta_pct = expected_delta_abs / self.previous_value
-        if self.delta_pct is None:
-            object.__setattr__(self, "delta_pct", expected_delta_pct)
-        elif not _float_matches(self.delta_pct, expected_delta_pct):
-            delta_pct = _FLOAT_ADAPTER.validate_python(delta_pct)
+        delta_pct = _FLOAT_ADAPTER.validate_python(delta_pct)
         if not _float_matches(delta_pct, expected_delta_pct):
             raise ValueError("delta_pct must equal delta_abs / previous_value")
 
