@@ -28,3 +28,9 @@ For PM work, also use:
 
 - `docs/delivery/`
 - `docs/guides/pm_quality_checklist.md`
+
+For coding work, also use:
+
+- `docs/engineering/`
+- `docs/guides/coding_quality_checklist.md`
+- `docs/guides/performance_review_checklist.md`
