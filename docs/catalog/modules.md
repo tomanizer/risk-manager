@@ -1,7 +1,7 @@
 # Module Catalog
 
 ## Risk Analytics
-Deterministic source for VaR, ES, P&L, contributors, concentration, tail, and related summary services.
+Deterministic source for VaR, ES, shock catalogs, shock lineage, P&L, contributors, concentration, tail, and related summary services.
 
 ## FRTB / PLA Controls
 Deterministic source for PLA, backtesting, deterioration flags, and desk control status.

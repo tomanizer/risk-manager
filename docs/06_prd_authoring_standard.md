@@ -165,5 +165,7 @@ PRD authors should use these documents as source context:
 - `docs/01_mission_and_design_principles.md`
 - `docs/04_risk_manager_operating_model.md`
 - `docs/05_walker_charters.md`
+- `docs/methodology/01_var_methodology_overview.md`
+- `docs/methodology/02_historical_simulation_and_shocks.md`
 
 PRDs should not copy these documents in full. They should reference them and include only the local context needed for implementation.

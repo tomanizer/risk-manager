@@ -18,6 +18,12 @@ This repository uses AI agents for PRD authoring, issue decomposition, implement
 - keeps scope narrow
 - makes ambiguities explicit in Open Questions
 
+### Risk Methodology Spec Agent
+- defines market-risk concepts precisely before implementation starts
+- preserves methodological distinctions such as summary versus driver, historical versus simulated shock, and market move versus operational artifact
+- makes methodology caveats explicit
+- does not let vague finance language stand in for real risk-methodology contracts
+
 ### Coding Agent
 - implements one bounded work item at a time
 - stays within linked PRD and issue scope
@@ -49,6 +55,7 @@ Do not collapse planning, coding, review, and merge judgment into one agent pass
 Repo-visible role-specific instructions live in:
 - `prompts/agents/`
 - `docs/guides/overnight_agent_runbook.md`
+- `docs/methodology/`
 
 ## Freshness and branching rule
 
