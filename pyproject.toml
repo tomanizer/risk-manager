@@ -24,7 +24,7 @@ compute = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "agent_runtime/tests"]
 
 [tool.ruff]
 target-version = "py312"
