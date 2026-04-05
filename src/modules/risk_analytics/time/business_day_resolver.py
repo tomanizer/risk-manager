@@ -11,7 +11,12 @@ class BusinessDayResolutionError(ValueError):
 
 
 def validate_calendar(calendar: tuple[date, ...]) -> tuple[date, ...]:
-    """Validate a canonical business-day calendar and return it unchanged."""
+    """Validate a business-day calendar.
+
+    Returns the input tuple unchanged when it is non-empty and strictly ascending.
+    Raises BusinessDayResolutionError if the calendar is empty, unsorted, or
+    contains duplicates.
+    """
     if not calendar:
         raise BusinessDayResolutionError("calendar must not be empty")
     if any(
