@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from datetime import date, datetime
 import math
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
 from .enums import (
     HierarchyScope,
@@ -20,6 +21,16 @@ from .node_ref import NodeRef
 
 def _float_matches(actual: float, expected: float) -> bool:
     return math.isclose(actual, expected, rel_tol=1e-9, abs_tol=1e-12)
+
+
+_MIRROR_FIELD_ADAPTERS = {
+    "node_level": TypeAdapter(NodeLevel | None),
+    "hierarchy_scope": TypeAdapter(HierarchyScope | None),
+    "legal_entity_id": TypeAdapter(str | None),
+}
+_NODE_REF_ADAPTER = TypeAdapter(NodeRef)
+_DATE_ADAPTER = TypeAdapter(date)
+_FLOAT_ADAPTER = TypeAdapter(float)
 
 
 class _RiskContractBase(BaseModel):
@@ -43,58 +54,84 @@ class _RiskContractBase(BaseModel):
     service_version: str
     generated_at: datetime
 
-    @model_validator(mode="after")
-    def validate_contract(self) -> "_RiskContractBase":
-        expected_level = self.node_ref.node_level
-        expected_scope = self.node_ref.hierarchy_scope
-        expected_legal_entity = self.node_ref.legal_entity_id
+    @model_validator(mode="before")
+    @classmethod
+    def validate_contract(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
 
-        updates = {
-            "node_level": expected_level,
-            "hierarchy_scope": expected_scope,
-            "legal_entity_id": expected_legal_entity,
-        }
-        for field_name, expected in updates.items():
-            actual = getattr(self, field_name)
-            if actual is not None and actual != expected:
-                raise ValueError(f"{field_name} must mirror node_ref exactly")
-            object.__setattr__(self, field_name, expected)
+        values = dict(data)
+        node_ref_value = values.get("node_ref")
+        if node_ref_value is not None:
+            node_ref = _NODE_REF_ADAPTER.validate_python(node_ref_value)
+            values["node_ref"] = node_ref
+            expected_values = {
+                "node_level": node_ref.node_level,
+                "hierarchy_scope": node_ref.hierarchy_scope,
+                "legal_entity_id": node_ref.legal_entity_id,
+            }
+            for field_name, expected in expected_values.items():
+                raw_actual = values.get(field_name)
+                if raw_actual is None or raw_actual == expected:
+                    values[field_name] = expected
+                    continue
+                validated_actual = _MIRROR_FIELD_ADAPTERS[field_name].validate_python(raw_actual)
+                if validated_actual is not None and validated_actual != expected:
+                    raise ValueError(f"{field_name} must mirror node_ref exactly")
+                values[field_name] = expected
 
-        if not self.snapshot_id:
-            raise ValueError("snapshot_id must be non-empty")
-        if not self.data_version:
-            raise ValueError("data_version must be non-empty")
-        if not self.service_version:
-            raise ValueError("service_version must be non-empty")
+        for field_name in ("snapshot_id", "data_version", "service_version"):
+            if field_name in values and not values[field_name]:
+                raise ValueError(f"{field_name} must be non-empty")
 
-        if self.compare_to_date is not None and self.compare_to_date > self.as_of_date:
-            raise ValueError("compare_to_date must be on or before as_of_date")
+        as_of_date = values.get("as_of_date")
+        compare_to_date = values.get("compare_to_date")
+        if as_of_date is not None and compare_to_date is not None:
+            parsed_as_of_date = _DATE_ADAPTER.validate_python(as_of_date)
+            parsed_compare_to_date = _DATE_ADAPTER.validate_python(compare_to_date)
+            if parsed_compare_to_date > parsed_as_of_date:
+                raise ValueError("compare_to_date must be on or before as_of_date")
 
-        if self.previous_value is None:
-            if self.delta_abs is not None:
+        previous_value = values.get("previous_value")
+        if previous_value is None:
+            if values.get("delta_abs") is not None:
                 raise ValueError("delta_abs must be None when previous_value is None")
-            if self.delta_pct is not None:
+            if values.get("delta_pct") is not None:
                 raise ValueError("delta_pct must be None when previous_value is None")
-            return self
+            return values
 
-        expected_delta_abs = self.current_value - self.previous_value
-        if self.delta_abs is None:
-            object.__setattr__(self, "delta_abs", expected_delta_abs)
-        elif not _float_matches(self.delta_abs, expected_delta_abs):
+        current_value = values.get("current_value")
+        if current_value is None:
+            return values
+        current_value = _FLOAT_ADAPTER.validate_python(current_value)
+        previous_value = _FLOAT_ADAPTER.validate_python(previous_value)
+        expected_delta_abs = current_value - previous_value
+
+        delta_abs = values.get("delta_abs")
+        if delta_abs is None:
+            delta_abs = expected_delta_abs
+            values["delta_abs"] = expected_delta_abs
+        else:
+            delta_abs = _FLOAT_ADAPTER.validate_python(delta_abs)
+        if not _float_matches(delta_abs, expected_delta_abs):
             raise ValueError("delta_abs must equal current_value - previous_value")
 
-        if self.previous_value == 0:
-            if self.delta_pct is not None:
+        if previous_value == 0:
+            if values.get("delta_pct") is not None:
                 raise ValueError("delta_pct must be None when previous_value is zero")
-            return self
+            return values
 
-        expected_delta_pct = self.delta_abs / self.previous_value
-        if self.delta_pct is None:
-            object.__setattr__(self, "delta_pct", expected_delta_pct)
-        elif not _float_matches(self.delta_pct, expected_delta_pct):
+        expected_delta_pct = delta_abs / previous_value
+        delta_pct = values.get("delta_pct")
+        if delta_pct is None:
+            values["delta_pct"] = expected_delta_pct
+            return values
+
+        delta_pct = _FLOAT_ADAPTER.validate_python(delta_pct)
+        if not _float_matches(delta_pct, expected_delta_pct):
             raise ValueError("delta_pct must equal delta_abs / previous_value")
 
-        return self
+        return values
 
 
 class RiskDelta(_RiskContractBase):
