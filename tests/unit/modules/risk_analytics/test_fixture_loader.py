@@ -97,6 +97,28 @@ class FixtureLoaderTestCase(unittest.TestCase):
         self.assertIsNotNone(legal_entity_row)
         self.assertNotEqual(top_of_house_row.value, legal_entity_row.value)
 
+    def test_node_key_uses_tuple_components_without_delimiter_collisions(self) -> None:
+        top_level_node = NodeRef(
+            hierarchy_scope=HierarchyScope.TOP_OF_HOUSE,
+            legal_entity_id=None,
+            node_level=NodeLevel.DESK,
+            node_id="A|B",
+            node_name="Delimited Desk",
+        )
+        legal_entity_node = NodeRef(
+            hierarchy_scope=HierarchyScope.LEGAL_ENTITY,
+            legal_entity_id="A",
+            node_level=NodeLevel.DESK,
+            node_id="B",
+            node_name="Split Desk",
+        )
+
+        self.assertEqual(
+            self.index.node_key(top_level_node),
+            ("TOP_OF_HOUSE", None, "DESK", "A|B"),
+        )
+        self.assertNotEqual(self.index.node_key(top_level_node), self.index.node_key(legal_entity_node))
+
     def test_missing_compare_case_is_present(self) -> None:
         node_ref = NodeRef(
             hierarchy_scope=HierarchyScope.TOP_OF_HOUSE,

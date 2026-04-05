@@ -10,6 +10,14 @@ class BusinessDayResolutionError(ValueError):
     """Raised when a canonical calendar cannot resolve a business day."""
 
 
+def _require_date_in_calendar(target_date: date, calendar: tuple[date, ...], field_name: str) -> int:
+    """Return the calendar index for a date that must be present."""
+    index = bisect.bisect_left(calendar, target_date)
+    if index >= len(calendar) or calendar[index] != target_date:
+        raise BusinessDayResolutionError(f"{field_name} {target_date.isoformat()} is not present in the supplied calendar")
+    return index
+
+
 def validate_calendar(calendar: tuple[date, ...]) -> tuple[date, ...]:
     """Validate a business-day calendar.
 
@@ -25,10 +33,7 @@ def validate_calendar(calendar: tuple[date, ...]) -> tuple[date, ...]:
 
 
 def resolve_prior_business_day(as_of_date: date, calendar: tuple[date, ...]) -> date:
-    index = bisect.bisect_left(calendar, as_of_date)
-    if index >= len(calendar) or calendar[index] != as_of_date:
-        raise BusinessDayResolutionError(f"as_of_date {as_of_date.isoformat()} is not present in the supplied calendar")
-
+    index = _require_date_in_calendar(as_of_date, calendar, "as_of_date")
     if index == 0:
         raise BusinessDayResolutionError(f"as_of_date {as_of_date.isoformat()} has no prior business day in the supplied calendar")
 
@@ -41,5 +46,6 @@ def resolve_compare_to_date(
     calendar: tuple[date, ...],
 ) -> date:
     if compare_to_date is not None:
+        _require_date_in_calendar(compare_to_date, calendar, "compare_to_date")
         return compare_to_date
     return resolve_prior_business_day(as_of_date, calendar)
