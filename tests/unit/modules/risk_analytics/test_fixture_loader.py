@@ -12,7 +12,11 @@ from src.modules.risk_analytics.contracts import (
     NodeRef,
     SummaryStatus,
 )
-from src.modules.risk_analytics.fixtures import build_fixture_index, load_risk_summary_fixture_pack
+from src.modules.risk_analytics.fixtures import (
+    DEFAULT_FIXTURE_PATH,
+    build_fixture_index,
+    load_risk_summary_fixture_pack,
+)
 
 
 class FixtureLoaderTestCase(unittest.TestCase):
@@ -22,6 +26,7 @@ class FixtureLoaderTestCase(unittest.TestCase):
         cls.index = build_fixture_index()
 
     def test_fixture_pack_loads_with_pinned_calendar(self) -> None:
+        self.assertTrue(DEFAULT_FIXTURE_PATH.exists())
         self.assertEqual(len(self.pack.calendar), 6)
         self.assertEqual(self.pack.calendar[0], date(2026, 1, 2))
         self.assertEqual(self.pack.calendar[3], date(2026, 1, 8))
@@ -117,6 +122,7 @@ class FixtureLoaderTestCase(unittest.TestCase):
         self.assertIsNotNone(by_snapshot)
         self.assertIsNotNone(by_date)
         self.assertEqual(by_snapshot.value, by_date.value)
+        self.assertEqual(str(by_snapshot.measure_type), "ES_97_5")
 
     def test_required_volatility_shape_cases_are_present(self) -> None:
         elevated_volatility_node = NodeRef(

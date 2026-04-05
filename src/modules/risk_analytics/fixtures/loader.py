@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import date
 from pathlib import Path
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -16,12 +16,27 @@ from src.modules.risk_analytics.contracts import (
 )
 
 
-DEFAULT_FIXTURE_PATH = (
-    Path(__file__).resolve().parents[4]
-    / "fixtures"
-    / "risk_analytics"
-    / "risk_summary_fixture_pack.json"
-)
+FIXTURE_PATH_ENV_VAR = "RISK_ANALYTICS_FIXTURE_PATH"
+FIXTURE_PACK_RELATIVE_PATH = Path("fixtures/risk_analytics/risk_summary_fixture_pack.json")
+
+
+def _resolve_default_fixture_path() -> Path:
+    env_path = os.environ.get(FIXTURE_PATH_ENV_VAR)
+    if env_path:
+        return Path(env_path).expanduser().resolve()
+
+    current_path = Path(__file__).resolve()
+    for parent in current_path.parents:
+        candidate = parent / FIXTURE_PACK_RELATIVE_PATH
+        if candidate.exists():
+            return candidate
+
+    raise FileNotFoundError(
+        "could not locate risk summary fixture pack from the current source tree"
+    )
+
+
+DEFAULT_FIXTURE_PATH = _resolve_default_fixture_path()
 
 
 class FixtureRow(BaseModel):

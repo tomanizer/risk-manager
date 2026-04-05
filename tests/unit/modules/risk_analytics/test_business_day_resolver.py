@@ -44,6 +44,27 @@ class BusinessDayResolverTestCase(unittest.TestCase):
         with self.assertRaises(BusinessDayResolutionError):
             resolve_prior_business_day(date(2026, 1, 2), CALENDAR)
 
+    def test_resolve_prior_business_day_rejects_unsorted_or_duplicate_calendar(self) -> None:
+        with self.assertRaises(BusinessDayResolutionError):
+            resolve_prior_business_day(
+                date(2026, 1, 9),
+                (
+                    date(2026, 1, 2),
+                    date(2026, 1, 6),
+                    date(2026, 1, 5),
+                ),
+            )
+        with self.assertRaises(BusinessDayResolutionError):
+            resolve_prior_business_day(
+                date(2026, 1, 9),
+                (
+                    date(2026, 1, 2),
+                    date(2026, 1, 5),
+                    date(2026, 1, 5),
+                    date(2026, 1, 9),
+                ),
+            )
+
     def test_resolve_compare_to_date_defaults_to_prior_business_day(self) -> None:
         self.assertEqual(
             resolve_compare_to_date(

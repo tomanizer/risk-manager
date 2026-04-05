@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+import math
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -15,6 +16,10 @@ from .enums import (
     VolatilityRegime,
 )
 from .node_ref import NodeRef
+
+
+def _float_matches(actual: float, expected: float) -> bool:
+    return math.isclose(actual, expected, rel_tol=1e-9, abs_tol=1e-12)
 
 
 class _RiskContractBase(BaseModel):
@@ -75,7 +80,7 @@ class _RiskContractBase(BaseModel):
         expected_delta_abs = self.current_value - self.previous_value
         if self.delta_abs is None:
             object.__setattr__(self, "delta_abs", expected_delta_abs)
-        elif self.delta_abs != expected_delta_abs:
+        elif not _float_matches(self.delta_abs, expected_delta_abs):
             raise ValueError("delta_abs must equal current_value - previous_value")
 
         if self.previous_value == 0:
@@ -86,7 +91,7 @@ class _RiskContractBase(BaseModel):
         expected_delta_pct = self.delta_abs / self.previous_value
         if self.delta_pct is None:
             object.__setattr__(self, "delta_pct", expected_delta_pct)
-        elif self.delta_pct != expected_delta_pct:
+        elif not _float_matches(self.delta_pct, expected_delta_pct):
             raise ValueError("delta_pct must equal delta_abs / previous_value")
 
         return self

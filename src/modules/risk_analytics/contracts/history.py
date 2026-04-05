@@ -50,7 +50,10 @@ class RiskHistorySeries(BaseModel):
         if not self.service_version:
             raise ValueError("service_version must be non-empty")
         ordered_dates = tuple(point.date for point in self.points)
-        if ordered_dates != tuple(sorted(ordered_dates)):
+        if any(
+            ordered_dates[index] > ordered_dates[index + 1]
+            for index in range(len(ordered_dates) - 1)
+        ):
             raise ValueError("points must be ordered ascending by date")
         for point in self.points:
             if point.node_ref != self.node_ref:
