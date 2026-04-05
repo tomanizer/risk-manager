@@ -88,7 +88,7 @@ class _RiskContractBase(BaseModel):
                 raise ValueError("delta_pct must be None when previous_value is zero")
             return self
 
-        expected_delta_pct = self.delta_abs / self.previous_value
+        expected_delta_pct = expected_delta_abs / self.previous_value
         if self.delta_pct is None:
             object.__setattr__(self, "delta_pct", expected_delta_pct)
         elif not _float_matches(self.delta_pct, expected_delta_pct):

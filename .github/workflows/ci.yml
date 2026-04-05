@@ -32,6 +32,14 @@ jobs:
             echo 'No Python files found. Skipping Ruff.'
           fi
 
+      - name: Mypy
+        run: |
+          if git ls-files '*.py' '*.pyi' | grep . >/dev/null; then
+            mypy src/
+          else
+            echo 'No Python files found. Skipping mypy.'
+          fi
+
       - name: Pytest
         run: |
           if git ls-files 'tests/**/*.py' 'test_*.py' '*_test.py' | grep . >/dev/null; then
