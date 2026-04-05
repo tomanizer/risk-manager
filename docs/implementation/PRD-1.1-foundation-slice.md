@@ -1,8 +1,8 @@
-# PRD-1.1 Foundation Implementation Slice
+# PRD-1.1-v2 Foundation Implementation Slice
 
 ## Purpose
 
-This document turns the next implementation step after PRD-1.1 into a coding-agent-ready delivery slice.
+This document turns the next implementation step for `docs/prds/phase-1/PRD-1.1-risk-summary-service-v2.md` into a coding-agent-ready delivery slice.
 
 It covers the first foundation PR for the Risk Summary module.
 
@@ -12,7 +12,7 @@ The recommended first implementation PR should include:
 
 - WI-1.1.1 schemas and enums
 - WI-1.1.2 deterministic fixtures
-- WI-1.1.6 business-day resolver
+- WI-1.1.3 business-day resolver
 
 This order is intentional:
 
@@ -100,6 +100,8 @@ Validation rules:
 
 - if `hierarchy_scope == TOP_OF_HOUSE`, `legal_entity_id` must be `None`
 - if `hierarchy_scope == LEGAL_ENTITY`, `legal_entity_id` must be non-null and non-empty
+- `node_level == FIRM` is only valid with `TOP_OF_HOUSE`
+- `LEGAL_ENTITY` scope should restrict `node_level` to `DIVISION` or below unless a later ADR explicitly broadens that contract
 
 #### `RiskHistoryPoint`
 
@@ -141,6 +143,13 @@ Validation rules:
 - `service_version`
 - `generated_at`
 
+The top-level `node_level`, `hierarchy_scope`, and `legal_entity_id` fields are retained as denormalized convenience fields for exports, dashboards, and downstream consumers. They must always mirror `node_ref` exactly.
+
+The contract for `delta_pct` is:
+
+- `delta_pct = delta_abs / previous_value` when `previous_value` is non-null and non-zero
+- `delta_pct = null` when `previous_value` is null or zero
+
 #### `RiskSummary`
 
 `RiskDelta` plus:
@@ -164,6 +173,7 @@ Validation rules:
 - `NodeRef` validation works for both valid and invalid scope combinations
 - all contracts instantiate cleanly
 - unit tests cover invalid `NodeRef` combinations
+- `delta_pct` zero-handling is explicit and tested
 - no service logic is included yet
 
 ## Slice B: WI-1.1.2 Deterministic fixture pack
@@ -237,7 +247,7 @@ Provide a small loader that:
 - all required edge cases are present
 - deterministic indexing helpers exist
 
-## Slice C: WI-1.1.6 Business-day resolver
+## Slice C: WI-1.1.3 Business-day resolver
 
 ### Goal
 
