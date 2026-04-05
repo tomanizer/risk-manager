@@ -47,6 +47,22 @@ The review agent is responsible for:
 
 Use the review agent before merging and whenever an implementation feels slightly suspicious.
 
+### Drift Monitor Agent
+
+The drift monitor agent is responsible for:
+
+- auditing repo-wide coherence
+- detecting contradiction, duplication, stale guidance, and boundary erosion
+- surfacing document sprawl or weak source-of-truth signaling
+- routing findings to the correct owner
+
+Use the drift monitor when you need to answer:
+
+- is the repository still internally coherent?
+- have docs, prompts, work items, and implementation drifted apart?
+- are there duplicate or conflicting sources of truth?
+- is the repo becoming sprawling or directionless?
+
 ### Issue Planner Agent
 
 The issue planner agent is responsible for:
@@ -66,6 +82,16 @@ Use it when a PRD is still too large for a coding agent to execute cleanly.
 5. Human decides whether to merge or send back
 
 This loop keeps the work disciplined and prevents a coding agent from becoming a wandering architect.
+
+## Separate repo-health loop
+
+Use the drift monitor on a separate cadence:
+
+1. run a repo-health audit on current `main`
+2. triage findings through PM or a human
+3. route approved follow-up into PRD, spec, coding, or review work
+
+Do not let the repo-health audit replace PR review or implementation review on a live slice.
 
 ## Tool-specific usage patterns
 
@@ -109,6 +135,7 @@ Recommended pattern:
 - use one Codex session for PM sequencing
 - use one session for the coding slice
 - use a separate session for review
+- use a separate session for drift monitoring when doing repo-health audits
 - keep each session attached to a narrow artifact set
 
 For this repo, do not ask one Codex session to redesign architecture and implement a slice at the same time.
@@ -154,6 +181,7 @@ Recommended setup for this repo:
 - one custom agent for coding
 - one custom agent for review
 - one custom agent for PM or issue planning
+- one optional custom agent for drift monitoring
 - optional hooks for build, test, lint, and validation
 
 Good pattern:
@@ -195,7 +223,7 @@ For this project, keep the canonical repo-visible instructions aligned to the so
 
 - `AGENTS.md` for coding-agent and repository operating instructions
 - `prompts/README.md` as the index for the prompt set
-- prompt files in `prompts/` for PM, review, issue planning, PRD generation, and related workflow templates
+- prompt files in `prompts/` for PM, review, issue planning, drift monitoring, PRD generation, and related workflow templates
 
 If you later add a dedicated coding-agent prompt file, make sure this guide and `prompts/README.md` are updated together.
 

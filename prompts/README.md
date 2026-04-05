@@ -6,7 +6,8 @@ This directory contains prompt assets for AI agents operating in this repository
 
 | Directory | Purpose |
 | --------- | ------- |
-| `agents/` | Repo-visible operating instructions for PM, coding, review, and issue-planning agents |
+| `agents/` | Repo-visible operating instructions for PM, coding, review, issue-planning, methodology-spec, and drift-monitor agents |
+| `drift_monitor/` | Prompt template for repo-health and drift audits |
 | `prd_generation/` | Prompts for the PRD Author agent |
 | `issue_decomposition/` | Prompts for the issue decomposition agent |
 | `pm/` | Prompts for the PM / coordination agent |

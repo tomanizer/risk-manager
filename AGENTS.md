@@ -1,6 +1,6 @@
 # AGENTS.md
 
-This repository uses AI agents for PRD authoring, issue decomposition, implementation, review, and project coordination.
+This repository uses AI agents for PRD authoring, issue decomposition, implementation, review, project coordination, and repo-wide drift monitoring.
 
 ## Architecture hierarchy
 1. `docs/` contains the governed architecture canon.
@@ -38,6 +38,14 @@ This repository uses AI agents for PRD authoring, issue decomposition, implement
 - checks contract fidelity, boundary discipline, degraded-case handling, evidence, replayability, and tests
 - flags scope creep explicitly
 
+### Drift Monitor Agent
+- audits repo-wide coherence across canon, prompts, work items, registry, implementation, and tests
+- detects contradictory, duplicated, stale, sprawling, or weakly governed content
+- distinguishes sanctioned duplication from conflicting duplication
+- reports design drift, technical boundary erosion, and source-of-truth ambiguity with evidence
+- routes findings to PM, PRD, methodology/spec, coding, review, or human decision
+- does not silently rewrite canon, approve merge readiness, or widen implementation scope on its own
+
 ### PM / Coordination Agent
 - manages sequencing, dependency readiness, blockers, and milestone integrity
 - does not redesign architecture during execution
@@ -57,16 +65,19 @@ The intended handoff is:
 
 Do not collapse planning, coding, review, and merge judgment into one agent pass when operating autonomously.
 
+Repo-wide drift monitoring is a separate periodic governance control. It does not replace the PM -> coding -> review delivery relay for implementation work.
+
 Repo-visible role-specific instructions live in:
 - `prompts/agents/`
 - `docs/guides/overnight_agent_runbook.md`
 - `docs/delivery/`
 - `docs/methodology/`
 - `docs/engineering/`
+- `docs/guides/repo_health_audit_checklist.md`
 
 ## Freshness and branching rule
 
-Before any PM, coding, or review pass:
+Before any PM, coding, review, or drift-monitor pass:
 
 1. git fetch origin
 2. git switch main

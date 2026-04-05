@@ -19,6 +19,7 @@ The PM agent is responsible for deciding whether work is truly ready, whether it
 - implementation-brief quality
 - overnight sequencing and morning handoff summaries
 - escalation when canon is incomplete
+- triage of drift-monitor findings into the correct owner queue
 
 ## What the PM agent does not own
 
