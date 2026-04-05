@@ -2,8 +2,13 @@
 
 from __future__ import annotations
 
+import json
+import tempfile
 import unittest
 from datetime import date
+from pathlib import Path
+
+from pydantic import ValidationError
 
 from src.modules.risk_analytics.contracts import (
     HierarchyScope,
@@ -68,6 +73,33 @@ class FixtureLoaderTestCase(unittest.TestCase):
         self.assertIsNotNone(uk_row)
         self.assertIsNotNone(us_row)
         self.assertNotEqual(uk_row.value, us_row.value)
+
+    def test_same_node_id_remains_distinct_across_scope(self) -> None:
+        top_of_house_desk = NodeRef(
+            hierarchy_scope=HierarchyScope.TOP_OF_HOUSE,
+            legal_entity_id=None,
+            node_level=NodeLevel.DESK,
+            node_id="DESK_RATES_MACRO",
+            node_name="Rates Macro",
+        )
+        legal_entity_desk = NodeRef(
+            hierarchy_scope=HierarchyScope.LEGAL_ENTITY,
+            legal_entity_id="LE-UK-BANK",
+            node_level=NodeLevel.DESK,
+            node_id="DESK_RATES_MACRO",
+            node_name="Rates Macro",
+        )
+
+        top_of_house_row = self.index.get_row(
+            "SNAP-2026-01-09", top_of_house_desk, MeasureType.VAR_1D_99
+        )
+        legal_entity_row = self.index.get_row(
+            "SNAP-2026-01-09", legal_entity_desk, MeasureType.VAR_1D_99
+        )
+
+        self.assertIsNotNone(top_of_house_row)
+        self.assertIsNotNone(legal_entity_row)
+        self.assertNotEqual(top_of_house_row.value, legal_entity_row.value)
 
     def test_missing_compare_case_is_present(self) -> None:
         node_ref = NodeRef(
@@ -153,6 +185,17 @@ class FixtureLoaderTestCase(unittest.TestCase):
         self.assertEqual(max(elevated_values[:-2]) - min(elevated_values[:-2]), 80.0)
         self.assertEqual(stable_values[:-1], [50.0, 51.0, 50.0, 52.0, 53.0])
         self.assertEqual(stable_values[-1] - stable_values[-2], 17.0)
+
+    def test_fixture_pack_rejects_calendar_snapshot_drift(self) -> None:
+        payload = json.loads(DEFAULT_FIXTURE_PATH.read_text(encoding="utf-8"))
+        payload["calendar"] = payload["calendar"][:-1]
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            fixture_path = Path(temp_dir) / "drifted_fixture_pack.json"
+            fixture_path.write_text(json.dumps(payload), encoding="utf-8")
+
+            with self.assertRaises(ValidationError):
+                load_risk_summary_fixture_pack(fixture_path)
 
 
 if __name__ == "__main__":

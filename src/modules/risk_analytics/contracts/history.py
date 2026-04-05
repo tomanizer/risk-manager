@@ -60,4 +60,8 @@ class RiskHistorySeries(BaseModel):
                 raise ValueError("all points must match series node_ref")
             if point.measure_type != self.measure_type:
                 raise ValueError("all points must match series measure_type")
+            if point.date < self.start_date or point.date > self.end_date:
+                raise ValueError(
+                    "all points must fall within the inclusive [start_date, end_date] range"
+                )
         return self

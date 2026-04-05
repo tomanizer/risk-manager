@@ -34,6 +34,49 @@ def make_node_ref() -> NodeRef:
 
 
 class ContractTestCase(unittest.TestCase):
+    def assert_mirrored_field_mismatch_rejected(self, contract_type: type[RiskDelta | RiskSummary | RiskChangeProfile]) -> None:
+        kwargs = {
+            "node_ref": make_node_ref(),
+            "node_level": NodeLevel.BOOK,
+            "measure_type": MeasureType.VAR_1D_99,
+            "as_of_date": date(2026, 1, 12),
+            "compare_to_date": date(2026, 1, 9),
+            "current_value": 98.0,
+            "previous_value": 95.0,
+            "delta_abs": 3.0,
+            "delta_pct": 3.0 / 95.0,
+            "status": SummaryStatus.OK,
+            "snapshot_id": "SNAP-2026-01-12",
+            "data_version": "synthetic-risk-analytics-v1",
+            "service_version": "risk-summary-service-v1",
+            "generated_at": datetime(2026, 1, 12, 18, 0, tzinfo=timezone.utc),
+        }
+        if contract_type is RiskSummary:
+            kwargs.update(
+                {
+                    "rolling_mean": 96.6,
+                    "rolling_std": 28.0,
+                    "rolling_min": 60.0,
+                    "rolling_max": 140.0,
+                    "history_points_used": 5,
+                }
+            )
+        if contract_type is RiskChangeProfile:
+            kwargs.update(
+                {
+                    "rolling_mean": 96.6,
+                    "rolling_std": 28.0,
+                    "rolling_min": 60.0,
+                    "rolling_max": 140.0,
+                    "history_points_used": 5,
+                    "volatility_regime": VolatilityRegime.ELEVATED,
+                    "volatility_change_flag": VolatilityChangeFlag.STABLE,
+                }
+            )
+
+        with self.assertRaises(ValidationError):
+            contract_type(**kwargs)
+
     def test_risk_delta_populates_mirror_fields_and_delta_pct(self) -> None:
         risk_delta = RiskDelta(
             node_ref=make_node_ref(),
@@ -245,6 +288,36 @@ class ContractTestCase(unittest.TestCase):
                 status=SummaryStatus.OK,
                 service_version="risk-summary-service-v1",
             )
+
+    def test_history_series_rejects_points_outside_range(self) -> None:
+        point = RiskHistoryPoint(
+            node_ref=make_node_ref(),
+            measure_type=MeasureType.VAR_1D_99,
+            date=date(2026, 1, 7),
+            value=90.0,
+            snapshot_id="SNAP-2026-01-08",
+            status=SummaryStatus.OK,
+        )
+
+        with self.assertRaises(ValidationError):
+            RiskHistorySeries(
+                node_ref=make_node_ref(),
+                measure_type=MeasureType.VAR_1D_99,
+                start_date=date(2026, 1, 8),
+                end_date=date(2026, 1, 9),
+                points=(point,),
+                status=SummaryStatus.OK,
+                service_version="risk-summary-service-v1",
+            )
+
+    def test_risk_delta_rejects_mirrored_field_mismatch(self) -> None:
+        self.assert_mirrored_field_mismatch_rejected(RiskDelta)
+
+    def test_risk_summary_rejects_mirrored_field_mismatch(self) -> None:
+        self.assert_mirrored_field_mismatch_rejected(RiskSummary)
+
+    def test_risk_change_profile_rejects_mirrored_field_mismatch(self) -> None:
+        self.assert_mirrored_field_mismatch_rejected(RiskChangeProfile)
 
 
 if __name__ == "__main__":

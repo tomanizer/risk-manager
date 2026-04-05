@@ -91,6 +91,12 @@ class RiskSummaryFixturePack(BaseModel):
         snapshot_dates = tuple(snapshot.as_of_date for snapshot in self.snapshots)
         if tuple(sorted(snapshot_dates)) != snapshot_dates:
             raise ValueError("snapshots must be ordered ascending by as_of_date")
+        calendar_dates = set(self.calendar)
+        for snapshot in self.snapshots:
+            if snapshot.as_of_date not in calendar_dates:
+                raise ValueError(
+                    "snapshot as_of_date values must be present in the pinned fixture calendar"
+                )
 
         return self
 
