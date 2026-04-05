@@ -47,6 +47,11 @@ jobs:
           python scripts/drift/check_references.py \
             --output artifacts/drift/reference_integrity.json
 
+      - name: Run dependency hygiene scanner
+        run: |
+          python scripts/drift/check_dependency_hygiene.py \
+            --output artifacts/drift/dependency_hygiene.json
+
       - name: Run registry alignment scanner
         run: |
           python scripts/drift/check_registry_alignment.py \
@@ -63,6 +68,20 @@ jobs:
               "",
           ]
           report_specs = (
+              (
+                  "Dependency Hygiene",
+                  Path("artifacts/drift/dependency_hygiene.json"),
+                  lambda report: (
+                      f"- Runtime files scanned: `{report['stats']['runtime_python_files_scanned']}`",
+                      f"- Dev files scanned: `{report['stats']['dev_python_files_scanned']}`",
+                      f"- Workflows scanned: `{report['stats']['workflows_scanned']}`",
+                      f"- Instruction files scanned: `{report['stats']['instruction_files_scanned']}`",
+                  ),
+                  lambda finding: (
+                      f"- `{finding['severity']}` `{finding['source_path']}` "
+                      f"`{finding['dependency_name']}` -> {finding['owner']}"
+                  ),
+              ),
               (
                   "Reference Integrity",
                   Path("artifacts/drift/reference_integrity.json"),
@@ -117,6 +136,7 @@ jobs:
         with:
           name: drift-reports
           path: |
+            artifacts/drift/dependency_hygiene.json
             artifacts/drift/reference_integrity.json
             artifacts/drift/registry_alignment.json
           if-no-files-found: error

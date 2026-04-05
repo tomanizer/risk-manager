@@ -232,24 +232,27 @@ Do not treat it as a mandatory gate on every ordinary PR unless the repository l
 
 The repo-health loop should prefer deterministic prechecks before LLM synthesis where possible.
 
-Initial deterministic scanner:
+Initial deterministic scanners:
 
+- `scripts/drift/check_dependency_hygiene.py`
 - `scripts/drift/check_references.py`
 - `scripts/drift/check_registry_alignment.py`
 
 Recommended usage:
 
 ```bash
+python scripts/drift/check_dependency_hygiene.py --root . --output artifacts/drift/dependency_hygiene.json
 python scripts/drift/check_references.py --root . --output artifacts/drift/reference_integrity.json
 python scripts/drift/check_registry_alignment.py --root . --output artifacts/drift/registry_alignment.json
 ```
 
 These scanners check:
 
+- `pyproject.toml` dependencies and optional extras against actual Python imports, workflow tool usage, and stale dependency-instruction surfaces
 - tracked text files for broken internal file references
 - the current-state registry for mismatches between declared implementation status and the repository's actual module roots and registered implementation paths
 
-They let the drift monitor start from machine-generated evidence about stale paths, deleted files, missing targets, and maturity/status drift in the registry.
+They let the drift monitor start from machine-generated evidence about dependency/tooling drift, stale paths, deleted files, missing targets, and maturity/status drift in the registry.
 
 ## Required output shape
 
