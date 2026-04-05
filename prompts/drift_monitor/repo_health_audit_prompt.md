@@ -8,6 +8,7 @@ Read:
 - `docs/delivery/05_repo_drift_monitoring.md`
 - `docs/guides/repo_health_audit_checklist.md`
 - `docs/registry/current_state_registry.yaml`
+- deterministic precheck output if present under `artifacts/drift/`
 - relevant canon, PRD, ADR, prompt, work-item, source, and test artifacts needed to assess coherence
 
 Audit for:
@@ -23,6 +24,7 @@ Audit for:
 
 Rules:
 
+- run deterministic drift scanners first when they exist, starting with `python scripts/drift/check_references.py --root . --output artifacts/drift/reference_integrity.json`
 - cite evidence for each material finding
 - distinguish sanctioned duplication from unhealthy duplication
 - classify each material finding as canon, implementation, tooling, operational-instruction, or maturity/status drift

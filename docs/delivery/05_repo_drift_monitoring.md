@@ -110,6 +110,8 @@ Do not report drift based on vague discomfort.
 
 Every material finding should name the conflicting artifacts, the exact contradiction or duplication pattern, and why that matters operationally.
 
+Where a deterministic scanner exists, run it before free-form repo reading and use its structured output as the first evidence surface.
+
 ### Distinguish sanctioned duplication from unhealthy duplication
 
 Some duplication is legitimate when one artifact is clearly a short-form summary, index, exemplar, or local adaptation of a broader canon document.
@@ -225,6 +227,22 @@ Run the drift monitor:
 - on a regular periodic cadence such as weekly or nightly, depending on repo activity
 
 Do not treat it as a mandatory gate on every ordinary PR unless the repository later proves that such a gate is worth the noise.
+
+## Deterministic prechecks
+
+The repo-health loop should prefer deterministic prechecks before LLM synthesis where possible.
+
+Initial deterministic scanner:
+
+- `scripts/drift/check_references.py`
+
+Recommended usage:
+
+```bash
+python scripts/drift/check_references.py --root . --output artifacts/drift/reference_integrity.json
+```
+
+This scanner checks tracked text files for broken internal file references so the drift monitor can start from machine-generated evidence about stale paths, deleted files, and missing targets.
 
 ## Required output shape
 

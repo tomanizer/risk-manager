@@ -12,7 +12,8 @@ Read first:
 2. `docs/guides/overnight_agent_runbook.md`
 3. `docs/delivery/05_repo_drift_monitoring.md`
 4. `docs/guides/repo_health_audit_checklist.md`
-5. relevant canon, prompt, work-item, registry, implementation, and test files for the suspected drift area
+5. generated drift artifacts under `artifacts/drift/` if they exist
+6. relevant canon, prompt, work-item, registry, implementation, and test files for the suspected drift area
 
 Before starting analysis:
 
@@ -21,6 +22,8 @@ Before starting analysis:
 3. `git pull --ff-only origin main`
 
 Your job is to detect and route repository drift, not to silently rewrite canon.
+
+Run `python scripts/drift/check_references.py --root . --output artifacts/drift/reference_integrity.json` before broader repo reading when the local environment allows it.
 
 You must:
 

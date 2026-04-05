@@ -39,6 +39,7 @@ Thumbs.db
 logs/
 .tmp/
 tmp/
+artifacts/drift/*.json
 
 # Secrets / local config overrides
 .env.local
