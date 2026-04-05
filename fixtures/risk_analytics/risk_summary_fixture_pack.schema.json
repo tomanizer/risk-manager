@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fixtures/risk_analytics/risk_summary_fixture_pack.schema.json",
+  "title": "RiskSummaryFixturePack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "service_version",
+    "data_version",
+    "calendar",
+    "snapshots"
+  ],
+  "properties": {
+    "service_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "data_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "calendar": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "string",
+        "format": "date"
+      }
+    },
+    "snapshots": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/FixtureSnapshot"
+      }
+    }
+  },
+  "$defs": {
+    "FixtureSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_id",
+        "as_of_date",
+        "is_degraded",
+        "rows"
+      ],
+      "properties": {
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "as_of_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "is_degraded": {
+          "type": "boolean"
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FixtureRow"
+          }
+        }
+      }
+    },
+    "FixtureRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_ref",
+        "measure_type",
+        "value",
+        "status"
+      ],
+      "properties": {
+        "node_ref": {
+          "$ref": "#/$defs/NodeRef"
+        },
+        "measure_type": {
+          "type": "string",
+          "enum": [
+            "VAR_1D_99",
+            "VAR_10D_99",
+            "ES_97_5"
+          ]
+        },
+        "value": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "OK",
+            "PARTIAL",
+            "MISSING_COMPARE",
+            "MISSING_HISTORY",
+            "MISSING_NODE",
+            "MISSING_SNAPSHOT",
+            "UNSUPPORTED_MEASURE",
+            "DEGRADED"
+          ]
+        }
+      }
+    },
+    "NodeRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hierarchy_scope",
+        "legal_entity_id",
+        "node_level",
+        "node_id",
+        "node_name"
+      ],
+      "properties": {
+        "hierarchy_scope": {
+          "type": "string",
+          "enum": [
+            "TOP_OF_HOUSE",
+            "LEGAL_ENTITY"
+          ]
+        },
+        "legal_entity_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "node_level": {
+          "type": "string",
+          "enum": [
+            "FIRM",
+            "DIVISION",
+            "AREA",
+            "DESK",
+            "BOOK",
+            "POSITION",
+            "TRADE"
+          ]
+        },
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "hierarchy_scope": {
+                "const": "TOP_OF_HOUSE"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "legal_entity_id": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "hierarchy_scope": {
+                "const": "LEGAL_ENTITY"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "legal_entity_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "node_level": {
+                "enum": [
+                  "DIVISION",
+                  "AREA",
+                  "DESK",
+                  "BOOK",
+                  "POSITION",
+                  "TRADE"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

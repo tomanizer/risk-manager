@@ -8,6 +8,7 @@ import unittest
 from datetime import date
 from pathlib import Path
 
+from jsonschema import Draft202012Validator, FormatChecker
 from pydantic import ValidationError
 
 from src.modules.risk_analytics.contracts import (
@@ -209,6 +210,20 @@ class FixtureLoaderTestCase(unittest.TestCase):
 
             with self.assertRaises(ValidationError):
                 load_risk_summary_fixture_pack(fixture_path)
+
+    def test_fixture_pack_matches_standalone_json_schema(self) -> None:
+        repo_root = Path(__file__).resolve().parents[4]
+        fixture_path = repo_root / "fixtures/risk_analytics/risk_summary_fixture_pack.json"
+        schema_path = repo_root / "fixtures/risk_analytics/risk_summary_fixture_pack.schema.json"
+
+        fixture_payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+        Draft202012Validator.check_schema(schema)
+        validator = Draft202012Validator(schema, format_checker=FormatChecker())
+        errors = sorted(validator.iter_errors(fixture_payload), key=lambda error: list(error.path))
+
+        self.assertEqual([], errors)
 
 
 if __name__ == "__main__":
