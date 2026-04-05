@@ -138,6 +138,29 @@ class ContractTestCase(unittest.TestCase):
         self.assertEqual(risk_delta.delta_abs, 3.0)
         self.assertAlmostEqual(risk_delta.delta_pct, 3.0 / 95.0)
 
+    def test_risk_delta_derives_fields_from_raw_node_ref_input(self) -> None:
+        risk_delta = RiskDelta(
+            node_ref=make_node_ref().model_dump(mode="python"),
+            measure_type=MeasureType.VAR_1D_99,
+            as_of_date=date(2026, 1, 12),
+            compare_to_date=date(2026, 1, 9),
+            current_value=98.0,
+            previous_value=95.0,
+            delta_abs=None,
+            delta_pct=None,
+            status=SummaryStatus.OK,
+            snapshot_id="SNAP-2026-01-12",
+            data_version="synthetic-risk-analytics-v1",
+            service_version="risk-summary-service-v1",
+            generated_at=datetime(2026, 1, 12, 18, 0, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(risk_delta.node_level, NodeLevel.DESK)
+        self.assertEqual(risk_delta.hierarchy_scope, HierarchyScope.TOP_OF_HOUSE)
+        self.assertIsNone(risk_delta.legal_entity_id)
+        self.assertEqual(risk_delta.delta_abs, 3.0)
+        self.assertAlmostEqual(risk_delta.delta_pct, 3.0 / 95.0)
+
     def test_risk_delta_accepts_close_float_inputs(self) -> None:
         risk_delta = RiskDelta(
             node_ref=make_node_ref(),
