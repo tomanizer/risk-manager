@@ -57,7 +57,7 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
             metadata={"target_path": str(work_item.path)},
         )
 
-    if decision.action.value == "run_coding":
+    if decision.action is NextActionType.RUN_CODING:
         coding_input = CodingRunnerInput(
             work_item_id=work_item.id,
             task_summary=decision.reason,
