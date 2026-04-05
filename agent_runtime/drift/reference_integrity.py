@@ -223,14 +223,18 @@ def _documented_generated_artifact_paths(root: Path) -> frozenset[str]:
         in_output_section = False
         for line in lines:
             stripped = line.strip()
-            if stripped.endswith(":"):
-                in_output_section = stripped == "Recommended local output paths:"
+            if stripped == "Recommended local output paths:":
+                in_output_section = True
+                continue
+            if in_output_section and stripped.endswith(":"):
+                in_output_section = False
                 continue
             if not in_output_section:
                 continue
+            if not stripped:
+                continue
             if not stripped.startswith("- "):
-                if stripped:
-                    in_output_section = False
+                in_output_section = False
                 continue
             for raw_reference in _extract_references(stripped):
                 normalized = _normalize_reference(raw_reference)
