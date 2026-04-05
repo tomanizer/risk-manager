@@ -54,9 +54,11 @@ Repo-visible role-specific instructions live in:
 
 Before any PM, coding, or review pass:
 
-1. `git fetch origin`
-2. `git switch main`
-3. `git pull --ff-only origin main`
+1. git fetch origin
+2. git switch main
+3. git pull --ff-only origin main
+
+For reviews, then checkout the latest PR head. For coding, create a fresh branch from main.
 
 New implementation work must start from the latest `main`.
 
