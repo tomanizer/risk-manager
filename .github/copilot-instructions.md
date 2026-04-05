@@ -3,9 +3,9 @@
 This repository contains a governed architecture canon and an AI-mediated delivery system for a market risk platform.
 
 ## Always preserve these boundaries
-- Deterministic services in `src/modules/` own calculations, rule execution, workflow state, and canonical truth.
+- Deterministic services in `src/modules/` own calculations, rule execution, and canonical business state.
 - Walkers in `src/walkers/` interpret typed outputs and emit structured findings. They do not own raw calculations or approval logic.
-- Orchestrators in `src/orchestrators/` execute workflows, routing, gates, challenge, and handoff. They do not hide canonical calculations.
+- Orchestrators in `src/orchestrators/` own workflow state and execute workflows, routing, gates, challenge, and handoff. They do not hide canonical calculations.
 - UI and presentation code must not recompute business logic or suppress caveats.
 
 ## Review priorities
