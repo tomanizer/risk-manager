@@ -20,6 +20,14 @@ If the task is role-specific, also read:
 - `prompts/agents/review_agent_instruction.md`
 - `prompts/agents/risk_methodology_spec_agent_instruction.md`
 
+If the task is PM-heavy, also read:
+
+- `docs/delivery/01_pm_operating_model.md`
+- `docs/delivery/02_readiness_and_dependency_framework.md`
+- `docs/delivery/03_slice_sizing_and_pr_strategy.md`
+- `docs/delivery/04_review_triage_and_escalation.md`
+- `docs/guides/pm_quality_checklist.md`
+
 If the task is methodology-heavy, also read:
 
 - `docs/methodology/01_var_methodology_overview.md`

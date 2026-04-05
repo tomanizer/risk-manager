@@ -23,3 +23,8 @@ If a local artifact conflicts with a broader artifact, prefer the more local imp
 3. linked ADR
 4. local module or workflow documentation
 5. repo-wide canon
+
+For PM work, also use:
+
+- `docs/delivery/`
+- `docs/guides/pm_quality_checklist.md`

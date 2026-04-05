@@ -4,11 +4,12 @@ This repository uses AI agents for PRD authoring, issue decomposition, implement
 
 ## Architecture hierarchy
 1. `docs/` contains the governed architecture canon.
-2. `docs/prds/` and `docs/prd_exemplars/` define implementation contracts.
-3. `prompts/` contains AI-mediated delivery instructions.
-4. `work_items/` holds bounded execution slices.
-5. `src/` contains implementation.
-6. `tests/` and `fixtures/` verify correctness and replayability.
+2. `docs/delivery/` and `docs/methodology/` contain governed operating and domain canon for specialist agents.
+3. `docs/prds/` and `docs/prd_exemplars/` define implementation contracts and exemplars.
+4. `prompts/` contains AI-mediated delivery instructions.
+5. `work_items/` holds bounded execution slices.
+6. `src/` contains implementation.
+7. `tests/` and `fixtures/` verify correctness and replayability.
 
 ## Agent roles
 
@@ -38,6 +39,8 @@ This repository uses AI agents for PRD authoring, issue decomposition, implement
 ### PM / Coordination Agent
 - manages sequencing, dependency readiness, blockers, and milestone integrity
 - does not redesign architecture during execution
+- prefers the narrowest reviewable slice that preserves momentum
+- routes canon gaps back to spec work rather than asking coding to improvise
 
 ## Role separation rule
 
@@ -55,6 +58,7 @@ Do not collapse planning, coding, review, and merge judgment into one agent pass
 Repo-visible role-specific instructions live in:
 - `prompts/agents/`
 - `docs/guides/overnight_agent_runbook.md`
+- `docs/delivery/`
 - `docs/methodology/`
 
 ## Freshness and branching rule

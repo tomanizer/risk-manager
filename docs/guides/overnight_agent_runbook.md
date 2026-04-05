@@ -48,6 +48,11 @@ Agents must not rely on stale local state when the repository, PRs, or canon doc
 
 Inputs:
 
+- `docs/delivery/01_pm_operating_model.md`
+- `docs/delivery/02_readiness_and_dependency_framework.md`
+- `docs/delivery/03_slice_sizing_and_pr_strategy.md`
+- `docs/delivery/04_review_triage_and_escalation.md`
+- `docs/guides/pm_quality_checklist.md`
 - `work_items/READY_CRITERIA.md`
 - target work item
 - linked PRD
