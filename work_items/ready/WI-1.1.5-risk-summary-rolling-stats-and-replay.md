@@ -40,7 +40,8 @@ Add rolling statistics and replay tests for the Risk Summary Service.
 
 - `src/modules/risk_analytics/`
 - `tests/unit/modules/risk_analytics/`
-- `tests/replay/`
+
+This slice is expected to add replay coverage. Create the replay test directory in-slice when adding those tests rather than treating it as an already-existing target area.
 
 ## Acceptance Criteria
 
