@@ -208,6 +208,12 @@ def _append_missing_reference_finding(
 
 
 def _documented_generated_artifact_paths(root: Path) -> frozenset[str]:
+    """Return documented generated artifact outputs sanctioned by repo policy.
+
+    A path is sanctioned only when it is listed in an artifacts README under the
+    "Recommended local output paths:" section and also matches an ignored
+    `artifacts/` pattern from the repository `.gitignore`.
+    """
     ignored_artifact_patterns = _ignored_generated_artifact_patterns(root)
     artifacts_root = root / "artifacts"
     if not ignored_artifact_patterns or not artifacts_root.is_dir():
@@ -226,9 +232,6 @@ def _documented_generated_artifact_paths(root: Path) -> frozenset[str]:
             if stripped == "Recommended local output paths:":
                 in_output_section = True
                 continue
-            if in_output_section and stripped.endswith(":"):
-                in_output_section = False
-                continue
             if not in_output_section:
                 continue
             if not stripped:
@@ -246,6 +249,7 @@ def _documented_generated_artifact_paths(root: Path) -> frozenset[str]:
 
 
 def _ignored_generated_artifact_patterns(root: Path) -> tuple[str, ...]:
+    """Load `.gitignore` patterns that explicitly cover generated `artifacts/` paths."""
     gitignore_path = root / ".gitignore"
     if not gitignore_path.is_file():
         return ()
