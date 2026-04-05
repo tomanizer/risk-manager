@@ -90,6 +90,9 @@ Inputs:
 - assigned work item
 - linked PRD
 - linked ADRs
+- `docs/engineering/`
+- `docs/guides/coding_quality_checklist.md`
+- `docs/guides/performance_review_checklist.md`
 - local target files
 
 Outputs:

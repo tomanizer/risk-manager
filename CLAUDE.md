@@ -35,6 +35,17 @@ Then read the role-specific instruction that matches the current session:
 - `prompts/agents/review_agent_instruction.md`
 - `prompts/agents/risk_methodology_spec_agent_instruction.md`
 
+If the session is coding-heavy, also read:
+
+- `docs/engineering/01_python_engineering_principles.md`
+- `docs/engineering/02_performance_and_vectorization.md`
+- `docs/engineering/03_data_and_database_performance.md`
+- `docs/engineering/04_library_selection_and_dependency_policy.md`
+- `docs/engineering/05_code_readability_and_documentation.md`
+- `docs/engineering/06_test_strategy_for_deterministic_services.md`
+- `docs/guides/coding_quality_checklist.md`
+- `docs/guides/performance_review_checklist.md`
+
 If the session is PM-heavy, also read:
 
 - `docs/delivery/01_pm_operating_model.md`
