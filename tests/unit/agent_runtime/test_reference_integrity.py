@@ -65,6 +65,49 @@ def test_reference_scan_reports_escaping_paths(tmp_path: Path) -> None:
     assert "escapes the repository root" in finding.message
 
 
+def test_reference_scan_allows_documented_generated_artifact_paths(tmp_path: Path) -> None:
+    artifacts_drift_dir = tmp_path / "artifacts" / "drift"
+    artifacts_drift_dir.mkdir(parents=True)
+    docs_dir = tmp_path / "docs"
+    docs_dir.mkdir()
+    (tmp_path / ".gitignore").write_text("artifacts/drift/*.json\n", encoding="utf-8")
+    (artifacts_drift_dir / "README.md").write_text(
+        "\n".join(
+            [
+                "# Drift Artifacts",
+                "",
+                "Recommended local output paths:",
+                "- `artifacts/drift/reference_integrity.json`",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (docs_dir / "guide.md").write_text("See `docs/missing.md`.\n", encoding="utf-8")
+
+    report = build_reference_scan_report(tmp_path)
+
+    assert report.stats.findings_count == 1
+    assert {finding.reference for finding in report.findings} == {"docs/missing.md"}
+
+
+def test_reference_scan_reports_undocumented_generated_artifact_paths(tmp_path: Path) -> None:
+    artifacts_drift_dir = tmp_path / "artifacts" / "drift"
+    artifacts_drift_dir.mkdir(parents=True)
+    (tmp_path / ".gitignore").write_text("artifacts/drift/*.json\n", encoding="utf-8")
+    (artifacts_drift_dir / "notes.md").write_text(
+        "See `artifacts/drift/reference_integrity.json`.\n",
+        encoding="utf-8",
+    )
+
+    report = build_reference_scan_report(tmp_path)
+
+    assert report.stats.findings_count == 1
+    finding = report.findings[0]
+    assert finding.reference == "artifacts/drift/reference_integrity.json"
+    assert finding.source_file == "artifacts/drift/notes.md"
+
+
 def test_check_references_cli_writes_json_report(tmp_path: Path) -> None:
     docs_dir = tmp_path / "docs"
     docs_dir.mkdir()
