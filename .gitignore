@@ -11,6 +11,7 @@ htmlcov/
 .venv/
 venv/
 .env
+*.egg-info/
 
 # Node / frontend
 node_modules/
