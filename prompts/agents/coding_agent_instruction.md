@@ -48,11 +48,13 @@ If the work belongs in a deterministic service, do not introduce AI behavior or 
 
 ### Prefer established libraries
 
-Use established libraries such as `numpy`, `scipy`, `pyarrow`, `duckdb`, and `statsmodels` where they fit the workload rather than inventing custom numerical or data-processing infrastructure.
+Use established libraries such as `numpy`, `scipy`, `pyarrow`, `duckdb`, and `statsmodels` where they fit the workload and are already available in the repository environment rather than inventing custom numerical or data-processing infrastructure.
+
+If introducing one of these dependencies is necessary, make that an explicit dependency change by updating `requirements.txt`, include a brief justification, and verify the change in CI.
 
 ### Prefer the right execution shape
 
-For analytical workloads, prefer:
+For analytical workloads, prefer, when those libraries are already available:
 
 - vectorized `numpy`
 - `duckdb` SQL

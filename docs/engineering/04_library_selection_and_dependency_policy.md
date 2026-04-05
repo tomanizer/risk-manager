@@ -15,7 +15,9 @@ Where the workload fits, prefer established, widely used libraries such as:
 - `statsmodels`
 - `pandas` for interface or glue work, while preferring `duckdb` and `pyarrow` for hot analytical paths
 
-Use them directly and idiomatically where possible.
+Use them directly and idiomatically where possible when they are already approved and available in the repository environment.
+
+If one of these libraries is needed but not yet available, make that an explicit dependency change by updating `requirements.txt`, give a short justification, and verify the addition in CI.
 
 ## Reinvention rule
 
@@ -76,4 +78,4 @@ Prefer a small number of strong dependencies over:
 - local mini-frameworks
 - premature generalization layers
 
-Every new dependency should have a concrete reason.
+Every new dependency should have a concrete reason, a corresponding `requirements.txt` update, and CI validation.
