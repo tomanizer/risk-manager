@@ -223,7 +223,7 @@ class FixtureLoaderTestCase(unittest.TestCase):
         validator = Draft202012Validator(schema, format_checker=FormatChecker())
         errors = sorted(validator.iter_errors(fixture_payload), key=lambda error: list(error.path))
 
-        self.assertEqual([], errors)
+        self.assertEqual([], errors, f"Schema validation failed: {errors}")
 
 
 if __name__ == "__main__":
