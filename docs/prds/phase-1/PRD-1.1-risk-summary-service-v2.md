@@ -153,12 +153,15 @@ These apply to `get_risk_summary`, `get_risk_delta`, and `get_risk_change_profil
 
 ### Optional inputs for as-of-date retrieval
 
+The following optional inputs apply to `get_risk_summary`, `get_risk_delta`, and `get_risk_change_profile`:
+
 - `compare_to_date`
-- `lookback_window`
-- `require_complete`
 - `snapshot_id`
 
-These apply to `get_risk_summary`, `get_risk_delta`, and `get_risk_change_profile`.
+The following optional inputs apply to `get_risk_summary` and `get_risk_change_profile` only. `get_risk_delta` does not accept these inputs:
+
+- `lookback_window`
+- `require_complete`
 
 `get_risk_history` uses the dedicated request shape defined in the API surface section below.
 
