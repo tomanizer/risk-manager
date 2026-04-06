@@ -47,7 +47,6 @@ def traced(
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             if not _OTEL_AVAILABLE:
                 return fn(*args, **kwargs)
-            from opentelemetry import trace
             from opentelemetry.trace import Status, StatusCode
 
             tracer = _get_tracer(component)

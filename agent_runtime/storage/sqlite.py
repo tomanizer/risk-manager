@@ -950,10 +950,11 @@ def load_telemetry_events(
         if row["payload_json"]:
             try:
                 raw = json.loads(row["payload_json"])
-                if isinstance(raw, dict):
-                    payload = {str(k): v for k, v in raw.items()}
-            except json.JSONDecodeError:
-                pass
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"Invalid JSON in telemetry payload for event {row['id']}: {exc}") from exc
+            if not isinstance(raw, dict):
+                raise ValueError(f"Telemetry payload must be a dict, got {type(raw).__name__}")
+            payload = {str(k): v for k, v in raw.items()}
         results.append(
             TelemetryEventRecord(
                 id=int(row["id"]),

@@ -106,10 +106,24 @@ if _LANGGRAPH_AVAILABLE:
             if row is None:
                 return None
 
-            payload = json.loads(str(row["details_json"]))
-            checkpoint: Checkpoint = payload["checkpoint"]
-            metadata: CheckpointMetadata = payload.get("metadata", {})
-            parent_config: RunnableConfig | None = payload.get("parent_config")
+            try:
+                payload = json.loads(str(row["details_json"]))
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"Malformed checkpoint JSON in row {row['id']}: {exc}") from exc
+            if not isinstance(payload, dict):
+                raise ValueError(f"Expected dict for checkpoint payload, got {type(payload).__name__}")
+            checkpoint = payload.get("checkpoint")
+            if not isinstance(checkpoint, dict):
+                raise ValueError("Checkpoint payload missing or invalid 'checkpoint' dictionary")
+            metadata = payload.get("metadata", {})
+            if not isinstance(metadata, dict):
+                raise ValueError("Checkpoint 'metadata' must be a dictionary")
+            parent_config = payload.get("parent_config")
+            if parent_config is not None and not isinstance(parent_config, dict):
+                raise ValueError("Checkpoint 'parent_config' must be a dictionary or None")
+            checkpoint_val: Checkpoint = checkpoint
+            metadata_val: CheckpointMetadata = metadata
+            parent_val: RunnableConfig | None = parent_config
             this_config: RunnableConfig = {
                 "configurable": {
                     "thread_id": thread_id,
@@ -118,9 +132,9 @@ if _LANGGRAPH_AVAILABLE:
             }
             return CheckpointTuple(
                 config=this_config,
-                checkpoint=checkpoint,
-                metadata=metadata,
-                parent_config=parent_config,
+                checkpoint=checkpoint_val,
+                metadata=metadata_val,
+                parent_config=parent_val,
             )
 
         def list(
@@ -146,10 +160,24 @@ if _LANGGRAPH_AVAILABLE:
                 conn.row_factory = sqlite3.Row
                 rows = conn.execute(sql, params).fetchall()
             for row in rows:
-                payload = json.loads(str(row["details_json"]))
-                checkpoint: Checkpoint = payload["checkpoint"]
-                metadata: CheckpointMetadata = payload.get("metadata", {})
-                parent_config: RunnableConfig | None = payload.get("parent_config")
+                try:
+                    payload = json.loads(str(row["details_json"]))
+                except json.JSONDecodeError as exc:
+                    raise ValueError(f"Malformed checkpoint JSON in row {row['id']}: {exc}") from exc
+                if not isinstance(payload, dict):
+                    raise ValueError(f"Expected dict for checkpoint payload, got {type(payload).__name__}")
+                checkpoint = payload.get("checkpoint")
+                if not isinstance(checkpoint, dict):
+                    raise ValueError(f"Invalid or missing 'checkpoint' dictionary in row {row['id']}")
+                metadata = payload.get("metadata", {})
+                if not isinstance(metadata, dict):
+                    raise ValueError(f"'metadata' must be a dictionary in row {row['id']}")
+                parent_config = payload.get("parent_config")
+                if parent_config is not None and not isinstance(parent_config, dict):
+                    raise ValueError(f"'parent_config' must be a dictionary or None in row {row['id']}")
+                checkpoint_val: Checkpoint = checkpoint
+                metadata_val: CheckpointMetadata = metadata
+                parent_val: RunnableConfig | None = parent_config
                 this_config: RunnableConfig = {
                     "configurable": {
                         "thread_id": thread_id,
@@ -158,9 +186,9 @@ if _LANGGRAPH_AVAILABLE:
                 }
                 yield CheckpointTuple(
                     config=this_config,
-                    checkpoint=checkpoint,
-                    metadata=metadata,
-                    parent_config=parent_config,
+                    checkpoint=checkpoint_val,
+                    metadata=metadata_val,
+                    parent_config=parent_val,
                 )
 
         def put(

@@ -59,25 +59,27 @@ def _dispatch_with_timeout(execution: RunnerExecution, defaults: RuntimeDefaults
     record it and apply retry logic without crashing.
     """
     timeout_seconds = _runner_timeout_seconds(execution.runner_name, defaults)
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(dispatch_runner_execution, execution)
-        try:
-            return future.result(timeout=timeout_seconds)
-        except concurrent.futures.TimeoutError:
-            logger.error(
-                "Runner %s for %s timed out after %ds",
-                execution.runner_name.value,
-                execution.work_item_id,
-                timeout_seconds,
-            )
-            return RunnerResult(
-                runner_name=execution.runner_name,
-                work_item_id=execution.work_item_id,
-                status=RunnerDispatchStatus.TIMED_OUT,
-                summary=f"Runner {execution.runner_name.value} timed out after {timeout_seconds}s.",
-                prompt=execution.prompt,
-                details={**execution.metadata, "timeout_seconds": str(timeout_seconds)},
-            )
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(dispatch_runner_execution, execution)
+    try:
+        return future.result(timeout=timeout_seconds)
+    except concurrent.futures.TimeoutError:
+        logger.error(
+            "Runner %s for %s timed out after %ds",
+            execution.runner_name.value,
+            execution.work_item_id,
+            timeout_seconds,
+        )
+        return RunnerResult(
+            runner_name=execution.runner_name,
+            work_item_id=execution.work_item_id,
+            status=RunnerDispatchStatus.TIMED_OUT,
+            summary=f"Runner {execution.runner_name.value} timed out after {timeout_seconds}s.",
+            prompt=execution.prompt,
+            details={**execution.metadata, "timeout_seconds": str(timeout_seconds)},
+        )
+    finally:
+        executor.shutdown(wait=False)
 
 
 # ---------------------------------------------------------------------------
