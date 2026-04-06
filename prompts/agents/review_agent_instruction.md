@@ -61,3 +61,39 @@ Return:
 3. missing tests
 4. scope creep detected
 5. required changes before merge
+
+## Handoff output
+
+After completing your review, print a single copy-paste-ready block for the operator. The block must contain the header line and the complete content together — do not split them into separate blocks.
+
+### If PASS
+
+Print one block:
+
+```text
+Ready to merge — action for human:
+
+PR: [PR URL]
+Verified: [one-line summary of what was checked and passed]
+Required changes: none
+```
+
+### If CHANGES_REQUESTED
+
+Fill `prompts/agents/invocation_templates/coding_invocation.md`. For scope and stop conditions, use the original WI values plus the required changes from your review as an explicit additional constraint block — not buried in prose. Print one block:
+
+```text
+Paste this into a FRESH Coding Agent session (new chat / new Codex session):
+
+[complete filled coding_invocation.md content with required changes added as an explicit constraint block]
+```
+
+### If BLOCKED (systemic problem requiring PM or architecture input)
+
+Fill `prompts/agents/invocation_templates/pm_invocation.md`. Set context to the review finding that cannot be resolved by a coding fix alone. Print one block:
+
+```text
+Paste this into a FRESH PM Agent session (new chat / new Codex session):
+
+[complete filled pm_invocation.md content with the blocking finding as context]
+```

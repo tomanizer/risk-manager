@@ -129,3 +129,40 @@ A well-formed PRD or specification should contain:
 8. open questions (if any remain)
 9. methodology caveats (when applicable)
 10. reviewer guidance
+
+## Handoff output
+
+After completing the PRD or specification, print a single copy-paste-ready block for the operator. The block must contain the header line and the complete filled prompt together — do not split them into separate blocks.
+
+### If the PRD is new and needs decomposition into work items
+
+Fill `prompts/agents/invocation_templates/issue_planner_invocation.md`. Set context to: the PRD just written, what capability it covers, and any sequencing constraints from the issue decomposition guidance section. Print one block:
+
+```text
+Paste this into a FRESH Issue Planner Agent session (new chat / new Codex session):
+
+[complete filled issue_planner_invocation.md content with all placeholders replaced]
+```
+
+### If the PRD fills a gap in an existing WI (blocking WI now unblocked)
+
+Fill `prompts/agents/invocation_templates/pm_invocation.md`. Set context to: which WI was blocked, which PRD gap was just resolved, and the task "Reassess whether <WI_ID> is now coding-ready." Print one block:
+
+```text
+Paste this into a FRESH PM Agent session (new chat / new Codex session):
+
+[complete filled pm_invocation.md content with all placeholders replaced]
+```
+
+### If open questions remain that require human or architecture input
+
+Print one block:
+
+```text
+BLOCKED — open questions require resolution before coding:
+
+[For each open question:]
+Question: [question]
+Owner: [human / PM / ADR]
+Impact if unresolved: [which downstream WIs are blocked and why]
+```
