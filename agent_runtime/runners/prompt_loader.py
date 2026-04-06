@@ -39,4 +39,8 @@ def load_system_prompt(runner_name: RunnerName, repo_root: Path) -> str:
         _log.warning("Governed prompt file missing: %s", instruction_path)
         return f"You are the {runner_name.value} agent."
 
-    return _read_file(instruction_path)
+    try:
+        return _read_file(instruction_path)
+    except (OSError, UnicodeDecodeError) as exc:
+        _log.warning("Could not read governed prompt file %s: %s", instruction_path, exc)
+        return f"You are the {runner_name.value} agent."
