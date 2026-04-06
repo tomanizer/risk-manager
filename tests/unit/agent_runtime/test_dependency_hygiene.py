@@ -106,6 +106,43 @@ def test_dependency_hygiene_reports_stale_requirements_guidance(tmp_path: Path) 
     assert finding.source_path == "docs/guide.md:1"
 
 
+def test_dependency_hygiene_skips_stale_guidance_inside_fenced_code_blocks(tmp_path: Path) -> None:
+    _write_pyproject(tmp_path, project_dependencies=["pydantic>=2.0,<3.0"])
+    doc_path = tmp_path / "docs" / "guide.md"
+    doc_path.parent.mkdir(parents=True)
+    doc_path.write_text(
+        "\n".join(
+            [
+                "Normal prose line.",
+                "```",
+                "If you add a dependency, update requirements.txt.",
+                "```",
+                "After the fence.",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = build_dependency_hygiene_report(tmp_path)
+
+    assert report.stats.findings_count == 0
+
+
+def test_dependency_hygiene_skips_stale_guidance_with_drift_ignore(tmp_path: Path) -> None:
+    _write_pyproject(tmp_path, project_dependencies=["pydantic>=2.0,<3.0"])
+    doc_path = tmp_path / "docs" / "guide.md"
+    doc_path.parent.mkdir(parents=True)
+    doc_path.write_text(
+        "If you add a dependency, update requirements.txt. <!-- drift-ignore -->\n",
+        encoding="utf-8",
+    )
+
+    report = build_dependency_hygiene_report(tmp_path)
+
+    assert report.stats.findings_count == 0
+
+
 def test_dependency_hygiene_skips_invalid_python_files(tmp_path: Path) -> None:
     _write_pyproject(tmp_path, project_dependencies=["pydantic>=2.0,<3.0"])
     runtime_file = tmp_path / "src" / "broken.py"

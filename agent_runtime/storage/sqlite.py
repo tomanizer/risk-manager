@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS workflow_runs (
     result_json TEXT NOT NULL DEFAULT '{}',
     outcome_details_json TEXT NOT NULL DEFAULT '{}',
     completed_at TEXT,
+    retry_count INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -55,9 +56,22 @@ CREATE TABLE IF NOT EXISTS worktree_leases (
     released_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS workflow_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    work_item_id TEXT NOT NULL,
+    action TEXT NOT NULL,
+    runner_name TEXT,
+    status TEXT,
+    details_json TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE UNIQUE INDEX IF NOT EXISTS idx_worktree_leases_active_runner
 ON worktree_leases(work_item_id, runner_name)
 WHERE status = 'active';
+
+CREATE INDEX IF NOT EXISTS idx_workflow_events_work_item
+ON workflow_events(work_item_id, created_at);
 
 CREATE TABLE IF NOT EXISTS supervisor_state (
     singleton_id INTEGER PRIMARY KEY CHECK(singleton_id = 1),
@@ -90,6 +104,7 @@ EXPECTED_WORKFLOW_RUN_COLUMNS = (
     "result_json",
     "outcome_details_json",
     "completed_at",
+    "retry_count",
     "updated_at",
 )
 
@@ -103,6 +118,16 @@ EXPECTED_WORKTREE_LEASE_COLUMNS = (
     "status",
     "created_at",
     "released_at",
+)
+
+EXPECTED_WORKFLOW_EVENT_COLUMNS = (
+    "id",
+    "work_item_id",
+    "action",
+    "runner_name",
+    "status",
+    "details_json",
+    "created_at",
 )
 
 EXPECTED_SUPERVISOR_STATE_COLUMNS = (
@@ -129,6 +154,7 @@ _DEFAULT_COLUMN_DEFINITIONS = {
     "details_json": "TEXT NOT NULL DEFAULT '{}'",
     "result_json": "TEXT NOT NULL DEFAULT '{}'",
     "outcome_details_json": "TEXT NOT NULL DEFAULT '{}'",
+    "retry_count": "INTEGER NOT NULL DEFAULT 0",
     "completed_at": "TEXT",
     "updated_at": "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
 }
@@ -150,6 +176,7 @@ class WorkflowRunRecord:
     details: dict[str, str] | None = None
     result: dict[str, object] = field(default_factory=dict)
     outcome_details: dict[str, object] = field(default_factory=dict)
+    retry_count: int = 0
     completed_at: str | None = None
     updated_at: str | None = None
 
@@ -179,6 +206,28 @@ class SupervisorStateRecord:
     last_reason: str | None = None
     active_run_id: str | None = None
     updated_at: str | None = None
+
+
+@dataclass(frozen=True)
+class WorkflowEventRecord:
+    work_item_id: str
+    action: str
+    runner_name: str | None = None
+    status: str | None = None
+    details: dict[str, str] | None = None
+    created_at: str | None = None
+    id: int | None = None
+
+
+def _verify_workflow_events_schema(connection: sqlite3.Connection) -> None:
+    rows = connection.execute("PRAGMA table_info(workflow_events)").fetchall()
+    if not rows:
+        raise RuntimeError("database initialization failed: workflow_events table was not created")
+
+    actual_columns = {row[1] for row in rows}
+    missing_columns = [column for column in EXPECTED_WORKFLOW_EVENT_COLUMNS if column not in actual_columns]
+    if missing_columns:
+        raise RuntimeError("database initialization failed: workflow_events table is missing columns: " + ", ".join(missing_columns))
 
 
 def _verify_workflow_runs_schema(connection: sqlite3.Connection) -> None:
@@ -233,6 +282,7 @@ def initialize_database(db_path: Path) -> None:
         _ensure_expected_columns(connection)
         _verify_workflow_runs_schema(connection)
         _verify_worktree_leases_schema(connection)
+        _verify_workflow_events_schema(connection)
         _verify_supervisor_state_schema(connection)
         connection.commit()
 
@@ -257,10 +307,11 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
                 details_json,
                 result_json,
                 outcome_details_json,
+                retry_count,
                 completed_at,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(work_item_id) DO UPDATE SET
                 run_id = excluded.run_id,
                 branch_name = excluded.branch_name,
@@ -275,6 +326,7 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
                 details_json = excluded.details_json,
                 result_json = excluded.result_json,
                 outcome_details_json = excluded.outcome_details_json,
+                retry_count = excluded.retry_count,
                 completed_at = excluded.completed_at,
                 updated_at = CURRENT_TIMESTAMP
             """,
@@ -293,6 +345,7 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
                 json.dumps(record.details or {}, sort_keys=True),
                 json.dumps(record.result, sort_keys=True),
                 json.dumps(record.outcome_details, sort_keys=True),
+                record.retry_count,
                 record.completed_at,
             ),
         )
@@ -320,6 +373,7 @@ def load_workflow_run(db_path: Path, work_item_id: str) -> WorkflowRunRecord | N
                 details_json,
                 result_json,
                 outcome_details_json,
+                retry_count,
                 completed_at,
                 updated_at
             FROM workflow_runs
@@ -352,6 +406,7 @@ def load_workflow_run_by_run_id(db_path: Path, run_id: str) -> WorkflowRunRecord
                 details_json,
                 result_json,
                 outcome_details_json,
+                retry_count,
                 completed_at,
                 updated_at
             FROM workflow_runs
@@ -384,6 +439,7 @@ def load_workflow_runs(db_path: Path) -> tuple[WorkflowRunRecord, ...]:
                 details_json,
                 result_json,
                 outcome_details_json,
+                retry_count,
                 completed_at,
                 updated_at
             FROM workflow_runs
@@ -682,6 +738,7 @@ def _row_to_workflow_run(row: sqlite3.Row | None) -> WorkflowRunRecord | None:
         details={str(key): str(value) for key, value in details.items()},
         result=result,
         outcome_details=outcome_details,
+        retry_count=int(row["retry_count"]) if row["retry_count"] is not None else 0,
         completed_at=str(row["completed_at"]) if row["completed_at"] is not None else None,
         updated_at=str(row["updated_at"]) if row["updated_at"] is not None else None,
     )
@@ -789,3 +846,111 @@ def load_agent_outcome_scores(
         )
         for row in rows
     ]
+
+
+def mark_workflow_run_running(db_path: Path, work_item_id: str, retry_count: int = 0) -> None:
+    """Write runner_status='running' immediately before blocking dispatch.
+
+    Creates the row if it does not yet exist (first-ever run for this work item)
+    so that a crashed supervisor can always detect orphaned in-flight runs by
+    looking for rows where runner_status='running' and updated_at is stale.
+    """
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO workflow_runs (work_item_id, status, runner_status, retry_count, updated_at)
+            VALUES (?, 'ready', 'running', ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(work_item_id) DO UPDATE SET
+                runner_status = 'running',
+                retry_count = excluded.retry_count,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (work_item_id, retry_count),
+        )
+        connection.commit()
+
+
+def append_workflow_event(db_path: Path, event: WorkflowEventRecord) -> int:
+    """Append an immutable event to the workflow event log. Returns the row id."""
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO workflow_events (
+                work_item_id,
+                action,
+                runner_name,
+                status,
+                details_json,
+                created_at
+            )
+            VALUES (?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))
+            """,
+            (
+                event.work_item_id,
+                event.action,
+                event.runner_name,
+                event.status,
+                json.dumps(event.details or {}, sort_keys=True),
+                event.created_at,
+            ),
+        )
+        connection.commit()
+        return cursor.lastrowid or 0
+
+
+def load_workflow_events(
+    db_path: Path,
+    work_item_id: str,
+    *,
+    limit: int = 100,
+) -> tuple[WorkflowEventRecord, ...]:
+    """Load the most recent events for a work item, newest first."""
+    if limit < 1:
+        raise ValueError(f"limit must be positive, got {limit}")
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as connection:
+        connection.row_factory = sqlite3.Row
+        rows = connection.execute(
+            """
+            SELECT
+                id,
+                work_item_id,
+                action,
+                runner_name,
+                status,
+                details_json,
+                created_at
+            FROM workflow_events
+            WHERE work_item_id = ?
+            ORDER BY created_at DESC, id DESC
+            LIMIT ?
+            """,
+            (work_item_id, limit),
+        ).fetchall()
+
+    events: list[WorkflowEventRecord] = []
+    for row in rows:
+        details_payload: dict[str, str] = {}
+        details_json = row["details_json"]
+        if details_json:
+            try:
+                raw = json.loads(details_json)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"Invalid JSON in details_json for event {row['id']}: {exc}") from exc
+            if not isinstance(raw, dict):
+                raise ValueError(f"Expected dictionary for details_json, got {type(raw).__name__}")
+            details_payload = {str(k): str(v) for k, v in raw.items()}
+        events.append(
+            WorkflowEventRecord(
+                id=int(row["id"]),
+                work_item_id=str(row["work_item_id"]),
+                action=str(row["action"]),
+                runner_name=str(row["runner_name"]) if row["runner_name"] is not None else None,
+                status=str(row["status"]) if row["status"] is not None else None,
+                details=details_payload,
+                created_at=str(row["created_at"]) if row["created_at"] is not None else None,
+            )
+        )
+    return tuple(events)

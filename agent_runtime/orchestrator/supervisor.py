@@ -22,7 +22,11 @@ class LoopControl:
     exit_code: int = 0
 
 
-def classify_loop_payload(payload: Mapping[str, object], poll_interval_seconds: int) -> LoopControl:
+def classify_loop_payload(
+    payload: Mapping[str, object],
+    poll_interval_seconds: int,
+    max_retries: int = 2,
+) -> LoopControl:
     action = str(payload.get("action") or "")
     runner_result = payload.get("runner_result")
     if action in {"human_merge", "human_update_repo"}:
@@ -33,11 +37,16 @@ def classify_loop_payload(payload: Mapping[str, object], poll_interval_seconds: 
         return LoopControl(continue_polling=False, exit_code=0)
 
     status = str(runner_result.get("status") or "")
+    raw_retry = payload.get("retry_count")
+    retry_count = int(raw_retry) if isinstance(raw_retry, int) else 0
+
     if status == "completed":
         return LoopControl(continue_polling=True, sleep_seconds=0, exit_code=0)
     if status == "prepared":
         return LoopControl(continue_polling=False, exit_code=0)
-    if status == "failed":
+    if status in {"failed", "timed_out"}:
+        if retry_count < max_retries:
+            return LoopControl(continue_polling=True, sleep_seconds=0, exit_code=0)
         return LoopControl(continue_polling=False, exit_code=1)
     return LoopControl(continue_polling=False, exit_code=0)
 

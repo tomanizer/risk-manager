@@ -23,7 +23,7 @@ _ALLOWED_REVIEW_DECISIONS = {
 
 
 def get_review_backend_name() -> str:
-    return os.getenv(REVIEW_BACKEND_ENV, REVIEW_BACKEND_PREPARED).strip().lower() or REVIEW_BACKEND_PREPARED
+    return os.getenv(REVIEW_BACKEND_ENV, REVIEW_BACKEND_CODEX_EXEC).strip().lower() or REVIEW_BACKEND_CODEX_EXEC
 
 
 def dispatch_prepared_review_execution(execution: RunnerExecution) -> RunnerResult:

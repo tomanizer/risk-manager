@@ -1,15 +1,19 @@
-#!/usr/bin/env python3
-"""Auto-fill an agent invocation template from a work item file.
+"""Template auto-fill CLI for agent invocation prompts.
 
 Usage:
     python scripts/invoke.py --role coding --work-item WI-1.1.4
-    python scripts/invoke.py --role pm --work-item WI-1.1.4
-    python scripts/invoke.py --role review --work-item WI-1.1.4 --pr-number 99 --branch fix/WI-1.1.4
+    python scripts/invoke.py --role review --work-item WI-1.1.4 --pr 42 --branch codex/wi-1-1-4
+    python scripts/invoke.py --role pm --work-item WI-1.1.4 --context "WI-1.1.6 merged."
+    python scripts/invoke.py --role drift
+    python scripts/invoke.py --list-roles
+    python scripts/invoke.py --list-work-items
 
-The script locates the work item, extracts metadata from its markdown
-sections, resolves linked PRDs and ADRs, and fills the template for the
-requested role.  Fields that require live context (CONTEXT, TASK, etc.)
-are left as labelled prompts so the operator can complete them.
+Reads the matching invocation template from prompts/agents/invocation_templates/,
+resolves <PLACEHOLDER> fields from the named work item and its linked PRD / ADRs,
+and writes the filled prompt to stdout (or --output <file>).
+
+Fields that require operator context (free-text CONTEXT, TASK, etc.) are left as
+bracketed reminders so the operator can complete them before pasting.
 """
 
 from __future__ import annotations
@@ -18,405 +22,316 @@ import argparse
 import re
 import sys
 from pathlib import Path
-
+from typing import Optional
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
-ROLE_ALIASES: dict[str, str] = {
-    "pm": "pm",
-    "prd-spec": "prd_spec",
-    "prd_spec": "prd_spec",
-    "spec": "prd_spec",
-    "issue-planner": "issue_planner",
-    "issue_planner": "issue_planner",
-    "coding": "coding",
-    "review": "review",
-    "drift-monitor": "drift_monitor",
-    "drift_monitor": "drift_monitor",
-    "drift": "drift_monitor",
-}
+REPO_ROOT = Path(__file__).resolve().parents[1]
+TEMPLATES_DIR = REPO_ROOT / "prompts" / "agents" / "invocation_templates"
+WORK_ITEMS_DIR = REPO_ROOT / "work_items"
+DOCS_DIR = REPO_ROOT / "docs"
+ADR_DIR = DOCS_DIR / "adr"
+PRD_DIR = DOCS_DIR / "prds"
 
-TEMPLATE_FILENAMES: dict[str, str] = {
+ROLE_TEMPLATE_MAP: dict[str, str] = {
     "pm": "pm_invocation.md",
-    "prd_spec": "prd_spec_invocation.md",
-    "issue_planner": "issue_planner_invocation.md",
+    "spec": "prd_spec_invocation.md",
+    "prd": "prd_spec_invocation.md",
+    "issue-planner": "issue_planner_invocation.md",
     "coding": "coding_invocation.md",
     "review": "review_invocation.md",
-    "drift_monitor": "drift_monitor_invocation.md",
+    "drift": "drift_monitor_invocation.md",
 }
 
-STAGE_DIRS = ("ready", "in_progress", "blocked", "done")
+# Section heading patterns used to extract WI sections
+_SECTION_RE = re.compile(r"^##\s+(.+)$", re.MULTILINE)
 
 
 # ---------------------------------------------------------------------------
-# Work item parsing
+# Work-item discovery
 # ---------------------------------------------------------------------------
 
-def _normalize_heading(line: str) -> str:
-    return line.strip().lstrip("#").strip()
+
+def find_work_item_file(work_item_id: str) -> Optional[Path]:
+    """Search all subdirectories of work_items/ for a file matching the WI id."""
+    pattern = f"*{work_item_id}*"
+    matches = sorted(WORK_ITEMS_DIR.rglob(pattern))
+    # Prefer non-archived/done matches when multiple exist; sort for determinism
+    priority = []
+    rest = []
+    for m in matches:
+        if m.is_file() and m.suffix == ".md":
+            if "archived" in m.parts or "done" in m.parts:
+                rest.append(m)
+            else:
+                priority.append(m)
+    candidates = priority or rest
+    return candidates[0] if candidates else None
 
 
-def _extract_section_lines(text: str, heading: str) -> list[str]:
-    lines = text.splitlines()
-    in_section = False
-    collected: list[str] = []
-    for line in lines:
-        if _normalize_heading(line) == _normalize_heading(heading):
-            in_section = True
-            continue
-        if in_section and line.strip().startswith("#"):
-            break
-        if in_section:
-            collected.append(line)
-    return collected
+def list_work_items() -> list[Path]:
+    """Return all WI-*.md files across work_items/ subdirectories."""
+    return sorted(WORK_ITEMS_DIR.rglob("WI-*.md"))
 
 
-def _extract_section_text(text: str, heading: str) -> str:
-    return "\n".join(_extract_section_lines(text, heading)).strip()
+# ---------------------------------------------------------------------------
+# Section extraction from markdown
+# ---------------------------------------------------------------------------
 
 
-def _extract_bullet_list(text: str, heading: str) -> list[str]:
-    items: list[str] = []
-    for line in _extract_section_lines(text, heading):
-        stripped = line.strip()
-        if stripped.startswith("- "):
-            items.append(stripped[2:].strip())
-    return items
+def _split_sections(text: str) -> dict[str, str]:
+    """Return a dict mapping lowercased section heading → section body text."""
+    headings = [(m.start(), m.group(1).strip()) for m in _SECTION_RE.finditer(text)]
+    sections: dict[str, str] = {}
+    for i, (start, heading) in enumerate(headings):
+        end = headings[i + 1][0] if i + 1 < len(headings) else len(text)
+        # find() avoids ValueError when the heading is the last line of the file
+        nl = text.find("\n", start)
+        body_start = nl + 1 if nl != -1 else len(text)
+        sections[heading.lower()] = text[body_start:end].strip()
+    return sections
 
 
-def _extract_numbered_list(text: str, heading: str) -> list[str]:
-    items: list[str] = []
-    pattern = re.compile(r"^\d+\.\s+(.+)")
-    for line in _extract_section_lines(text, heading):
-        match = pattern.match(line.strip())
-        if match:
-            items.append(match.group(1).strip())
-    return items
+def _extract_section(sections: dict[str, str], *keys: str) -> str:
+    """Return the first matching section body, or empty string.
+
+    Uses exact heading lookup so that e.g. 'scope' does not match 'out of scope'.
+    """
+    for k in keys:
+        body = sections.get(k.lower())
+        if body is not None:
+            return body
+    return ""
 
 
-def _extract_linked_prd(text: str) -> str | None:
-    for line in _extract_section_lines(text, "## Linked PRD"):
-        stripped = line.strip()
-        if stripped:
-            return stripped
+# ---------------------------------------------------------------------------
+# PRD / ADR path resolution
+# ---------------------------------------------------------------------------
+
+
+def _find_prd(prd_ref: str) -> Optional[Path]:
+    """Resolve a PRD reference like 'PRD-1.1-v2' to a file path.
+
+    Handles both compact refs (PRD-1.1-v2) and descriptive filenames
+    (PRD-1.1-risk-summary-service-v2.md) by trying progressively broader patterns.
+    """
+    if not prd_ref:
+        return None
+    # Try verbatim substring match first (fastest, works for exact filenames)
+    candidates = sorted(DOCS_DIR.rglob(f"*{prd_ref}*.md"))
+    if candidates:
+        return candidates[0]
+    # For refs like 'PRD-X.Y-vN', the actual filename may include a descriptive slug
+    # between the base number and version (e.g. PRD-1.1-risk-summary-service-v2.md).
+    m = re.match(r"^(PRD-[\d.]+)(?:-.+?)?(?:-v(\d+))?$", prd_ref, re.IGNORECASE)
+    if m:
+        base_part = m.group(1)  # e.g. "PRD-1.1"
+        ver_part = m.group(2)  # e.g. "2"
+        if ver_part:
+            candidates = sorted(DOCS_DIR.rglob(f"*{base_part}*-v{ver_part}*.md"))
+            if candidates:
+                return candidates[0]
+        # Final fallback: match by base number only (picks latest on sorted order)
+        candidates = sorted(DOCS_DIR.rglob(f"*{base_part}*.md"))
+        if candidates:
+            return candidates[0]
     return None
 
 
-def _extract_dependencies(text: str) -> list[str]:
-    return _extract_bullet_list(text, "## Dependencies")
+def _find_adr(adr_ref: str) -> Optional[Path]:
+    """Resolve an ADR reference like 'ADR-001' to a file path."""
+    candidates = list(ADR_DIR.rglob(f"*{adr_ref}*.md"))
+    return candidates[0] if candidates else None
 
 
-def _extract_title(text: str, fallback: str) -> str:
-    for line in text.splitlines():
-        stripped = line.strip()
-        if stripped.startswith("# "):
-            return stripped[2:].strip()
-    return fallback
+def _repo_relative(path: Path) -> str:
+    try:
+        return str(path.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(path)
 
 
-class WorkItemData:
-    def __init__(self, path: Path, text: str) -> None:
+# ---------------------------------------------------------------------------
+# Work-item parsing
+# ---------------------------------------------------------------------------
+
+
+class WorkItemInfo:
+    """Parsed representation of a WI-*.md file."""
+
+    def __init__(self, path: Path) -> None:
         self.path = path
-        self.id = path.stem
-        self.title = _extract_title(text, path.stem)
-        self.linked_prd = _extract_linked_prd(text)
-        self.dependencies = _extract_dependencies(text)
-        self.scope_lines = _extract_bullet_list(text, "## Scope")
-        self.out_of_scope_lines = _extract_bullet_list(text, "## Out of scope")
-        self.target_area_lines = _extract_bullet_list(text, "## Target Area")
-        self.acceptance_criteria = _extract_bullet_list(text, "## Acceptance Criteria")
-        self.acceptance_numbered = _extract_numbered_list(text, "## Acceptance Criteria")
-        self.stop_conditions = _extract_bullet_list(text, "## Stop Conditions")
-        self.review_focus_lines = _extract_bullet_list(text, "## Review Focus")
-        self.suggested_agent = _extract_section_text(text, "## Suggested Agent")
+        self.raw = path.read_text(encoding="utf-8")
+        self._sections = _split_sections(self.raw)
 
-    @property
-    def adr_dependencies(self) -> list[str]:
-        return [d for d in self.dependencies if d.upper().startswith("ADR")]
+        # Work item ID from the H1 heading; re.search + MULTILINE handles files with front-matter
+        m = re.search(r"^#\s+(WI-\S+)", self.raw, re.MULTILINE)
+        self.wi_id: str = m.group(1) if m else path.stem
 
-    @property
-    def wi_dependencies(self) -> list[str]:
-        return [d for d in self.dependencies if d.upper().startswith("WI-")]
+        self.linked_prd_raw: str = _extract_section(self._sections, "linked prd")
+        self.purpose: str = _extract_section(self._sections, "purpose")
+        self.scope: str = _extract_section(self._sections, "scope")
+        self.out_of_scope: str = _extract_section(self._sections, "out of scope")
+        self.dependencies_raw: str = _extract_section(self._sections, "dependencies")
+        self.target_area: str = _extract_section(self._sections, "target area")
+        self.acceptance_criteria: str = _extract_section(self._sections, "acceptance criteria")
+        self.stop_conditions: str = _extract_section(self._sections, "stop conditions")
+        self.review_focus: str = _extract_section(self._sections, "review focus")
+        self.suggested_agent: str = _extract_section(self._sections, "suggested agent")
 
+        # Resolve linked PRD path
+        prd_id = self.linked_prd_raw.strip().splitlines()[0].strip() if self.linked_prd_raw else ""
+        self.prd_path: Optional[Path] = _find_prd(prd_id)
 
-# ---------------------------------------------------------------------------
-# Work item discovery
-# ---------------------------------------------------------------------------
+        # Resolve ADR paths from dependencies section
+        adr_refs = re.findall(r"ADR-\d+", self.dependencies_raw)
+        self.adr_paths: list[Path] = []
+        for ref in dict.fromkeys(adr_refs):  # deduplicate, preserve order
+            p = _find_adr(ref)
+            if p:
+                self.adr_paths.append(p)
 
-def find_repo_root(start: Path) -> Path:
-    candidate = start if start.is_dir() else start.parent
-    for path in (candidate, *candidate.parents):
-        if (path / "AGENTS.md").exists() and (path / "work_items").is_dir():
-            return path
-    raise RuntimeError(
-        "Could not find repository root (no AGENTS.md + work_items/ found in parent chain)."
-    )
+    def prd_path_str(self) -> str:
+        return _repo_relative(self.prd_path) if self.prd_path else f"<PRD not found: {self.linked_prd_raw.strip()}>"
 
+    def adr_paths_str(self) -> str:
+        if not self.adr_paths:
+            return "<no ADRs found>"
+        return "\n".join(_repo_relative(p) for p in self.adr_paths)
 
-def find_work_item(repo_root: Path, work_item_id: str) -> Path:
-    stem = work_item_id if work_item_id.endswith(".md") else f"{work_item_id}.md"
-    # Accept partial prefix match (e.g. "WI-1.1.4" matches WI-1.1.4-risk-summary-core-service.md)
-    for stage in STAGE_DIRS:
-        stage_dir = repo_root / "work_items" / stage
-        if not stage_dir.exists():
-            continue
-        for candidate in sorted(stage_dir.glob("WI-*.md")):
-            if candidate.stem == stem.replace(".md", "") or candidate.stem.startswith(work_item_id):
-                return candidate
-    raise FileNotFoundError(
-        f"Could not find work item '{work_item_id}' in any of work_items/{{{','.join(STAGE_DIRS)}}}/"
-    )
-
-
-def find_template(repo_root: Path, role_key: str) -> Path:
-    filename = TEMPLATE_FILENAMES[role_key]
-    template_path = repo_root / "prompts" / "agents" / "invocation_templates" / filename
-    if not template_path.exists():
-        raise FileNotFoundError(f"Template not found: {template_path}")
-    return template_path
+    def wi_path_str(self) -> str:
+        return _repo_relative(self.path)
 
 
 # ---------------------------------------------------------------------------
-# Path resolvers
+# Template filling
 # ---------------------------------------------------------------------------
 
-def _resolve_prd_path(repo_root: Path, prd_id: str) -> str:
-    """Try to resolve a PRD ID to an actual file path.
 
-    Handles full stems and short identifiers like PRD-1.1-v2 by scoring
-    how many dash-separated tokens from the ID appear in the filename stem.
+def _fill_template(template: str, wi: Optional[WorkItemInfo], extra: dict[str, str]) -> str:
+    """Replace known <PLACEHOLDER> tokens in template with resolved values.
+
+    Inline placeholders (single path or short text) are replaced in-place.
+    List placeholders (ADRs, multi-path areas) that appear as the sole content
+    on a ``- <TOKEN>`` line are expanded into properly indented bullet lists.
     """
-    prd_dir = repo_root / "docs" / "prds"
-    if not prd_dir.exists():
-        return prd_id
-    normalized_tokens = set(prd_id.lower().replace(" ", "-").split("-"))
-    best_path: str | None = None
-    best_score = 0
-    for prd_file in sorted(prd_dir.rglob("*.md")):
-        if "archive" in prd_file.parts:
-            continue
-        stem_tokens = set(prd_file.stem.lower().split("-"))
-        score = len(normalized_tokens & stem_tokens)
-        if score > best_score:
-            best_score = score
-            best_path = str(prd_file.relative_to(repo_root))
-    if best_path and best_score >= 2:
-        return best_path
-    return prd_id
 
+    # Inline token → replacement text (no leading bullet; template provides it)
+    inline: dict[str, str] = {}
+    # List tokens that may expand to multiple bullet lines
+    # key = token text inside the angle brackets, value = newline-joined paths
+    list_tokens: dict[str, str] = {}
 
-def _resolve_adr_path(repo_root: Path, adr_id: str) -> str:
-    """Try to resolve an ADR ID to an actual file path."""
-    for adr_file in sorted((repo_root / "docs" / "adr").rglob("*.md")):
-        normalized = adr_id.upper().replace("-", "")
-        if normalized in adr_file.stem.upper().replace("-", ""):
-            return str(adr_file.relative_to(repo_root))
-    return f"docs/adr/{adr_id}.md"
-
-
-def _make_bullet(items: list[str]) -> str:
-    if not items:
-        return "- <none listed>"
-    return "\n".join(f"- {item}" for item in items)
-
-
-def _make_numbered(items: list[str]) -> str:
-    if not items:
-        return "1. <none listed>"
-    return "\n".join(f"{i + 1}. {item}" for i, item in enumerate(items))
-
-
-def _make_read_list(paths: list[str]) -> str:
-    return "\n".join(f"- {p}" for p in paths)
-
-
-# ---------------------------------------------------------------------------
-# Template fillers per role
-# ---------------------------------------------------------------------------
-
-def _common_read_list(repo_root: Path, wi: WorkItemData, instruction_file: str) -> list[str]:
-    paths: list[str] = [
-        "AGENTS.md",
-        f"prompts/agents/{instruction_file}",
-    ]
-    if wi.linked_prd:
-        prd_path = _resolve_prd_path(repo_root, wi.linked_prd)
-        paths.append(prd_path)
-    paths.append(str(wi.path.relative_to(repo_root)))
-    for adr in wi.adr_dependencies:
-        paths.append(_resolve_adr_path(repo_root, adr))
-    return paths
-
-
-def fill_coding(repo_root: Path, wi: WorkItemData, template: str) -> str:
-    read_paths = _common_read_list(repo_root, wi, "coding_agent_instruction.md")
-    replacements = {
-        "- AGENTS.md\n- prompts/agents/coding_agent_instruction.md\n- <LINKED_PRD>\n- <ASSIGNED_WORK_ITEM>\n- <LINKED_ADRS>":
-            _make_read_list(read_paths),
-        "Implement <WORK_ITEM_ID> exactly as the next bounded slice.":
-            f"Implement {wi.id} exactly as the next bounded slice.",
-        "<BULLETED_SCOPE_LIST — what the coding agent must build>":
-            _make_bullet(wi.scope_lines) if wi.scope_lines else "<BULLETED_SCOPE_LIST — what the coding agent must build>",
-        "<TARGET_FILES — exact file paths the agent should create or modify>":
-            _make_bullet(wi.target_area_lines) if wi.target_area_lines else "<TARGET_FILES — exact file paths the agent should create or modify>",
-        "<BULLETED_OUT_OF_SCOPE — explicit reminders of what not to touch>":
-            _make_bullet(wi.out_of_scope_lines) if wi.out_of_scope_lines else "<BULLETED_OUT_OF_SCOPE — explicit reminders of what not to touch>",
-        "<BULLETED_ACCEPTANCE_CRITERIA — what must be true when the slice is complete>":
-            _make_bullet(wi.acceptance_criteria or wi.acceptance_numbered) if (wi.acceptance_criteria or wi.acceptance_numbered) else "<BULLETED_ACCEPTANCE_CRITERIA — what must be true when the slice is complete>",
-        "<BULLETED_STOP_CONDITIONS — when the agent should stop and report a blocker>":
-            _make_bullet(wi.stop_conditions) if wi.stop_conditions else "<BULLETED_STOP_CONDITIONS — when the agent should stop and report a blocker>",
-    }
-    result = template
-    for old, new in replacements.items():
-        result = result.replace(old, new)
-    return result
-
-
-def fill_pm(repo_root: Path, wi: WorkItemData, template: str) -> str:
-    paths: list[str] = [
-        "AGENTS.md",
-        "prompts/agents/pm_agent_instruction.md",
-    ]
-    if wi.linked_prd:
-        paths.append(_resolve_prd_path(repo_root, wi.linked_prd))
-    paths.append(str(wi.path.relative_to(repo_root)))
-    for adr in wi.adr_dependencies:
-        paths.append(_resolve_adr_path(repo_root, adr))
-
-    replacements = {
-        "- AGENTS.md\n- prompts/agents/pm_agent_instruction.md\n- <LINKED_PRD>\n- <TARGET_WORK_ITEM>\n- <LINKED_ADRS>":
-            _make_read_list(paths),
-    }
-    result = template
-    for old, new in replacements.items():
-        result = result.replace(old, new)
-    return result
-
-
-def fill_prd_spec(repo_root: Path, wi: WorkItemData, template: str) -> str:
-    paths: list[str] = [
-        "AGENTS.md",
-        "prompts/agents/prd_spec_agent_instruction.md",
-    ]
-    for adr in wi.adr_dependencies:
-        paths.append(_resolve_adr_path(repo_root, adr))
-    if wi.linked_prd:
-        paths.append(_resolve_prd_path(repo_root, wi.linked_prd))
-    for wi_dep in wi.wi_dependencies:
-        paths.append(f"work_items/ready/{wi_dep}.md")
-
-    replacements = {
-        "- AGENTS.md\n- prompts/agents/prd_spec_agent_instruction.md\n- <LINKED_ADRS>\n- <EXISTING_PRD_IF_UPDATING>\n- <RELEVANT_WORK_ITEMS>\n- <RELEVANT_SOURCE_FILES>":
-            _make_read_list(paths),
-    }
-    result = template
-    for old, new in replacements.items():
-        result = result.replace(old, new)
-    return result
-
-
-def fill_issue_planner(repo_root: Path, wi: WorkItemData, template: str) -> str:
-    paths: list[str] = [
-        "AGENTS.md",
-        "prompts/agents/issue_planner_instruction.md",
-    ]
-    if wi.linked_prd:
-        paths.append(_resolve_prd_path(repo_root, wi.linked_prd))
-    for adr in wi.adr_dependencies:
-        paths.append(_resolve_adr_path(repo_root, adr))
-    for wi_dep in wi.wi_dependencies:
-        paths.append(f"work_items/ready/{wi_dep}.md")
-    paths.append(str(wi.path.relative_to(repo_root)))
-
-    replacements = {
-        "- AGENTS.md\n- prompts/agents/issue_planner_instruction.md\n- <LINKED_PRD>\n- <LINKED_ADRS>\n- <RELEVANT_WORK_ITEMS>\n- <RELEVANT_SOURCE_FILES>":
-            _make_read_list(paths),
-    }
-    result = template
-    for old, new in replacements.items():
-        result = result.replace(old, new)
-    return result
-
-
-def fill_review(repo_root: Path, wi: WorkItemData, template: str, pr_number: str | None, branch: str | None) -> str:
-    paths: list[str] = [
-        "AGENTS.md",
-        "prompts/agents/review_agent_instruction.md",
-        str(wi.path.relative_to(repo_root)),
-    ]
-    if wi.linked_prd:
-        paths.append(_resolve_prd_path(repo_root, wi.linked_prd))
-    for adr in wi.adr_dependencies:
-        paths.append(_resolve_adr_path(repo_root, adr))
-
-    replacements = {
-        "- AGENTS.md\n- prompts/agents/review_agent_instruction.md\n- <ASSIGNED_WORK_ITEM>\n- <LINKED_PRD>\n- <LINKED_ADRS>":
-            _make_read_list(paths),
-        "- PR #<PR_NUMBER>": f"- PR #{pr_number or '<PR_NUMBER>'}",
-        "- branch: <BRANCH_NAME>": f"- branch: {branch or '<BRANCH_NAME>'}",
-    }
-    if wi.review_focus_lines:
-        replacements["1. scope fidelity to the linked work item\n2. contract fidelity to the linked PRD\n3. architecture boundary discipline\n4. degraded and error handling\n5. replay and evidence behavior\n6. test sufficiency\n7. Gemini and Copilot review comments if present"] = (
-            "1. scope fidelity to the linked work item\n"
-            "2. contract fidelity to the linked PRD\n"
-            "3. architecture boundary discipline\n"
-            "4. degraded and error handling\n"
-            "5. replay and evidence behavior\n"
-            "6. test sufficiency\n"
-            "7. Gemini and Copilot review comments if present\n\n"
-            "Work item review focus:\n" + _make_bullet(wi.review_focus_lines)
+    if wi:
+        inline["<LINKED_PRD>"] = wi.prd_path_str()
+        inline["<ASSIGNED_WORK_ITEM>"] = wi.wi_path_str()
+        inline["<TARGET_WORK_ITEM>"] = wi.wi_path_str()
+        inline["<WORK_ITEM_ID>"] = wi.wi_id
+        inline["<RELEVANT_WORK_ITEMS>"] = wi.wi_path_str()
+        # LINKED_ADRS may expand to multiple lines
+        list_tokens["<LINKED_ADRS>"] = wi.adr_paths_str()
+        # Multi-line block replacements (body sections already contain bullets)
+        inline["<BULLETED_SCOPE_LIST — what the coding agent must build>"] = wi.scope or "<scope not found>"
+        inline["<TARGET_FILES — exact file paths the agent should create or modify>"] = wi.target_area or "<target area not found>"
+        inline["<BULLETED_OUT_OF_SCOPE — explicit reminders of what not to touch>"] = wi.out_of_scope or "<out of scope not found>"
+        inline["<BULLETED_ACCEPTANCE_CRITERIA — what must be true when the slice is complete>"] = (
+            wi.acceptance_criteria or "<acceptance criteria not found>"
         )
-    result = template
-    for old, new in replacements.items():
-        result = result.replace(old, new)
+        inline["<BULLETED_STOP_CONDITIONS — when the agent should stop and report a blocker>"] = (
+            wi.stop_conditions or "<stop conditions not found in work item>"
+        )
+
+    inline.update(extra)
+
+    # Pass 1: expand list tokens that appear as "- <TOKEN>" on their own line
+    lines = template.splitlines()
+    out_lines: list[str] = []
+    for line in lines:
+        stripped = line.strip()
+        matched = False
+        for token, multiline_value in list_tokens.items():
+            # Match both "- <TOKEN>" (token as list item) and bare "<TOKEN>"
+            if stripped == token or stripped == f"- {token}":
+                indent = line[: len(line) - len(line.lstrip())]
+                for path in multiline_value.splitlines():
+                    out_lines.append(f"{indent}- {path}")
+                matched = True
+                break
+        if not matched:
+            out_lines.append(line)
+
+    result = "\n".join(out_lines)
+
+    # Pass 2: inline token substitution
+    for token, value in inline.items():
+        result = result.replace(token, value)
+
     return result
 
 
-def fill_drift_monitor(repo_root: Path, wi: WorkItemData, template: str) -> str:  # noqa: ARG001
-    # Drift monitor invocations are not WI-specific; return template as-is
-    return template
-
-
 # ---------------------------------------------------------------------------
-# Main
+# CLI
 # ---------------------------------------------------------------------------
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Auto-fill an agent invocation template from a work item.",
+        description="Fill an agent invocation template from a work item and output the ready-to-paste prompt.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__,
     )
     parser.add_argument(
         "--role",
-        required=True,
-        choices=sorted(ROLE_ALIASES.keys()),
-        help="Agent role to generate the invocation for.",
+        choices=sorted(ROLE_TEMPLATE_MAP),
+        metavar="ROLE",
+        help=f"Agent role. One of: {', '.join(sorted(ROLE_TEMPLATE_MAP))}",
     )
     parser.add_argument(
         "--work-item",
-        required=True,
-        help="Work item ID or stem, e.g. WI-1.1.4 or WI-1.1.4-risk-summary-core-service.",
+        metavar="WI_ID",
+        help="Work item ID fragment, e.g. WI-1.1.4 or 1.1.4",
     )
     parser.add_argument(
-        "--pr-number",
-        default=None,
-        help="Pull request number (used for review role).",
+        "--pr",
+        metavar="NUMBER",
+        help="PR number (for review role)",
     )
     parser.add_argument(
         "--branch",
-        default=None,
-        help="Branch name (used for review role).",
+        metavar="NAME",
+        help="Branch name (for review role)",
+    )
+    parser.add_argument(
+        "--context",
+        metavar="TEXT",
+        help="Free-text context to inject into the <CONTEXT> placeholder",
+    )
+    parser.add_argument(
+        "--task",
+        metavar="TEXT",
+        help="Free-text task description to inject into the <TASK> placeholder",
+    )
+    parser.add_argument(
+        "--focus-area",
+        metavar="TEXT",
+        help="Focus area for the drift monitor role",
     )
     parser.add_argument(
         "--output",
-        default=None,
-        help="Output file path. Defaults to stdout.",
+        metavar="FILE",
+        help="Write the filled prompt to this file instead of stdout",
     )
     parser.add_argument(
-        "--repo-root",
-        default=None,
-        help="Repository root. Defaults to auto-detected root from current directory.",
+        "--list-roles",
+        action="store_true",
+        help="List available roles and exit",
+    )
+    parser.add_argument(
+        "--list-work-items",
+        action="store_true",
+        help="List discovered work items and exit",
     )
     return parser.parse_args()
 
@@ -424,50 +339,84 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
 
-    role_key = ROLE_ALIASES.get(args.role)
-    if role_key is None:
-        print(f"error: unknown role '{args.role}'", file=sys.stderr)
+    if args.list_roles:
+        print("Available roles:")
+        for role, tmpl in sorted(ROLE_TEMPLATE_MAP.items()):
+            print(f"  {role:<16}  → {tmpl}")
+        return 0
+
+    if args.list_work_items:
+        items = list_work_items()
+        if not items:
+            print("No work items found under work_items/", file=sys.stderr)
+            return 1
+        print("Discovered work items:")
+        for p in items:
+            rel = _repo_relative(p)
+            status_dir = p.parent.name
+            print(f"  [{status_dir}]  {rel}")
+        return 0
+
+    if not args.role:
+        print("error: --role is required (use --list-roles to see options)", file=sys.stderr)
         return 1
 
-    repo_root_path = Path(args.repo_root) if args.repo_root else find_repo_root(Path.cwd())
-
-    try:
-        wi_path = find_work_item(repo_root_path, args.work_item)
-    except FileNotFoundError as exc:
-        print(f"error: {exc}", file=sys.stderr)
+    # Load template
+    template_name = ROLE_TEMPLATE_MAP[args.role]
+    template_path = TEMPLATES_DIR / template_name
+    if not template_path.exists():
+        print(f"error: template not found: {template_path}", file=sys.stderr)
         return 1
+    template_text = template_path.read_text(encoding="utf-8")
 
-    wi_text = wi_path.read_text(encoding="utf-8")
-    wi = WorkItemData(wi_path, wi_text)
+    # Load work item (optional for drift / spec)
+    wi: Optional[WorkItemInfo] = None
+    if args.work_item:
+        wi_file = find_work_item_file(args.work_item)
+        if not wi_file:
+            print(f"error: no work item file found matching '{args.work_item}'", file=sys.stderr)
+            return 1
+        wi = WorkItemInfo(wi_file)
+        print(f"# Resolved work item: {_repo_relative(wi_file)}", file=sys.stderr)
+        if wi.prd_path:
+            print(f"# Resolved PRD:       {_repo_relative(wi.prd_path)}", file=sys.stderr)
+        if wi.adr_paths:
+            print(f"# Resolved ADRs:      {', '.join(_repo_relative(p) for p in wi.adr_paths)}", file=sys.stderr)
+    elif args.role not in {"drift", "spec", "prd"}:
+        print(f"warning: no --work-item supplied; role '{args.role}' may need one", file=sys.stderr)
 
-    try:
-        template_path = find_template(repo_root_path, role_key)
-    except FileNotFoundError as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return 1
+    # Build extra replacements from operator-supplied flags
+    extra: dict[str, str] = {}
+    if args.pr:
+        extra["<PR_NUMBER>"] = args.pr
+    if args.branch:
+        extra["<BRANCH_NAME>"] = args.branch
+    if args.context:
+        extra["<CONTEXT — what has changed since the last assessment, recent merges, known blockers>"] = args.context
+        extra["<CONTEXT — what the PR implements, any known concerns>"] = args.context
+        extra["<CONTEXT — what triggered this PRD/spec work, what gap exists, what has changed>"] = args.context
+        extra["<CONTEXT — what triggered this planning work, what blocker was identified, what PM assessment found>"] = args.context
+        extra["<CONTEXT — what triggered this audit, any known concerns>"] = args.context
+        # Generic fallback
+        extra["<CONTEXT>"] = args.context
+    if args.task:
+        extra['<TASK — e.g. "Reassess whether WI-X.Y.Z is now coding-ready on merged main.">'] = args.task
+        extra['<TASK — e.g. "Write PRD for X capability" or "Update PRD-1.1 to clarify error semantics for as-of-date retrieval">'] = args.task
+        extra['<TASK — e.g. "Create one bounded prerequisite work item that unblocks WI-X.Y.Z">'] = args.task
+        extra["<TASK>"] = args.task
+    if args.focus_area:
+        extra['<FOCUS_AREA — "full repo audit" or a specific area like "canon vs implementation coherence for risk_analytics module">'] = (
+            args.focus_area
+        )
+        extra["<FOCUS_AREA>"] = args.focus_area
 
-    template = template_path.read_text(encoding="utf-8")
-
-    if role_key == "coding":
-        filled = fill_coding(repo_root_path, wi, template)
-    elif role_key == "pm":
-        filled = fill_pm(repo_root_path, wi, template)
-    elif role_key == "prd_spec":
-        filled = fill_prd_spec(repo_root_path, wi, template)
-    elif role_key == "issue_planner":
-        filled = fill_issue_planner(repo_root_path, wi, template)
-    elif role_key == "review":
-        filled = fill_review(repo_root_path, wi, template, args.pr_number, args.branch)
-    elif role_key == "drift_monitor":
-        filled = fill_drift_monitor(repo_root_path, wi, template)
-    else:
-        filled = template
+    filled = _fill_template(template_text, wi, extra)
 
     if args.output:
         out_path = Path(args.output)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(filled, encoding="utf-8")
-        print(f"Invocation written to {out_path}", file=sys.stderr)
+        print(f"# Written to: {out_path}", file=sys.stderr)
     else:
         print(filled)
 
@@ -475,4 +424,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 import json
 from pathlib import Path
 from typing import Callable
 
+from .architecture_boundaries import ArchitectureBoundaryReport, build_architecture_boundary_report
 from .canon_lineage import CanonLineageReport, build_canon_lineage_report
 from .dependency_hygiene import DependencyHygieneReport, build_dependency_hygiene_report
 from .instruction_surfaces import InstructionSurfaceReport, build_instruction_surface_report
 from .reference_integrity import ReferenceScanReport, build_reference_scan_report
 from .registry_alignment import RegistryAlignmentReport, build_registry_alignment_report
+from .surface_liveness import SurfaceLivenessReport, build_surface_liveness_report
 
 
 BASELINE_VERSION = 1
@@ -18,7 +20,15 @@ DEFAULT_BASELINE_PATH = Path("artifacts/drift/baseline.json")
 DEFAULT_LATEST_REPORT_PATH = Path("artifacts/drift/latest_report.json")
 DEFAULT_SUMMARY_PATH = Path("artifacts/drift/summary.md")
 
-_ReportT = CanonLineageReport | DependencyHygieneReport | InstructionSurfaceReport | ReferenceScanReport | RegistryAlignmentReport
+_ReportT = (
+    ArchitectureBoundaryReport
+    | CanonLineageReport
+    | DependencyHygieneReport
+    | InstructionSurfaceReport
+    | ReferenceScanReport
+    | RegistryAlignmentReport
+    | SurfaceLivenessReport
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -44,6 +54,25 @@ class DriftSuiteFinding:
     issue: str | None = None
     expires_on: str | None = None
 
+    @classmethod
+    def from_dict(cls, data: dict[str, object]) -> DriftSuiteFinding:
+        raw_finding = data.get("raw_finding")
+        if not isinstance(raw_finding, dict):
+            raise ValueError("DriftSuiteFinding payload `raw_finding` must be an object.")
+        return cls(
+            scan_name=str(data["scan_name"]),
+            signature=str(data["signature"]),
+            kind=str(data["kind"]),
+            severity=str(data["severity"]),
+            drift_class=str(data["drift_class"]),
+            owner=str(data["owner"]),
+            message=str(data["message"]),
+            raw_finding=dict(raw_finding),
+            rationale=_optional_string(data.get("rationale")),
+            issue=_optional_string(data.get("issue")),
+            expires_on=_optional_string(data.get("expires_on")),
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class DriftScanSummary:
@@ -54,6 +83,27 @@ class DriftScanSummary:
     total_findings: int
     new_findings: tuple[DriftSuiteFinding, ...]
     waived_findings: tuple[DriftSuiteFinding, ...]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, object]) -> DriftScanSummary:
+        raw_stats = data.get("stats")
+        raw_new = data.get("new_findings")
+        raw_waived = data.get("waived_findings")
+        if not isinstance(raw_stats, dict):
+            raise ValueError("DriftScanSummary payload `stats` must be an object.")
+        if not isinstance(raw_new, (list, tuple)):
+            raise ValueError("DriftScanSummary payload `new_findings` must be a list.")
+        if not isinstance(raw_waived, (list, tuple)):
+            raise ValueError("DriftScanSummary payload `waived_findings` must be a list.")
+        return cls(
+            scan_name=str(data["scan_name"]),
+            title=str(data["title"]),
+            artifact_path=str(data["artifact_path"]),
+            stats={str(k): v for k, v in raw_stats.items()},
+            total_findings=_require_payload_int(data, "total_findings"),
+            new_findings=tuple(DriftSuiteFinding.from_dict(f) for f in raw_new if isinstance(f, dict)),
+            waived_findings=tuple(DriftSuiteFinding.from_dict(f) for f in raw_waived if isinstance(f, dict)),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,6 +137,36 @@ class DriftSuiteReport:
             "stats": asdict(self.stats),
         }
 
+    @classmethod
+    def from_dict(cls, data: dict[str, object]) -> DriftSuiteReport:
+        raw_stats = data.get("stats")
+        raw_scans = data.get("scans")
+        raw_findings = data.get("findings")
+        raw_waived = data.get("waived_findings")
+        if not isinstance(raw_stats, dict):
+            raise ValueError("DriftSuiteReport payload `stats` must be an object.")
+        if not isinstance(raw_scans, (list, tuple)):
+            raise ValueError("DriftSuiteReport payload `scans` must be a list.")
+        if not isinstance(raw_findings, (list, tuple)):
+            raise ValueError("DriftSuiteReport payload `findings` must be a list.")
+        if not isinstance(raw_waived, (list, tuple)):
+            raise ValueError("DriftSuiteReport payload `waived_findings` must be a list.")
+        return cls(
+            scan_name=str(data["scan_name"]),
+            root=str(data["root"]),
+            generated_at=str(data["generated_at"]),
+            baseline_path=str(data["baseline_path"]),
+            scans=tuple(DriftScanSummary.from_dict(s) for s in raw_scans if isinstance(s, dict)),
+            findings=tuple(DriftSuiteFinding.from_dict(f) for f in raw_findings if isinstance(f, dict)),
+            waived_findings=tuple(DriftSuiteFinding.from_dict(f) for f in raw_waived if isinstance(f, dict)),
+            stats=DriftSuiteStats(
+                scans_run=_require_payload_int(raw_stats, "scans_run"),
+                total_findings=_require_payload_int(raw_stats, "total_findings"),
+                new_findings=_require_payload_int(raw_stats, "new_findings"),
+                waived_findings=_require_payload_int(raw_stats, "waived_findings"),
+            ),
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class _CollectedDriftSuite:
@@ -103,6 +183,12 @@ class _ScannerSpec:
 
 
 _SCANNERS: tuple[_ScannerSpec, ...] = (
+    _ScannerSpec(
+        scan_name="architecture_boundaries",
+        title="Architecture Boundaries",
+        artifact_name="architecture_boundaries.json",
+        build_report=build_architecture_boundary_report,
+    ),
     _ScannerSpec(
         scan_name="canon_lineage",
         title="Canon Lineage",
@@ -133,14 +219,22 @@ _SCANNERS: tuple[_ScannerSpec, ...] = (
         artifact_name="registry_alignment.json",
         build_report=build_registry_alignment_report,
     ),
+    _ScannerSpec(
+        scan_name="surface_liveness",
+        title="Surface Liveness",
+        artifact_name="surface_liveness.json",
+        build_report=build_surface_liveness_report,
+    ),
 )
 
 _SIGNATURE_FIELDS: dict[str, tuple[str, ...]] = {
+    "architecture_boundaries": ("kind", "source_path", "source_line", "import_target"),
     "canon_lineage": ("kind", "source_path", "related_paths"),
     "dependency_hygiene": ("kind", "dependency_name", "source_path"),
     "instruction_surfaces": ("kind", "source_path", "related_paths"),
     "reference_integrity": ("kind", "source_file", "source_line", "reference"),
     "registry_alignment": ("kind", "component_id", "implementation_path", "registry_path"),
+    "surface_liveness": ("kind", "source_path", "source_line", "related_path"),
 }
 
 
@@ -428,6 +522,7 @@ def _partition_findings(
     raw_findings: list[object],
     baseline_entries: dict[tuple[str, str], DriftBaselineEntry],
 ) -> tuple[list[DriftSuiteFinding], list[DriftSuiteFinding]]:
+    today = datetime.now(UTC).date()
     new_findings: list[DriftSuiteFinding] = []
     waived_findings: list[DriftSuiteFinding] = []
 
@@ -449,11 +544,20 @@ def _partition_findings(
             issue=None if entry is None else entry.issue,
             expires_on=None if entry is None else entry.expires_on,
         )
-        if entry is None:
+        if entry is None or _is_baseline_expired(entry, today):
             new_findings.append(finding)
         else:
             waived_findings.append(finding)
     return new_findings, waived_findings
+
+
+def _is_baseline_expired(entry: DriftBaselineEntry, today: date) -> bool:
+    if entry.expires_on is None:
+        return False
+    try:
+        return today > date.fromisoformat(entry.expires_on)
+    except ValueError:
+        return False
 
 
 def finding_signature(scan_name: str, raw_finding: dict[str, object]) -> str:
@@ -476,12 +580,21 @@ def _optional_string(value: object) -> str | None:
     return str(value)
 
 
+def _require_payload_int(data: dict[str, object], field_name: str) -> int:
+    value = data[field_name]
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"Payload field `{field_name}` must be an integer.")
+    return value
+
+
 def _sort_suite_finding(finding: DriftSuiteFinding) -> tuple[str, str, str]:
     return (finding.scan_name, finding.kind, _summary_anchor(finding))
 
 
 def _summary_anchor(finding: DriftSuiteFinding) -> str:
     raw = finding.raw_finding
+    if finding.scan_name == "architecture_boundaries":
+        return f"{raw['source_path']}:{raw['source_line']} `{raw['import_target']}`"
     if finding.scan_name == "canon_lineage":
         return f"{raw['source_path']} `{raw['kind']}`"
     if finding.scan_name == "dependency_hygiene":
@@ -495,6 +608,14 @@ def _summary_anchor(finding: DriftSuiteFinding) -> str:
         kind = raw["kind"]
         implementation_path = raw.get("implementation_path") or raw["registry_path"]
         return f"{component_id} `{kind}` `{implementation_path}`"
+    if finding.scan_name == "surface_liveness":
+        source_line = raw.get("source_line")
+        related_path = raw.get("related_path")
+        if source_line is None:
+            return f"{raw['source_path']} `{raw['kind']}`"
+        if related_path is None:
+            return f"{raw['source_path']}:{source_line} `{raw['kind']}`"
+        return f"{raw['source_path']}:{source_line} `{related_path}`"
     return finding.kind
 
 

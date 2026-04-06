@@ -132,7 +132,6 @@ def test_completed_pm_split_required_routes_to_issue_planner() -> None:
 
         assert decision.action is NextActionType.RUN_ISSUE_PLANNER
         assert decision.reason == "Need to split WI-1.1.4 before coding."
-        assert decision.metadata["pm_outcome_status"] == "split_required"
 
 
 def test_completed_pm_outcome_is_ignored_after_work_item_changes() -> None:

@@ -48,6 +48,10 @@ class RegistryAlignmentStats:
     components_scanned: int
     subcomponents_scanned: int
     module_roots_discovered: int
+    walker_components_scanned: int
+    walker_roots_discovered: int
+    orchestrator_components_scanned: int
+    orchestrator_roots_discovered: int
     findings_count: int
 
 
@@ -73,32 +77,70 @@ def build_registry_alignment_report(root: Path) -> RegistryAlignmentReport:
     repo_root = root.resolve()
     components = _load_registry_components(repo_root / REGISTRY_PATH)
     findings: list[RegistryAlignmentFinding] = []
-    discovered_module_roots = _discovered_module_roots(repo_root)
+
+    discovered_module_roots = _discovered_section_roots(repo_root, "modules")
+    discovered_walker_roots = _discovered_section_roots(repo_root, "walkers")
+    discovered_orchestrator_roots = _discovered_section_roots(repo_root, "orchestrators")
+
     registered_module_roots: set[str] = set()
+    registered_walker_roots: set[str] = set()
+    registered_orchestrator_roots: set[str] = set()
+
     module_components_scanned = 0
+    walker_components_scanned = 0
+    orchestrator_components_scanned = 0
     subcomponents_scanned = 0
 
     for component in components:
-        if component.section != "modules":
-            continue
-        module_components_scanned += 1
-        module_root = _module_root_from_component_id(component.component_id)
-        if module_root is not None:
-            registered_module_roots.add(module_root)
-            _maybe_append_module_root_finding(
-                findings=findings,
-                repo_root=repo_root,
-                component=component,
-                module_root=module_root,
-            )
-        for subcomponent in component.sub_components:
-            subcomponents_scanned += 1
-            _maybe_append_subcomponent_finding(
-                findings=findings,
-                repo_root=repo_root,
-                component=component,
-                subcomponent=subcomponent,
-            )
+        if component.section == "modules":
+            module_components_scanned += 1
+            module_root = _section_root_from_component_id(component.component_id, "MOD-")
+            if module_root is not None:
+                registered_module_roots.add(module_root)
+                _maybe_append_section_root_finding(
+                    findings=findings,
+                    repo_root=repo_root,
+                    component=component,
+                    section_root=module_root,
+                    section_dir="modules",
+                    section_kind="module",
+                )
+            for subcomponent in component.sub_components:
+                subcomponents_scanned += 1
+                _maybe_append_subcomponent_finding(
+                    findings=findings,
+                    repo_root=repo_root,
+                    component=component,
+                    subcomponent=subcomponent,
+                )
+
+        elif component.section == "walkers":
+            walker_components_scanned += 1
+            walker_root = _section_root_from_component_id(component.component_id, "WALKER-")
+            if walker_root is not None:
+                registered_walker_roots.add(walker_root)
+                _maybe_append_section_root_finding(
+                    findings=findings,
+                    repo_root=repo_root,
+                    component=component,
+                    section_root=walker_root,
+                    section_dir="walkers",
+                    section_kind="walker",
+                )
+
+        elif component.section == "orchestrators":
+            orchestrator_components_scanned += 1
+            orch_root = _section_root_from_component_id(component.component_id, "ORCH-")
+            if orch_root is not None:
+                registered_orchestrator_roots.add(orch_root)
+                _maybe_append_section_root_finding(
+                    findings=findings,
+                    repo_root=repo_root,
+                    component=component,
+                    section_root=orch_root,
+                    section_dir="orchestrators",
+                    section_kind="orchestrator",
+                )
 
     for module_root in sorted(discovered_module_roots):
         if module_root not in registered_module_roots:
@@ -116,6 +158,38 @@ def build_registry_alignment_report(root: Path) -> RegistryAlignmentReport:
                 )
             )
 
+    for walker_root in sorted(discovered_walker_roots):
+        if walker_root not in registered_walker_roots:
+            findings.append(
+                RegistryAlignmentFinding(
+                    kind="unregistered_walker_root",
+                    severity=REGISTRY_ALIGNMENT_SEVERITY,
+                    drift_class="maturity or status drift",
+                    owner="PM",
+                    component_id="UNREGISTERED",
+                    component_name=walker_root,
+                    registry_path=REGISTRY_PATH.as_posix(),
+                    implementation_path=f"src/walkers/{walker_root}",
+                    message=f"Discovered walker root `src/walkers/{walker_root}` is not represented in the current-state registry.",
+                )
+            )
+
+    for orch_root in sorted(discovered_orchestrator_roots):
+        if orch_root not in registered_orchestrator_roots:
+            findings.append(
+                RegistryAlignmentFinding(
+                    kind="unregistered_orchestrator_root",
+                    severity=REGISTRY_ALIGNMENT_SEVERITY,
+                    drift_class="maturity or status drift",
+                    owner="PM",
+                    component_id="UNREGISTERED",
+                    component_name=orch_root,
+                    registry_path=REGISTRY_PATH.as_posix(),
+                    implementation_path=f"src/orchestrators/{orch_root}",
+                    message=f"Discovered orchestrator root `src/orchestrators/{orch_root}` is not represented in the current-state registry.",
+                )
+            )
+
     findings.sort(key=lambda finding: (finding.component_id, finding.kind, finding.implementation_path or ""))
     return RegistryAlignmentReport(
         scan_name="registry_alignment",
@@ -126,6 +200,10 @@ def build_registry_alignment_report(root: Path) -> RegistryAlignmentReport:
             components_scanned=module_components_scanned,
             subcomponents_scanned=subcomponents_scanned,
             module_roots_discovered=len(discovered_module_roots),
+            walker_components_scanned=walker_components_scanned,
+            walker_roots_discovered=len(discovered_walker_roots),
+            orchestrator_components_scanned=orchestrator_components_scanned,
+            orchestrator_roots_discovered=len(discovered_orchestrator_roots),
             findings_count=len(findings),
         ),
     )
@@ -225,43 +303,46 @@ def _load_registry_components(registry_path: Path) -> tuple[RegistryComponent, .
     return tuple(components)
 
 
-def _maybe_append_module_root_finding(
+def _maybe_append_section_root_finding(
     findings: list[RegistryAlignmentFinding],
     repo_root: Path,
     component: RegistryComponent,
-    module_root: str,
+    section_root: str,
+    section_dir: str,
+    section_kind: str,
 ) -> None:
-    implementation_path = repo_root / "src" / "modules" / module_root
+    implementation_path = repo_root / "src" / section_dir / section_root
     exists = implementation_path.exists()
     registry_status = component.status or "unknown"
     relative_path = implementation_path.relative_to(repo_root).as_posix()
+    display_name = component.name or component.component_id
 
     if registry_status in ACTIVE_STATUSES and not exists:
         findings.append(
             RegistryAlignmentFinding(
-                kind="missing_module_root",
+                kind=f"missing_{section_kind}_root",
                 severity=REGISTRY_ALIGNMENT_SEVERITY,
                 drift_class="maturity or status drift",
                 owner="PM",
                 component_id=component.component_id,
-                component_name=component.name or component.component_id,
+                component_name=display_name,
                 registry_path=REGISTRY_PATH.as_posix(),
                 implementation_path=relative_path,
-                message=f"Registry marks module `{component.name}` as `{registry_status}` but expected module root `{relative_path}` does not exist.",
+                message=f"Registry marks {section_kind} `{display_name}` as `{registry_status}` but expected {section_kind} root `{relative_path}` does not exist.",
             )
         )
     if registry_status in INACTIVE_STATUSES and exists:
         findings.append(
             RegistryAlignmentFinding(
-                kind="unexpected_module_root",
+                kind=f"unexpected_{section_kind}_root",
                 severity=REGISTRY_ALIGNMENT_SEVERITY,
                 drift_class="maturity or status drift",
                 owner="PM",
                 component_id=component.component_id,
-                component_name=component.name or component.component_id,
+                component_name=display_name,
                 registry_path=REGISTRY_PATH.as_posix(),
                 implementation_path=relative_path,
-                message=f"Registry marks module `{component.name}` as `{registry_status}` but implementation already exists at `{relative_path}`.",
+                message=f"Registry marks {section_kind} `{display_name}` as `{registry_status}` but implementation already exists at `{relative_path}`.",
             )
         )
 
@@ -323,17 +404,17 @@ def _maybe_append_subcomponent_finding(
         )
 
 
-def _discovered_module_roots(root: Path) -> frozenset[str]:
-    modules_root = root / "src" / "modules"
-    if not modules_root.is_dir():
+def _discovered_section_roots(root: Path, section_dir: str) -> frozenset[str]:
+    section_root = root / "src" / section_dir
+    if not section_root.is_dir():
         return frozenset()
-    return frozenset(child.name for child in modules_root.iterdir() if child.is_dir() and not child.name.startswith((".", "__")))
+    return frozenset(child.name for child in section_root.iterdir() if child.is_dir() and not child.name.startswith((".", "__")))
 
 
-def _module_root_from_component_id(component_id: str) -> str | None:
-    if not component_id.startswith("MOD-"):
+def _section_root_from_component_id(component_id: str, prefix: str) -> str | None:
+    if not component_id.startswith(prefix):
         return None
-    slug = re.sub(r"[^a-z0-9]+", "_", component_id.removeprefix("MOD-").lower()).strip("_")
+    slug = re.sub(r"[^a-z0-9]+", "_", component_id.removeprefix(prefix).lower()).strip("_")
     return slug or None
 
 

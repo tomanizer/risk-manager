@@ -24,7 +24,7 @@ _ALLOWED_PM_DECISIONS = {
 
 
 def get_pm_backend_name() -> str:
-    return os.getenv(PM_BACKEND_ENV, PM_BACKEND_PREPARED).strip().lower() or PM_BACKEND_PREPARED
+    return os.getenv(PM_BACKEND_ENV, PM_BACKEND_CODEX_EXEC).strip().lower() or PM_BACKEND_CODEX_EXEC
 
 
 def dispatch_prepared_pm_execution(execution: RunnerExecution) -> RunnerResult:

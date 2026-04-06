@@ -1,18 +1,25 @@
 from __future__ import annotations
 
+from datetime import date
 import json
 from pathlib import Path
 import subprocess
 import sys
 
-from agent_runtime.drift.drift_suite import build_drift_suite_report, render_drift_suite_issue_body
+from agent_runtime.drift.drift_suite import (
+    DriftBaselineEntry,
+    DriftSuiteReport,
+    _is_baseline_expired,
+    build_drift_suite_report,
+    render_drift_suite_issue_body,
+)
 
 
 def test_drift_suite_waives_findings_present_in_baseline(tmp_path: Path) -> None:
     _write_minimal_repo(tmp_path)
     initial_report = build_drift_suite_report(tmp_path)
 
-    assert initial_report.stats.scans_run == 5
+    assert initial_report.stats.scans_run == 7
     assert initial_report.stats.total_findings == 1
     assert initial_report.stats.new_findings == 1
     assert initial_report.stats.waived_findings == 0
@@ -85,17 +92,21 @@ def test_run_all_cli_writes_combined_and_per_scanner_artifacts(tmp_path: Path) -
 
     assert payload["scan_name"] == "drift_suite"
     assert payload == written_payload
-    assert payload["stats"]["scans_run"] == 5
+    assert payload["stats"]["scans_run"] == 7
     assert payload["stats"]["new_findings"] == 1
+    assert (artifact_dir / "architecture_boundaries.json").is_file()
     assert (artifact_dir / "canon_lineage.json").is_file()
     assert (artifact_dir / "dependency_hygiene.json").is_file()
     assert (artifact_dir / "instruction_surfaces.json").is_file()
     assert (artifact_dir / "reference_integrity.json").is_file()
     assert (artifact_dir / "registry_alignment.json").is_file()
+    assert (artifact_dir / "surface_liveness.json").is_file()
     summary = summary_path.read_text(encoding="utf-8")
     assert "## Drift Monitor" in summary
+    assert "### Architecture Boundaries" in summary
     assert "### Instruction Surfaces" in summary
     assert "### Reference Integrity" in summary
+    assert "### Surface Liveness" in summary
 
 
 def test_run_all_cli_uses_baseline_for_fail_on_findings(tmp_path: Path) -> None:
@@ -185,6 +196,110 @@ def test_render_drift_suite_issue_body_includes_marker_and_findings(tmp_path: Pa
     assert "## Net-New Findings" in body
     assert "reference_integrity: missing_reference" in body
     assert "README.md:1 `docs/missing.md`" in body
+
+
+def test_drift_suite_report_round_trips_through_dict(tmp_path: Path) -> None:
+    _write_minimal_repo(tmp_path)
+    original = build_drift_suite_report(tmp_path)
+
+    restored = DriftSuiteReport.from_dict(original.to_dict())
+
+    assert restored.scan_name == original.scan_name
+    assert restored.stats == original.stats
+    assert len(restored.scans) == len(original.scans)
+    assert len(restored.findings) == len(original.findings)
+    for orig_finding, rest_finding in zip(original.findings, restored.findings):
+        assert rest_finding.scan_name == orig_finding.scan_name
+        assert rest_finding.signature == orig_finding.signature
+        assert rest_finding.kind == orig_finding.kind
+    issue_body = render_drift_suite_issue_body(restored)
+    assert "<!-- drift-monitor-issue -->" in issue_body
+
+
+def test_baseline_expiry_helper_returns_false_when_no_expires_on() -> None:
+    entry = DriftBaselineEntry(scan_name="s", signature="sig", rationale="r", expires_on=None)
+    assert not _is_baseline_expired(entry, date.today())
+
+
+def test_baseline_expiry_helper_returns_false_when_not_yet_expired() -> None:
+    entry = DriftBaselineEntry(scan_name="s", signature="sig", rationale="r", expires_on="2099-12-31")
+    assert not _is_baseline_expired(entry, date(2026, 1, 1))
+
+
+def test_baseline_expiry_helper_returns_true_when_past_expiry() -> None:
+    entry = DriftBaselineEntry(scan_name="s", signature="sig", rationale="r", expires_on="2020-01-01")
+    assert _is_baseline_expired(entry, date(2026, 4, 1))
+
+
+def test_baseline_expiry_helper_returns_false_for_malformed_date() -> None:
+    entry = DriftBaselineEntry(scan_name="s", signature="sig", rationale="r", expires_on="not-a-date")
+    assert not _is_baseline_expired(entry, date.today())
+
+
+def test_drift_suite_expired_baseline_entry_resurfaces_as_new_finding(tmp_path: Path) -> None:
+    _write_minimal_repo(tmp_path)
+    initial_report = build_drift_suite_report(tmp_path)
+    assert initial_report.stats.new_findings == 1
+    finding = initial_report.findings[0]
+
+    baseline_path = tmp_path / "artifacts" / "drift" / "baseline.json"
+    baseline_path.parent.mkdir(parents=True, exist_ok=True)
+    baseline_path.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "allowed_findings": [
+                    {
+                        "scan_name": finding.scan_name,
+                        "signature": finding.signature,
+                        "rationale": "Temporarily waived.",
+                        "expires_on": "2020-01-01",
+                    }
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = build_drift_suite_report(tmp_path, baseline_path=baseline_path)
+
+    assert report.stats.new_findings == 1
+    assert report.stats.waived_findings == 0
+    assert report.findings[0].expires_on == "2020-01-01"
+
+
+def test_drift_suite_unexpired_baseline_entry_remains_waived(tmp_path: Path) -> None:
+    _write_minimal_repo(tmp_path)
+    initial_report = build_drift_suite_report(tmp_path)
+    finding = initial_report.findings[0]
+
+    baseline_path = tmp_path / "artifacts" / "drift" / "baseline.json"
+    baseline_path.parent.mkdir(parents=True, exist_ok=True)
+    baseline_path.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "allowed_findings": [
+                    {
+                        "scan_name": finding.scan_name,
+                        "signature": finding.signature,
+                        "rationale": "Not yet expired.",
+                        "expires_on": "2099-12-31",
+                    }
+                ],
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = build_drift_suite_report(tmp_path, baseline_path=baseline_path)
+
+    assert report.stats.new_findings == 0
+    assert report.stats.waived_findings == 1
 
 
 def test_repo_drift_suite_has_no_new_findings() -> None:

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
+from .prompt_loader import load_system_prompt
 
 DRIFT_MONITOR_BACKEND_ENV = "AGENT_RUNTIME_DRIFT_MONITOR_BACKEND"
 DRIFT_MONITOR_BACKEND_PREPARED = "prepared"
@@ -137,3 +138,23 @@ def _dispatch_script(execution: RunnerExecution) -> RunnerResult:
         outcome_status="findings",
         outcome_summary=detail[:500],
     )
+
+
+class DriftMonitorRunner:
+    """RunnerProtocol implementation for the Drift Monitor role."""
+
+    def __init__(self, repo_root: Path) -> None:
+        self._repo_root = repo_root
+
+    @property
+    def runner_name(self) -> RunnerName:
+        return RunnerName.DRIFT_MONITOR
+
+    def get_system_prompt(self) -> str:
+        return load_system_prompt(RunnerName.DRIFT_MONITOR, self._repo_root)
+
+    def prepare(self, execution: RunnerExecution) -> RunnerResult:
+        return dispatch_drift_monitor_execution(execution)
+
+    async def execute(self, execution: RunnerExecution) -> RunnerResult:
+        return dispatch_drift_monitor_execution(execution)

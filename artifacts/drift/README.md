@@ -3,6 +3,7 @@
 This directory is reserved for generated repo-health artifacts.
 
 Recommended local output paths:
+- `artifacts/drift/architecture_boundaries.json`
 - `artifacts/drift/canon_lineage.json`
 - `artifacts/drift/dependency_hygiene.json`
 - `artifacts/drift/instruction_surfaces.json`
@@ -10,6 +11,7 @@ Recommended local output paths:
 - `artifacts/drift/latest_report.json`
 - `artifacts/drift/reference_integrity.json`
 - `artifacts/drift/registry_alignment.json`
+- `artifacts/drift/surface_liveness.json`
 - `artifacts/drift/summary.md`
 
 Tracked baseline:

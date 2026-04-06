@@ -98,6 +98,7 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
             pr_number=pull_request.number if pull_request is not None else None,
             pr_url=pull_request.url if pull_request is not None else None,
             base_ref=base_metadata["base_ref"],
+            drift_summary=snapshot.drift_summary_md,
         )
         metadata = {**base_metadata, "target_path": str(work_item.path)}
         if pull_request is not None:

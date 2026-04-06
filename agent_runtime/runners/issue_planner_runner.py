@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
+from .prompt_loader import load_system_prompt
 
 
 @dataclass(frozen=True)
@@ -63,3 +65,23 @@ def dispatch_issue_planner_execution(execution: RunnerExecution) -> RunnerResult
         prompt=execution.prompt,
         details=dict(execution.metadata),
     )
+
+
+class IssuePlannerRunner:
+    """RunnerProtocol implementation for the Issue Planner role."""
+
+    def __init__(self, repo_root: Path) -> None:
+        self._repo_root = repo_root
+
+    @property
+    def runner_name(self) -> RunnerName:
+        return RunnerName.ISSUE_PLANNER
+
+    def get_system_prompt(self) -> str:
+        return load_system_prompt(RunnerName.ISSUE_PLANNER, self._repo_root)
+
+    def prepare(self, execution: RunnerExecution) -> RunnerResult:
+        return dispatch_issue_planner_execution(execution)
+
+    async def execute(self, execution: RunnerExecution) -> RunnerResult:
+        return dispatch_issue_planner_execution(execution)

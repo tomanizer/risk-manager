@@ -16,6 +16,9 @@ class RuntimeDefaults:
     ready_work_items_relative_path: str = "work_items/ready"
     in_progress_work_items_relative_path: str = "work_items/in_progress"
     blocked_work_items_relative_path: str = "work_items/blocked"
+    runner_timeout_seconds_coding: int = 2700
+    runner_timeout_seconds_default: int = 900
+    runner_max_retries: int = 2
 
     @property
     def state_db_path(self) -> Path:

@@ -142,7 +142,7 @@ def test_registry_alignment_uses_component_id_for_module_root_mapping(tmp_path: 
     assert report.stats.components_scanned == 1
 
 
-def test_registry_alignment_counts_only_module_components_as_scanned(tmp_path: Path) -> None:
+def test_registry_alignment_tracks_module_walker_orchestrator_counts_separately(tmp_path: Path) -> None:
     _write_registry(
         tmp_path,
         """
@@ -158,6 +158,11 @@ def test_registry_alignment_counts_only_module_components_as_scanned(tmp_path: P
               name: Quant Walker
               status: proposed
               contract_status: draft
+          orchestrators:
+            - id: ORCH-DAILY-RISK-INVESTIGATION
+              name: Daily Risk Investigation
+              status: proposed
+              contract_status: draft
         """,
     )
     (tmp_path / "src" / "modules" / "risk_analytics").mkdir(parents=True)
@@ -166,6 +171,101 @@ def test_registry_alignment_counts_only_module_components_as_scanned(tmp_path: P
 
     assert report.findings == ()
     assert report.stats.components_scanned == 1
+    assert report.stats.walker_components_scanned == 1
+    assert report.stats.orchestrator_components_scanned == 1
+
+
+def test_registry_alignment_detects_active_walker_missing_from_disk(tmp_path: Path) -> None:
+    _write_registry(
+        tmp_path,
+        """
+        version: 1
+        components:
+          walkers:
+            - id: WALKER-QUANT
+              name: Quant Walker
+              status: implemented
+              contract_status: implemented
+        """,
+    )
+    (tmp_path / "src" / "walkers").mkdir(parents=True)
+
+    report = build_registry_alignment_report(tmp_path)
+
+    assert report.stats.findings_count == 1
+    finding = report.findings[0]
+    assert finding.kind == "missing_walker_root"
+    assert finding.implementation_path == "src/walkers/quant"
+    assert finding.component_id == "WALKER-QUANT"
+
+
+def test_registry_alignment_detects_active_orchestrator_missing_from_disk(tmp_path: Path) -> None:
+    _write_registry(
+        tmp_path,
+        """
+        version: 1
+        components:
+          orchestrators:
+            - id: ORCH-DAILY-RISK-INVESTIGATION
+              name: Daily Risk Investigation
+              status: implemented
+              contract_status: implemented
+        """,
+    )
+    (tmp_path / "src" / "orchestrators").mkdir(parents=True)
+
+    report = build_registry_alignment_report(tmp_path)
+
+    assert report.stats.findings_count == 1
+    finding = report.findings[0]
+    assert finding.kind == "missing_orchestrator_root"
+    assert finding.implementation_path == "src/orchestrators/daily_risk_investigation"
+
+
+def test_registry_alignment_detects_unregistered_walker_root(tmp_path: Path) -> None:
+    _write_registry(
+        tmp_path,
+        """
+        version: 1
+        components:
+          walkers:
+            - id: WALKER-QUANT
+              name: Quant Walker
+              status: proposed
+              contract_status: draft
+        """,
+    )
+    (tmp_path / "src" / "walkers" / "time_series").mkdir(parents=True)
+
+    report = build_registry_alignment_report(tmp_path)
+
+    assert report.stats.findings_count == 1
+    finding = report.findings[0]
+    assert finding.kind == "unregistered_walker_root"
+    assert finding.implementation_path == "src/walkers/time_series"
+
+
+def test_registry_alignment_detects_unregistered_orchestrator_root(tmp_path: Path) -> None:
+    _write_registry(
+        tmp_path,
+        """
+        version: 1
+        components:
+          orchestrators:
+            - id: ORCH-LIMIT-BREACH
+              name: Limit Breach
+              status: proposed
+              contract_status: draft
+        """,
+    )
+    (tmp_path / "src" / "orchestrators" / "surprise_runner").mkdir(parents=True)
+
+    report = build_registry_alignment_report(tmp_path)
+
+    assert report.stats.findings_count == 1
+    finding = report.findings[0]
+    assert finding.kind == "unregistered_orchestrator_root"
+    assert finding.implementation_path == "src/orchestrators/surprise_runner"
 
 
 def test_registry_alignment_supports_trailing_yaml_comments(tmp_path: Path) -> None:
