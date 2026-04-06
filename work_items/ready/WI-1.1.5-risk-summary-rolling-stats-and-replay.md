@@ -47,14 +47,17 @@ This slice is expected to add replay coverage. Create the replay test directory 
 
 - rolling stats use only available valid points
 - `rolling_std` uses sample standard deviation
-- `get_risk_summary` and `get_risk_change_profile` use a default `lookback_window` of 60 business days anchored on `as_of_date` and inclusive of `as_of_date`
+- `get_risk_summary` and `get_risk_change_profile` use a default `lookback_window` of 60 business days, defined as exactly 60 business days ending on `as_of_date` and inclusive of `as_of_date`
+- in v1, `get_risk_summary` and `get_risk_change_profile` accept `lookback_window` only when omitted or explicitly set to 60; any other value is unsupported
 - `get_risk_delta` does not accept or use `lookback_window`
+- `RiskChangeProfile.volatility_regime` uses the canonical normalized volatility policy defined in PRD-1.1-v2 `Volatility policy` as the normative source for `reference_level`, `volatility_ratio`, and zero-denominator classification
 - `RiskChangeProfile.volatility_regime` uses the canonical normalized `volatility_ratio` policy with bands:
   - `LOW` when `< 0.05`
   - `NORMAL` when `>= 0.05` and `< 0.15`
   - `ELEVATED` when `>= 0.15` and `< 0.30`
   - `HIGH` when `>= 0.30`
-- `RiskChangeProfile.volatility_change_flag` uses the canonical short-window versus baseline-window dispersion policy with:
+- `RiskChangeProfile.volatility_change_flag` uses the canonical short-window versus baseline-window dispersion policy defined in PRD-1.1-v2 `Volatility policy` as the normative source for `dispersion_change_ratio` and zero-denominator classification
+- `RiskChangeProfile.volatility_change_flag` uses:
   - `short_window = 10` business days
   - `baseline_window = 60` business days
   - `FALLING` when `short_std / baseline_std <= 0.80`
@@ -63,6 +66,7 @@ This slice is expected to add replay coverage. Create the replay test directory 
 - `volatility_regime` returns `INSUFFICIENT_HISTORY` when fewer than 20 valid baseline-window points are available
 - `volatility_change_flag` returns `INSUFFICIENT_HISTORY` when fewer than 5 valid short-window points or fewer than 20 valid baseline-window points are available
 - degraded or invalid history rows are excluded from volatility calculations, and if exclusions drop valid counts below the minimums the affected volatility output becomes `INSUFFICIENT_HISTORY`
+- zero-denominator and degenerate volatility cases follow PRD-1.1-v2 `Volatility policy` exactly and must not be re-inferred in implementation
 - volatility flags are deterministic and explicit
 - replay tests stable across repeated runs
 - degraded history handled explicitly

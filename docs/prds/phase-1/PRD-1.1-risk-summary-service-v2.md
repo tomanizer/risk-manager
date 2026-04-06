@@ -154,11 +154,12 @@ These apply to `get_risk_summary`, `get_risk_delta`, and `get_risk_change_profil
 ### Optional inputs for as-of-date retrieval
 
 - `compare_to_date`
-- `lookback_window`
 - `require_complete`
 - `snapshot_id`
 
 These apply to `get_risk_summary`, `get_risk_delta`, and `get_risk_change_profile`.
+
+`lookback_window` is an optional input for `get_risk_summary` and `get_risk_change_profile` only.
 
 `get_risk_history` uses the dedicated request shape defined in the API surface section below.
 
@@ -169,8 +170,9 @@ These apply to `get_risk_summary`, `get_risk_delta`, and `get_risk_change_profil
 - fixture and replay implementations must use the calendar pinned to the fixture or snapshot metadata
 - no consumer may infer business days independently
 - for `get_risk_summary` and `get_risk_change_profile`, if `lookback_window` is omitted, default to `60` business days
-- the `60`-business-day lookback window is anchored on `as_of_date` and includes `as_of_date`
+- for `get_risk_summary` and `get_risk_change_profile`, a `lookback_window` of `N` means a window of exactly `N` business days ending on `as_of_date`, inclusive of `as_of_date`; the start date is the `(N-1)`th prior business day from `as_of_date` per the canonical risk business-day resolver
 - `lookback_window` is business-day based only, using the canonical risk business-day resolver
+- in v1, `get_risk_summary` and `get_risk_change_profile` accept `lookback_window` only when omitted or explicitly set to `60`; any other value is an unsupported request
 - `lookback_window` does not apply to `get_risk_delta`
 - if `require_complete=true`, partial results must return an explicit degraded error/status
 - if `snapshot_id` is provided for as-of-date retrieval, retrieval must be pinned to that snapshot
