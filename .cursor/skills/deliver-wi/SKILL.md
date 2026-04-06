@@ -55,7 +55,7 @@ Default to **PM** when in doubt — it is always safe to run PM first.
 
 ## Step 4 — Fill the template
 
-Read the selected template file. Replace every `<PLACEHOLDER>` with the actual value from the WI and PRD.
+Read the selected template file. Replace the **exact bracketed placeholder string as written in the template** — including any descriptive suffix (e.g. `<CONTEXT — what has changed>` and `<CONTEXT>` are the same placeholder; replace whichever form appears).
 
 ### PM placeholder mapping
 
@@ -67,15 +67,17 @@ Read the selected template file. Replace every `<PLACEHOLDER>` with the actual v
 
 ### Coding placeholder mapping
 
+Use the PM implementation brief when one exists from a prior PM session. Fall back to the WI file verbatim only when invoking coding directly without a prior PM pass.
+
 - `<LINKED_PRD>` → path to PRD
 - `<ASSIGNED_WORK_ITEM>` → path to WI file
 - `<LINKED_ADRS>` → ADR paths
 - `<WORK_ITEM_ID>` → e.g. `WI-1.1.4`
-- `<BULLETED_SCOPE_LIST>` → scope section from WI, verbatim
-- `<TARGET_FILES>` → target area from WI
-- `<BULLETED_OUT_OF_SCOPE>` → out-of-scope from WI, verbatim
-- `<BULLETED_ACCEPTANCE_CRITERIA>` → acceptance criteria from WI, verbatim
-- `<BULLETED_STOP_CONDITIONS>` → stop conditions from WI, verbatim
+- `<BULLETED_SCOPE_LIST>` → scope from PM brief (if available) or WI file
+- `<TARGET_FILES>` → target area from PM brief (if available) or WI file
+- `<BULLETED_OUT_OF_SCOPE>` → out-of-scope from PM brief (if available) or WI file
+- `<BULLETED_ACCEPTANCE_CRITERIA>` → acceptance criteria from PM brief (if available) or WI file
+- `<BULLETED_STOP_CONDITIONS>` → stop conditions from PM brief (if available) or WI file
 
 ### Review placeholder mapping
 
@@ -118,7 +120,7 @@ python -m agent_runtime --dispatch
 # After the agent session completes:
 python -m agent_runtime \
   --complete-run <run_id> \
-  --outcome-status <ready|completed|changes_requested|blocked> \
+  --outcome-status <ready|completed|pass|changes_requested|blocked|split_required|needs_pm> \
   --summary "one-line summary"
 ```
 
