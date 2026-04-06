@@ -1,10 +1,12 @@
-"""Spec runner scaffold."""
+"""Spec runner — methodology and blocker resolution."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
+from .prompt_loader import load_system_prompt
 
 
 @dataclass(frozen=True)
@@ -23,7 +25,37 @@ def build_spec_prompt(input_data: SpecRunnerInput) -> str:
     )
 
 
+class SpecRunner:
+    """RunnerProtocol implementation for the spec/methodology role."""
+
+    def __init__(self, repo_root: Path) -> None:
+        self._repo_root = repo_root
+
+    @property
+    def runner_name(self) -> RunnerName:
+        return RunnerName.SPEC
+
+    def get_system_prompt(self) -> str:
+        return load_system_prompt(RunnerName.SPEC, self._repo_root)
+
+    def prepare(self, execution: RunnerExecution) -> RunnerResult:
+        if execution.runner_name is not RunnerName.SPEC:
+            raise RuntimeError("Spec dispatch received a non-spec runner execution")
+        return RunnerResult(
+            runner_name=execution.runner_name,
+            work_item_id=execution.work_item_id,
+            status=RunnerDispatchStatus.PREPARED,
+            summary=f"Prepared spec-resolution handoff for {execution.work_item_id}.",
+            prompt=execution.prompt,
+            details=dict(execution.metadata),
+        )
+
+    async def execute(self, execution: RunnerExecution) -> RunnerResult:
+        return self.prepare(execution)
+
+
 def dispatch_spec_execution(execution: RunnerExecution) -> RunnerResult:
+    """Backward-compatible dispatch entry point."""
     if execution.runner_name is not RunnerName.SPEC:
         raise RuntimeError("Spec dispatch received a non-spec runner execution")
     return RunnerResult(

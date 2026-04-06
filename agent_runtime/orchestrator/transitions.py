@@ -8,6 +8,7 @@ from agent_runtime.storage.sqlite import WorkflowRunRecord
 
 from .state import (
     NextActionType,
+    PullRequestSnapshot,
     RuntimeSnapshot,
     TransitionDecision,
     WorkItemSnapshot,
@@ -174,132 +175,117 @@ def _decision_from_completed_coding_outcome(
     return None
 
 
+def _decide_for_work_item(
+    work_item: WorkItemSnapshot,
+    pull_request: PullRequestSnapshot | None,
+    workflow_run: WorkflowRunRecord | None,
+) -> TransitionDecision:
+    """Evaluate the transition for a single eligible work item.
+
+    Shared core used by both ``decide_next_action`` (first-match) and
+    ``decide_all_actions`` (full-scan).
+    """
+    if pull_request is None:
+        coding_outcome = _decision_from_completed_coding_outcome(work_item, workflow_run)
+        if coding_outcome is not None:
+            return coding_outcome
+        pm_outcome = _decision_from_completed_pm_outcome(work_item, workflow_run)
+        if pm_outcome is not None:
+            return pm_outcome
+        return TransitionDecision(
+            action=NextActionType.RUN_PM,
+            work_item_id=work_item.id,
+            reason="ready item has no active PR; PM should issue or refresh the implementation brief",
+            target_path=work_item.path,
+        )
+
+    review_outcome = _decision_from_completed_review_outcome(
+        work_item,
+        pull_request.updated_at,
+        pull_request.number,
+        workflow_run,
+    )
+    if review_outcome is not None:
+        return review_outcome
+    pr_meta = {"pr_number": str(pull_request.number), "pr_url": pull_request.url or ""}
+    if pull_request.has_new_review_comments or pull_request.unresolved_review_threads > 0:
+        return TransitionDecision(
+            action=NextActionType.RUN_REVIEW,
+            work_item_id=work_item.id,
+            reason="PR has unresolved review feedback that should be triaged",
+            target_path=work_item.path,
+            metadata=pr_meta,
+        )
+    if pull_request.is_draft:
+        return TransitionDecision(
+            action=NextActionType.WAIT_FOR_REVIEWS,
+            work_item_id=work_item.id,
+            reason="draft PR is open and waiting for external review feedback",
+            target_path=work_item.path,
+            metadata=pr_meta,
+        )
+    if pull_request.ci_status in _FAILING_CI_STATES:
+        return TransitionDecision(
+            action=NextActionType.RUN_CODING,
+            work_item_id=work_item.id,
+            reason="PR checks are failing and need a coding pass",
+            target_path=work_item.path,
+            metadata={**pr_meta, "ci_status": pull_request.ci_status or ""},
+        )
+    if pull_request.ci_status in _PENDING_CI_STATES:
+        return TransitionDecision(
+            action=NextActionType.WAIT_FOR_REVIEWS,
+            work_item_id=work_item.id,
+            reason="PR checks are still running",
+            target_path=work_item.path,
+            metadata={**pr_meta, "ci_status": pull_request.ci_status or ""},
+        )
+    if pull_request.review_decision == "CHANGES_REQUESTED":
+        return TransitionDecision(
+            action=NextActionType.RUN_REVIEW,
+            work_item_id=work_item.id,
+            reason="PR has changes requested and should be triaged through review",
+            target_path=work_item.path,
+            metadata=pr_meta,
+        )
+    if pull_request.review_decision in {None, "REVIEW_REQUIRED"}:
+        return TransitionDecision(
+            action=NextActionType.WAIT_FOR_REVIEWS,
+            work_item_id=work_item.id,
+            reason="PR is open and waiting for review completion",
+            target_path=work_item.path,
+            metadata=pr_meta,
+        )
+    if pull_request.merge_state_status not in {None, *_READY_MERGE_STATES}:
+        return TransitionDecision(
+            action=NextActionType.RUN_CODING,
+            work_item_id=work_item.id,
+            reason="PR merge state requires branch updates or conflict resolution",
+            target_path=work_item.path,
+            metadata={**pr_meta, "merge_state_status": pull_request.merge_state_status or ""},
+        )
+    return TransitionDecision(
+        action=NextActionType.HUMAN_MERGE,
+        work_item_id=work_item.id,
+        reason="PR is ready for human merge review",
+        target_path=work_item.path,
+        metadata=pr_meta,
+    )
+
+
 def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
-    prs_by_work_item = {pull_request.work_item_id: pull_request for pull_request in snapshot.pull_requests}
-    workflow_runs_by_work_item = {workflow_run.work_item_id: workflow_run for workflow_run in snapshot.workflow_runs}
+    prs_by_work_item = {pr.work_item_id: pr for pr in snapshot.pull_requests}
+    workflow_runs_by_work_item = {wr.work_item_id: wr for wr in snapshot.workflow_runs}
 
     for work_item in snapshot.work_items:
         if work_item.stage is not WorkItemStage.READY:
             continue
         if not _dependencies_satisfied(work_item, snapshot):
             continue
-        pull_request = prs_by_work_item.get(work_item.id)
-        if pull_request is None:
-            coding_outcome_decision = _decision_from_completed_coding_outcome(
-                work_item,
-                workflow_runs_by_work_item.get(work_item.id),
-            )
-            if coding_outcome_decision is not None:
-                return coding_outcome_decision
-            pm_outcome_decision = _decision_from_completed_pm_outcome(
-                work_item,
-                workflow_runs_by_work_item.get(work_item.id),
-            )
-            if pm_outcome_decision is not None:
-                return pm_outcome_decision
-            return TransitionDecision(
-                action=NextActionType.RUN_PM,
-                work_item_id=work_item.id,
-                reason="ready item has no active PR; PM should issue or refresh the implementation brief",
-                target_path=work_item.path,
-            )
-        review_outcome_decision = _decision_from_completed_review_outcome(
+        return _decide_for_work_item(
             work_item,
-            pull_request.updated_at,
-            pull_request.number,
+            prs_by_work_item.get(work_item.id),
             workflow_runs_by_work_item.get(work_item.id),
-        )
-        if review_outcome_decision is not None:
-            return review_outcome_decision
-        if pull_request.has_new_review_comments or pull_request.unresolved_review_threads > 0:
-            return TransitionDecision(
-                action=NextActionType.RUN_REVIEW,
-                work_item_id=work_item.id,
-                reason="PR has unresolved review feedback that should be triaged",
-                target_path=work_item.path,
-                metadata={
-                    "pr_number": str(pull_request.number),
-                    "pr_url": pull_request.url or "",
-                },
-            )
-        if pull_request.is_draft:
-            return TransitionDecision(
-                action=NextActionType.WAIT_FOR_REVIEWS,
-                work_item_id=work_item.id,
-                reason="draft PR is open and waiting for external review feedback",
-                target_path=work_item.path,
-                metadata={
-                    "pr_number": str(pull_request.number),
-                    "pr_url": pull_request.url or "",
-                },
-            )
-        if pull_request.ci_status in _FAILING_CI_STATES:
-            return TransitionDecision(
-                action=NextActionType.RUN_CODING,
-                work_item_id=work_item.id,
-                reason="PR checks are failing and need a coding pass",
-                target_path=work_item.path,
-                metadata={
-                    "pr_number": str(pull_request.number),
-                    "pr_url": pull_request.url or "",
-                    "ci_status": pull_request.ci_status or "",
-                },
-            )
-        if pull_request.ci_status in _PENDING_CI_STATES:
-            return TransitionDecision(
-                action=NextActionType.WAIT_FOR_REVIEWS,
-                work_item_id=work_item.id,
-                reason="PR checks are still running",
-                target_path=work_item.path,
-                metadata={
-                    "pr_number": str(pull_request.number),
-                    "pr_url": pull_request.url or "",
-                    "ci_status": pull_request.ci_status or "",
-                },
-            )
-        if pull_request.review_decision == "CHANGES_REQUESTED":
-            return TransitionDecision(
-                action=NextActionType.RUN_REVIEW,
-                work_item_id=work_item.id,
-                reason="PR has changes requested and should be triaged through review",
-                target_path=work_item.path,
-                metadata={
-                    "pr_number": str(pull_request.number),
-                    "pr_url": pull_request.url or "",
-                },
-            )
-        if pull_request.review_decision in {None, "REVIEW_REQUIRED"}:
-            return TransitionDecision(
-                action=NextActionType.WAIT_FOR_REVIEWS,
-                work_item_id=work_item.id,
-                reason="PR is open and waiting for review completion",
-                target_path=work_item.path,
-                metadata={
-                    "pr_number": str(pull_request.number),
-                    "pr_url": pull_request.url or "",
-                },
-            )
-        if pull_request.merge_state_status not in {None, *_READY_MERGE_STATES}:
-            return TransitionDecision(
-                action=NextActionType.RUN_CODING,
-                work_item_id=work_item.id,
-                reason="PR merge state requires branch updates or conflict resolution",
-                target_path=work_item.path,
-                metadata={
-                    "pr_number": str(pull_request.number),
-                    "pr_url": pull_request.url or "",
-                    "merge_state_status": pull_request.merge_state_status or "",
-                },
-            )
-        return TransitionDecision(
-            action=NextActionType.HUMAN_MERGE,
-            work_item_id=work_item.id,
-            reason="PR is ready for human merge review",
-            target_path=work_item.path,
-            metadata={
-                "pr_number": str(pull_request.number),
-                "pr_url": pull_request.url or "",
-            },
         )
 
     return TransitionDecision(
@@ -307,3 +293,34 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
         work_item_id=None,
         reason="no ready work item is currently runnable",
     )
+
+
+def decide_all_actions(snapshot: RuntimeSnapshot) -> tuple[TransitionDecision, ...]:
+    """Return actionable decisions for *every* eligible work item.
+
+    This is the entry point that a parallel scheduler or LangGraph
+    ``Send`` API should use when dispatching concurrent agent runs.
+    Items that are blocked, non-ready, or have unsatisfied
+    dependencies are excluded.
+
+    Unlike ``decide_next_action``, this does not short-circuit on the
+    first match — it evaluates all ready work items in order.
+    """
+    prs_by_work_item = {pr.work_item_id: pr for pr in snapshot.pull_requests}
+    workflow_runs_by_work_item = {wr.work_item_id: wr for wr in snapshot.workflow_runs}
+    decisions: list[TransitionDecision] = []
+
+    for work_item in snapshot.work_items:
+        if work_item.stage is not WorkItemStage.READY:
+            continue
+        if not _dependencies_satisfied(work_item, snapshot):
+            continue
+        decisions.append(
+            _decide_for_work_item(
+                work_item,
+                prs_by_work_item.get(work_item.id),
+                workflow_runs_by_work_item.get(work_item.id),
+            )
+        )
+
+    return tuple(decisions)
