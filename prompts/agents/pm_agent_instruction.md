@@ -125,7 +125,7 @@ In these cases, route the blocker to PRD/spec, ADR, issue planner, or human deci
 
 ### Step 1 — Work summary (print first, plain text, not copy-paste)
 
-Before printing the handoff block, print a plain-text work summary so the operator has a record of what you found. Use this structure:
+Before printing the handoff block, print a plain-text work summary so the operator has a record of what you found. This step applies to all output paths — READY, BLOCKED, and SPLIT_REQUIRED. Use this structure:
 
 ```text
 --- PM Work Summary ---

@@ -127,7 +127,7 @@ Return:
 
 ### Step 1 — Work summary (print first, plain text, not copy-paste)
 
-Before printing the handoff block, print a plain-text work summary so the operator has a record of the review. Use this structure:
+Before printing the handoff block, print a plain-text work summary so the operator has a record of the review. This step applies to all output paths — PASS, CHANGES_REQUESTED, and BLOCKED. Use this structure:
 
 ```text
 --- Review Work Summary ---

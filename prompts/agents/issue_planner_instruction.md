@@ -57,7 +57,7 @@ In these cases, route the blocker to PM, PRD/spec, or human decision.
 
 ### Step 1 — Work summary (print first, plain text, not copy-paste)
 
-Before printing the handoff block, print a plain-text work summary so the operator has a record of the planning pass. Use this structure:
+Before printing the handoff block, print a plain-text work summary so the operator has a record of the planning pass. This step applies to all output paths — WIs created and blocked. Use this structure:
 
 ```text
 --- Issue Planner Work Summary ---

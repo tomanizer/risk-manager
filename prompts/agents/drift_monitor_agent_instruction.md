@@ -132,11 +132,11 @@ Return:
 
 ### Step 1 — Work summary (print first, plain text, not copy-paste)
 
-Before printing the handoff block, print a plain-text work summary so the operator has a record of the audit. Use this structure:
+Before printing the handoff block, print a plain-text work summary so the operator has a record of the audit. This step applies to all output paths — full audit, incomplete audit, and blocked. Use this structure:
 
 ```text
 --- Drift Monitor Work Summary ---
-Repo health    : GREEN | AMBER | RED
+Repo health    : HEALTHY | WATCH | DRIFTING
 Critical       : <count> findings
 Major          : <count> findings
 Minor          : <count> findings

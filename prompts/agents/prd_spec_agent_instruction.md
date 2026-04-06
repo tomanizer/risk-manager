@@ -134,14 +134,14 @@ A well-formed PRD or specification should contain:
 
 ### Step 1 — Work summary (print first, plain text, not copy-paste)
 
-Before printing the handoff block, print a plain-text work summary so the operator has a record of what was specified. Use this structure:
+Before printing the handoff block, print a plain-text work summary so the operator has a record of what was specified. This step applies to all output paths — new PRD, gap filled, and blocked. Use this structure:
 
 ```text
 --- PRD/Spec Work Summary ---
 Document       : <filename and PRD ID>
 Scope covered  : <one-line description of what capability was specified>
 Key decisions  : <bullet list — notable design or contract choices made>
-Open questions : <resolved / <count> remaining — brief note on any blockers>
+Open questions : <resolved | N remaining; brief note on any blockers if any>
 Routing        : Issue Planner (new decomposition needed) | PM (gap filled) | BLOCKED
 --- end summary ---
 ```

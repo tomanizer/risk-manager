@@ -126,7 +126,7 @@ In these cases, stop the implementation, describe the blocker precisely, and rou
 
 ### Step 1 — Work summary (print first, plain text, not copy-paste)
 
-Before printing the handoff block, print a plain-text work summary so the operator has a record of what was built. Use this structure:
+Before printing the handoff block, print a plain-text work summary so the operator has a record of what was built. This step applies to all output paths — PR open, CI failing, and stop condition. Use this structure:
 
 ```text
 --- Coding Work Summary ---
