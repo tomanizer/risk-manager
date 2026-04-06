@@ -170,6 +170,79 @@ def test_completed_pm_outcome_is_ignored_after_work_item_changes() -> None:
         assert decision.action is NextActionType.RUN_PM
 
 
+def test_completed_coding_outcome_routes_to_human_update_repo_when_no_pr_exists() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        work_item_path = Path(temp_dir) / "WI-1.1.4-risk-summary-core-service.md"
+        work_item_path.write_text("# WI-1.1.4\n", encoding="utf-8")
+        os.utime(work_item_path, (1577872000, 1577872000))
+
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-1.1.4-risk-summary-core-service",
+                    title="WI-1.1.4",
+                    path=work_item_path,
+                    stage=WorkItemStage.READY,
+                    dependencies=(),
+                ),
+            ),
+            workflow_runs=(
+                WorkflowRunRecord(
+                    work_item_id="WI-1.1.4-risk-summary-core-service",
+                    status="run_coding",
+                    run_id="coding-wi-1-1-4-test-run",
+                    last_action="run_coding",
+                    runner_name="coding",
+                    runner_status="completed",
+                    outcome_status="completed",
+                    outcome_summary="Implemented the requested slice and updated tests.",
+                    completed_at="2020-01-01 10:00:00",
+                ),
+            ),
+        )
+
+        decision = decide_next_action(snapshot)
+
+        assert decision.action is NextActionType.HUMAN_UPDATE_REPO
+        assert decision.metadata["coding_outcome_status"] == "completed"
+
+
+def test_completed_coding_outcome_is_ignored_after_work_item_changes() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        work_item_path = Path(temp_dir) / "WI-1.1.4-risk-summary-core-service.md"
+        work_item_path.write_text("# WI-1.1.4\n", encoding="utf-8")
+        os.utime(work_item_path, None)
+
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-1.1.4-risk-summary-core-service",
+                    title="WI-1.1.4",
+                    path=work_item_path,
+                    stage=WorkItemStage.READY,
+                    dependencies=(),
+                ),
+            ),
+            workflow_runs=(
+                WorkflowRunRecord(
+                    work_item_id="WI-1.1.4-risk-summary-core-service",
+                    status="run_coding",
+                    run_id="coding-wi-1-1-4-test-run",
+                    last_action="run_coding",
+                    runner_name="coding",
+                    runner_status="completed",
+                    outcome_status="completed",
+                    outcome_summary="Implemented the requested slice and updated tests.",
+                    completed_at="2020-01-01 10:00:00",
+                ),
+            ),
+        )
+
+        decision = decide_next_action(snapshot)
+
+        assert decision.action is NextActionType.RUN_PM
+
+
 def test_open_pr_with_unresolved_reviews_routes_to_review() -> None:
     snapshot = RuntimeSnapshot(
         work_items=(
@@ -258,6 +331,7 @@ def test_built_in_simulation_scenarios_cover_expected_actions() -> None:
         "draft-pr": NextActionType.WAIT_FOR_REVIEWS,
         "unresolved-review": NextActionType.RUN_REVIEW,
         "ready-for-merge": NextActionType.HUMAN_MERGE,
+        "failing-ci-pr": NextActionType.RUN_CODING,
         "noop": NextActionType.NOOP,
     }
 
@@ -623,6 +697,37 @@ def test_build_runner_execution_for_review_includes_pr_context() -> None:
     assert "PR #52" in execution.prompt
     assert "Base ref: origin/main" in execution.prompt
     assert execution.metadata["pr_number"] == "52"
+
+
+def test_build_runner_execution_for_coding_includes_base_ref() -> None:
+    snapshot = RuntimeSnapshot(
+        work_items=(
+            WorkItemSnapshot(
+                id="WI-1.1.4-risk-summary-core-service",
+                title="WI-1.1.4",
+                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
+                stage=WorkItemStage.READY,
+            ),
+        ),
+        pull_requests=(
+            PullRequestSnapshot(
+                work_item_id="WI-1.1.4-risk-summary-core-service",
+                number=52,
+                is_draft=False,
+                url="https://github.com/tomanizer/risk-manager/pull/52",
+                head_ref_name="codex/wi-1-1-4",
+                ci_status="FAILURE",
+            ),
+        ),
+    )
+
+    decision = decide_next_action(snapshot)
+    execution = build_runner_execution(snapshot, decision)
+
+    assert decision.action is NextActionType.RUN_CODING
+    assert execution is not None
+    assert execution.runner_name is RunnerName.CODING
+    assert "Base ref: origin/codex/wi-1-1-4" in execution.prompt
 
 
 def test_build_runner_execution_preserves_decision_metadata() -> None:

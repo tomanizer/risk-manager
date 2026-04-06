@@ -20,3 +20,8 @@ The review runner now supports the same two modes:
 
 - `prepared` (default): manual handoff only
 - `codex_exec`: opt-in real backend using the local `codex exec` CLI
+
+The coding runner now supports the same two modes:
+
+- `prepared` (default): manual handoff only
+- `codex_exec`: opt-in real backend using the local `codex exec` CLI
