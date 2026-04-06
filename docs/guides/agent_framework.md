@@ -188,6 +188,64 @@ git pull --ff-only origin main
 
 For reviews, then checkout the PR head. For coding, create a fresh branch from `main`. Agents must not work from stale local state.
 
+## Local environment setup
+
+Before using any tool with this repository, configure your local environment
+with the API keys for the providers you plan to use.
+
+### 1. Copy the environment template
+
+```bash
+cp .env.example .env
+```
+
+`.env` is gitignored and must never be committed. `.env.example` documents
+every available variable and is the committed source of truth for the
+configuration schema.
+
+### 2. Fill in your API keys
+
+Open `.env` and uncomment the keys for the providers you want to use.
+All keys are optional; the runtime and agents skip providers that have no
+key set.
+
+| Provider | Variable | Where to get it |
+| --- | --- | --- |
+| OpenAI | `OPENAI_API_KEY` | [platform.openai.com/api-keys](https://platform.openai.com/api-keys) |
+| Anthropic / Claude | `ANTHROPIC_API_KEY` | [console.anthropic.com/keys](https://console.anthropic.com/keys) |
+| Google Gemini | `GEMINI_API_KEY` or `GOOGLE_API_KEY` | [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) |
+| Cursor | `CURSOR_API_KEY` | Cursor account settings |
+| LangSmith (tracing) | `LANGCHAIN_API_KEY` | [smith.langchain.com](https://smith.langchain.com) |
+| LangGraph Cloud | `LANGGRAPH_API_KEY` | LangGraph Cloud console |
+
+### 3. (Optional) Enable LangSmith tracing
+
+```bash
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_API_KEY=ls__...
+LANGCHAIN_PROJECT=risk-manager
+```
+
+### 4. Install the pre-push hook
+
+The `.githooks/pre-push` hook runs `ruff`, `ruff format`, and `mypy`
+before every push, matching the CI `lint-and-test` job. Activate it once
+per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+### Configuration reference
+
+See `agent_runtime/config/README.md` for:
+
+- the full variable reference for all providers and agent runtime backends
+- the Python `get_settings()` API for consuming config in code
+- testing patterns with `cache_clear()`
+
+---
+
 ## Tool-specific setup
 
 ### Cursor
@@ -439,7 +497,7 @@ The relay is designed to stop and escalate rather than guess. A stopped agent wi
 ## File reference
 
 | File | Purpose |
-|------|---------|
+| --- | --- |
 | `AGENTS.md` | Master role definitions, handoff model, repo rules |
 | `CLAUDE.md` | Claude Code / Cursor role routing |
 | `GEMINI.md` | Gemini role routing |
