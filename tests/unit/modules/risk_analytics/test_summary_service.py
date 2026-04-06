@@ -39,6 +39,7 @@ D_12 = date(2026, 1, 12)
 # NodeRef helpers
 # ---------------------------------------------------------------------------
 
+
 def desk_toh(node_id: str = "DESK_RATES_MACRO") -> NodeRef:
     return NodeRef(
         hierarchy_scope=HierarchyScope.TOP_OF_HOUSE,
@@ -82,6 +83,7 @@ def book_toh(node_id: str) -> NodeRef:
 # ---------------------------------------------------------------------------
 # Rolling-stat helpers for expected-value computation
 # ---------------------------------------------------------------------------
+
 
 def _mean(values: list[float]) -> float:
     return sum(values) / len(values)
