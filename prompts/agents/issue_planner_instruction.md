@@ -52,3 +52,25 @@ Stop and escalate rather than producing a work item when:
 - the acceptance criteria cannot be stated concretely enough for a review agent to judge pass/fail
 
 In these cases, route the blocker to PM, PRD/spec, or human decision.
+
+## Handoff output
+
+After producing the new work items, print a handoff for the PM agent so it can immediately assess readiness without manual template filling.
+
+Fill `prompts/agents/invocation_templates/pm_invocation.md` and print:
+
+```text
+Paste this into a FRESH PM Agent session (new chat / new Codex session):
+```
+
+Followed by the filled prompt. Set context to: which WIs were just created, what triggered the planning pass (blocker, split request, or new PRD), and which existing WIs in `done/` or `ready/` are now relevant dependencies.
+
+### If you hit a stop condition
+
+Print:
+
+```text
+BLOCKED — action required before decomposition:
+```
+
+Followed by the exact blocker (missing ADR, ambiguous PRD, unapproved cross-boundary work) and the owner (PM / PRD/spec / human).

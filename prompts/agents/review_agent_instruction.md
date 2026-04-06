@@ -61,3 +61,37 @@ Return:
 3. missing tests
 4. scope creep detected
 5. required changes before merge
+
+## Handoff output
+
+After completing your review, produce a handoff prompt for the next agent. Print it as a copy-paste-ready block.
+
+### If PASS
+
+Print the merge recommendation, then:
+
+```text
+Ready to merge — action for human:
+```
+
+Followed by: the PR URL, a one-line summary of what was verified, and confirmation that no required changes remain.
+
+### If CHANGES_REQUESTED
+
+Fill `prompts/agents/invocation_templates/coding_invocation.md` and print:
+
+```text
+Paste this into a FRESH Coding Agent session (new chat / new Codex session):
+```
+
+Followed by the filled prompt. For the scope and stop conditions, use the original WI values plus the required changes from your review as an additional constraint block. Make the required changes explicit — not buried in prose.
+
+### If BLOCKED (systemic problem requiring PM or architecture input)
+
+Fill `prompts/agents/invocation_templates/pm_invocation.md` and print:
+
+```text
+Paste this into a FRESH PM Agent session (new chat / new Codex session):
+```
+
+Followed by the filled prompt. Set context to the review finding that cannot be resolved by a coding fix alone.

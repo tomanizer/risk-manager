@@ -127,3 +127,28 @@ Return:
 6. owner and routing recommendation for each material finding
 7. whether any duplication is sanctioned and acceptable
 8. smallest next action for each critical or major finding to restore coherence
+
+## Handoff output
+
+After producing the audit report, generate a handoff for the PM agent to triage and action the findings.
+
+Fill `prompts/agents/invocation_templates/pm_invocation.md` and print:
+
+```text
+Paste this into a FRESH PM Agent session (new chat / new Codex session):
+```
+
+Followed by the filled prompt. Set:
+
+- context to: the overall health status, the count of critical and major findings, and a one-line summary of the most urgent issue
+- task to: "Triage the drift monitor findings. For each critical and major finding: confirm the routing, create or update work items as needed, and identify any that require human or architecture input before work items can be created."
+
+### If the audit is incomplete (stop condition hit)
+
+Do not produce a PM handoff for findings you could not verify. Instead print:
+
+```text
+AUDIT INCOMPLETE — blocked areas require attention:
+```
+
+Followed by which areas could not be audited, why, and the owner needed to unblock each.

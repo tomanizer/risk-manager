@@ -97,3 +97,37 @@ In these cases, route the blocker to PRD/spec, ADR, issue planner, or human deci
 - redesigning module or workflow boundaries casually
 - treating draft ideas as approved canon
 - asking the coding agent to decide semantics that belong in docs
+
+## Handoff output
+
+After completing your assessment, produce a handoff prompt for the next agent. Print it as a copy-paste-ready block so the operator can open a fresh session without manual template filling.
+
+### If the work item is READY
+
+Fill `prompts/agents/invocation_templates/coding_invocation.md` with actual values from your implementation brief and print:
+
+```text
+Paste this into a FRESH Coding Agent session (new chat / new Codex session):
+```
+
+Followed by the filled prompt. The brief you just produced is the authoritative source for scope, target area, out-of-scope, acceptance targets, and stop conditions — use it verbatim, not the raw WI file.
+
+### If the work item is BLOCKED
+
+Print:
+
+```text
+BLOCKED — action required before coding:
+```
+
+Followed by the exact blocker, the owner (PRD/spec, ADR, issue planner, or human), and the smallest action needed to unblock.
+
+### If SPLIT_REQUIRED
+
+Fill `prompts/agents/invocation_templates/issue_planner_invocation.md` and print:
+
+```text
+Paste this into a FRESH Issue Planner Agent session (new chat / new Codex session):
+```
+
+Followed by the filled prompt with your proposed split rationale as context.
