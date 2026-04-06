@@ -8,7 +8,12 @@ import os
 from pathlib import Path
 import subprocess
 
-from agent_runtime.runners.contracts import RunnerExecution, RunnerName, RunnerResult
+from agent_runtime.runners.contracts import (
+    RunnerDispatchStatus,
+    RunnerExecution,
+    RunnerName,
+    RunnerResult,
+)
 
 from .github_sync import infer_github_repository
 
@@ -40,7 +45,7 @@ def maybe_publish_completed_coding_run(
         return None
     if execution.runner_name is not RunnerName.CODING or runner_result.runner_name is not RunnerName.CODING:
         return None
-    if runner_result.status.value != "completed" or runner_result.outcome_status != "completed":
+    if runner_result.status is not RunnerDispatchStatus.COMPLETED or runner_result.outcome_status != "completed":
         return None
     if execution.metadata.get("pr_number"):
         return None
@@ -64,6 +69,16 @@ def maybe_publish_completed_coding_run(
             summary="Coding PR publication requires an allocated worktree path and branch name.",
             details={"pr_publication_backend": backend_name},
         )
+    if not Path(worktree_path).exists():
+        return PullRequestPublicationResult(
+            status="failed",
+            summary=f"Coding PR publication requires an existing worktree path: {worktree_path}",
+            details={
+                "pr_publication_backend": backend_name,
+                "branch_name": branch_name,
+                "base_ref": base_ref,
+            },
+        )
 
     repository = infer_github_repository(repo_root)
     if repository is None:
@@ -73,7 +88,18 @@ def maybe_publish_completed_coding_run(
             details={"pr_publication_backend": backend_name},
         )
 
-    ahead_count = _count_branch_ahead(Path(worktree_path), base_ref)
+    try:
+        ahead_count = _count_branch_ahead(Path(worktree_path), base_ref)
+    except RuntimeError as error:
+        return PullRequestPublicationResult(
+            status="failed",
+            summary=str(error),
+            details={
+                "pr_publication_backend": backend_name,
+                "branch_name": branch_name,
+                "base_ref": base_ref,
+            },
+        )
     if ahead_count is None:
         return PullRequestPublicationResult(
             status="failed",
@@ -107,7 +133,18 @@ def maybe_publish_completed_coding_run(
             },
         )
 
-    existing_pr = _find_open_pull_request(repo_root, repository.full_name, branch_name)
+    try:
+        existing_pr = _find_open_pull_request(repo_root, repository.full_name, branch_name)
+    except RuntimeError as error:
+        return PullRequestPublicationResult(
+            status="failed",
+            summary=str(error),
+            details={
+                "pr_publication_backend": backend_name,
+                "branch_name": branch_name,
+                "base_ref": base_ref,
+            },
+        )
     if existing_pr is not None:
         return PullRequestPublicationResult(
             status="existing",
@@ -121,13 +158,24 @@ def maybe_publish_completed_coding_run(
             },
         )
 
-    create_error = _create_draft_pull_request(
-        repo_root=repo_root,
-        repository_full_name=repository.full_name,
-        work_item_id=execution.work_item_id,
-        branch_name=branch_name,
-        base_branch=_normalize_base_branch(base_ref),
-    )
+    try:
+        create_error = _create_draft_pull_request(
+            repo_root=repo_root,
+            repository_full_name=repository.full_name,
+            work_item_id=execution.work_item_id,
+            branch_name=branch_name,
+            base_branch=_normalize_base_branch(base_ref),
+        )
+    except RuntimeError as error:
+        return PullRequestPublicationResult(
+            status="failed",
+            summary=str(error),
+            details={
+                "pr_publication_backend": backend_name,
+                "branch_name": branch_name,
+                "base_ref": base_ref,
+            },
+        )
     if create_error is not None:
         return PullRequestPublicationResult(
             status="failed",
@@ -139,7 +187,18 @@ def maybe_publish_completed_coding_run(
             },
         )
 
-    created_pr = _find_open_pull_request(repo_root, repository.full_name, branch_name)
+    try:
+        created_pr = _find_open_pull_request(repo_root, repository.full_name, branch_name)
+    except RuntimeError as error:
+        return PullRequestPublicationResult(
+            status="failed",
+            summary=str(error),
+            details={
+                "pr_publication_backend": backend_name,
+                "branch_name": branch_name,
+                "base_ref": base_ref,
+            },
+        )
     if created_pr is None:
         return PullRequestPublicationResult(
             status="failed",
@@ -171,13 +230,16 @@ class _ExistingPullRequest:
 
 
 def _count_branch_ahead(worktree_path: Path, base_ref: str) -> int | None:
-    result = subprocess.run(
-        ["git", "rev-list", "--left-right", "--count", f"{base_ref}...HEAD"],
-        cwd=worktree_path,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "rev-list", "--left-right", "--count", f"{base_ref}...HEAD"],
+            cwd=worktree_path,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as error:
+        raise RuntimeError(f"Coding PR publication failed to inspect branch ancestry: {error}") from error
     if result.returncode != 0:
         return None
     parts = result.stdout.strip().split()
@@ -190,13 +252,16 @@ def _count_branch_ahead(worktree_path: Path, base_ref: str) -> int | None:
 
 
 def _push_branch(worktree_path: Path, branch_name: str) -> str | None:
-    result = subprocess.run(
-        ["git", "push", "-u", "origin", branch_name],
-        cwd=worktree_path,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "push", "-u", "origin", branch_name],
+            cwd=worktree_path,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as error:
+        return f"git push could not start: {error}"
     if result.returncode == 0:
         return None
     return (result.stderr or result.stdout).strip() or f"git push exited with status {result.returncode}"
@@ -207,25 +272,28 @@ def _find_open_pull_request(
     repository_full_name: str,
     branch_name: str,
 ) -> _ExistingPullRequest | None:
-    result = subprocess.run(
-        [
-            "gh",
-            "pr",
-            "list",
-            "--repo",
-            repository_full_name,
-            "--head",
-            branch_name,
-            "--state",
-            "open",
-            "--json",
-            "number,url",
-        ],
-        cwd=repo_root,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            [
+                "gh",
+                "pr",
+                "list",
+                "--repo",
+                repository_full_name,
+                "--head",
+                branch_name,
+                "--state",
+                "open",
+                "--json",
+                "number,url",
+            ],
+            cwd=repo_root,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as error:
+        raise RuntimeError(f"Coding PR publication could not inspect existing PRs: {error}") from error
     if result.returncode != 0:
         return None
     try:
@@ -263,28 +331,31 @@ def _create_draft_pull_request(
         "- opened automatically by `agent_runtime`\n"
         f"- branch: `{branch_name}`\n"
     )
-    result = subprocess.run(
-        [
-            "gh",
-            "pr",
-            "create",
-            "--repo",
-            repository_full_name,
-            "--draft",
-            "--base",
-            base_branch,
-            "--head",
-            branch_name,
-            "--title",
-            title,
-            "--body",
-            body,
-        ],
-        cwd=repo_root,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    try:
+        result = subprocess.run(
+            [
+                "gh",
+                "pr",
+                "create",
+                "--repo",
+                repository_full_name,
+                "--draft",
+                "--base",
+                base_branch,
+                "--head",
+                branch_name,
+                "--title",
+                title,
+                "--body",
+                body,
+            ],
+            cwd=repo_root,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    except OSError as error:
+        raise RuntimeError(f"Coding PR publication could not create a draft PR: {error}") from error
     if result.returncode == 0:
         return None
     return (result.stderr or result.stdout).strip() or f"gh pr create exited with status {result.returncode}"
