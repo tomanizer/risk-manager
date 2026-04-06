@@ -137,6 +137,11 @@ Ready to merge — action for human:
 PR: [PR URL]
 Verified: [one-line summary of what was checked and passed]
 Required changes: none
+
+After merging:
+  Tell deliver-wi: "PR #[PR number] for [WI-ID] is merged"
+  The skill will route to a fresh PM Agent session.
+  The PM agent will promote the WI from ready/ to done/ and identify the next work item.
 ```
 
 ### If CHANGES_REQUESTED

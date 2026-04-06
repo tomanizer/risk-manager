@@ -75,6 +75,30 @@ If you cannot name what the tests need to prove, the slice is not ready.
 - nightly assignment recommendations
 - morning status summaries
 - review triage classifications
+- work item promotion (ready/ → done/)
+
+## Post-merge promotion
+
+When told that a PR has been merged and a WI needs promoting:
+
+1. Confirm the WI file is still in `work_items/ready/`.
+2. Promote it on a fresh branch:
+
+```bash
+git fetch origin && git switch main && git pull --ff-only origin main
+git checkout -b chore/promote-<WI-ID>-done
+git mv work_items/ready/<WI-filename> work_items/done/
+git add work_items/
+git commit -m "chore: promote <WI-ID> to done"
+git push -u origin chore/promote-<WI-ID>-done
+gh pr create \
+  --title "chore: promote <WI-ID> to done" \
+  --body "WI completed and merged in PR #<PR-number>. Moving from ready/ to done/."
+```
+
+1. After opening the promotion PR, immediately assess the next ready work item and produce the next implementation brief or identify blockers.
+
+Do not skip the promotion PR — branch protection requires it. Do not mark the WI as done by editing the file contents; only the directory move is required.
 
 ## Stop conditions
 

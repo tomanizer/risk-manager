@@ -20,6 +20,38 @@ Before doing anything else, print this exact line so the user knows the skill is
 [deliver-wi] Skill active. Finding next work item and building agent prompt...
 ```
 
+## Step 0 — Handle a just-merged PR (short-circuit)
+
+If the user says something like "PR #X is merged", "PR for WI-X.Y.Z was merged", or "just merged PR #X":
+
+WI promotion is the PM agent's job — it owns backlog state. Do not run `git mv` or open commits yourself.
+
+Instead, fill `prompts/agents/invocation_templates/pm_invocation.md` and print one block:
+
+```text
+Paste this into a FRESH PM Agent session (new chat / new Codex session):
+Recommended model: Sonnet (or equivalent mid-tier)
+
+You are the PM / Coordination Agent for this repository.
+
+Work from current `main`.
+
+Read in order:
+- AGENTS.md
+- prompts/agents/pm_agent_instruction.md
+- work_items/READY_CRITERIA.md
+- [path to the WI file that was just merged, still in ready/ until promoted]
+
+Context:
+PR #[PR number] implementing [WI-ID] has been merged. The WI has not yet been promoted.
+
+Task:
+1. Promote [WI-ID]: git mv work_items/ready/[WI filename] work_items/done/, commit on a fresh branch, open a promotion PR.
+2. Then assess the next ready work item and produce an implementation brief.
+```
+
+Do not proceed to Step 1 until the user confirms the PM session is complete or asks to continue.
+
 ## Step 1 — Identify the work item
 
 If the user named a specific WI, use it. Otherwise:
