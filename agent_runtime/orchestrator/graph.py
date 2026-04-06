@@ -123,6 +123,11 @@ def build_runtime_snapshot(repo_root: Path, state_db_path: Path) -> RuntimeSnaps
     work_items, warnings = load_work_items(repo_root)
     pull_requests, github_warnings = fetch_pull_requests(repo_root, work_items)
     workflow_runs = load_workflow_runs(state_db_path)
+    # drift_critical_findings / drift_summary_md are intentionally not populated
+    # here — running the full drift suite on every poll tick adds 5–10 s of latency.
+    # Drift gating is handled by the --governance pre-step, which runs before the
+    # snapshot/dispatch loop and returns early when critical findings are present.
+    # These fields are reserved for a future lightweight inline check.
     return RuntimeSnapshot(
         work_items=work_items,
         pull_requests=pull_requests,
