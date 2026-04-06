@@ -87,7 +87,7 @@ When told that a PR has been merged and a WI needs promoting:
 ```bash
 git fetch origin && git switch main && git pull --ff-only origin main
 git switch -c chore/promote-<WI-ID>-done
-git mv work_items/ready/<exact-WI-filename> work_items/done/
+git mv work_items/ready/<WI-ID>-*.md work_items/done/
 git commit -m "chore: promote <WI-ID> to done"
 git push -u origin chore/promote-<WI-ID>-done
 gh pr create \
