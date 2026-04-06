@@ -66,7 +66,6 @@ def test_classify_loop_payload_retries_on_first_failure() -> None:
         "runner_result": {
             "status": "failed",
         },
-        "retry_count": 0,
     }
 
     control = classify_loop_payload(payload, 300)

@@ -161,7 +161,6 @@ _DEFAULT_COLUMN_DEFINITIONS = {
     "outcome_details_json": "TEXT NOT NULL DEFAULT '{}'",
     "retry_count": "INTEGER NOT NULL DEFAULT 0",
     "completed_at": "TEXT",
-    "retry_count": "INTEGER NOT NULL DEFAULT 0",
     "updated_at": "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
 }
 
@@ -507,25 +506,6 @@ def record_workflow_outcome(
         connection.commit()
 
     return load_workflow_run_by_run_id(db_path, run_id)
-
-
-def mark_workflow_run_running(db_path: Path, work_item_id: str, retry_count: int = 0) -> None:
-    """Write runner_status='running' immediately before a blocking dispatch.
-
-    This allows a restarted supervisor to detect orphaned in-flight runs by
-    looking for rows where runner_status='running' and updated_at is stale.
-    """
-    initialize_database(db_path)
-    with sqlite3.connect(db_path) as connection:
-        connection.execute(
-            """
-            UPDATE workflow_runs
-            SET runner_status = 'running', retry_count = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE work_item_id = ?
-            """,
-            (retry_count, work_item_id),
-        )
-        connection.commit()
 
 
 def insert_worktree_lease(db_path: Path, record: WorktreeLeaseRecord) -> None:
