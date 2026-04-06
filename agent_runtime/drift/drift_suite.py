@@ -12,6 +12,7 @@ from .dependency_hygiene import DependencyHygieneReport, build_dependency_hygien
 from .instruction_surfaces import InstructionSurfaceReport, build_instruction_surface_report
 from .reference_integrity import ReferenceScanReport, build_reference_scan_report
 from .registry_alignment import RegistryAlignmentReport, build_registry_alignment_report
+from .surface_liveness import SurfaceLivenessReport, build_surface_liveness_report
 
 
 BASELINE_VERSION = 1
@@ -26,6 +27,7 @@ _ReportT = (
     | InstructionSurfaceReport
     | ReferenceScanReport
     | RegistryAlignmentReport
+    | SurfaceLivenessReport
 )
 
 
@@ -217,6 +219,12 @@ _SCANNERS: tuple[_ScannerSpec, ...] = (
         artifact_name="registry_alignment.json",
         build_report=build_registry_alignment_report,
     ),
+    _ScannerSpec(
+        scan_name="surface_liveness",
+        title="Surface Liveness",
+        artifact_name="surface_liveness.json",
+        build_report=build_surface_liveness_report,
+    ),
 )
 
 _SIGNATURE_FIELDS: dict[str, tuple[str, ...]] = {
@@ -226,6 +234,7 @@ _SIGNATURE_FIELDS: dict[str, tuple[str, ...]] = {
     "instruction_surfaces": ("kind", "source_path", "related_paths"),
     "reference_integrity": ("kind", "source_file", "source_line", "reference"),
     "registry_alignment": ("kind", "component_id", "implementation_path", "registry_path"),
+    "surface_liveness": ("kind", "source_path", "source_line", "related_path"),
 }
 
 
@@ -589,6 +598,14 @@ def _summary_anchor(finding: DriftSuiteFinding) -> str:
         kind = raw["kind"]
         implementation_path = raw.get("implementation_path") or raw["registry_path"]
         return f"{component_id} `{kind}` `{implementation_path}`"
+    if finding.scan_name == "surface_liveness":
+        source_line = raw.get("source_line")
+        related_path = raw.get("related_path")
+        if source_line is None:
+            return f"{raw['source_path']} `{raw['kind']}`"
+        if related_path is None:
+            return f"{raw['source_path']}:{source_line} `{raw['kind']}`"
+        return f"{raw['source_path']}:{source_line} `{related_path}`"
     return finding.kind
 
 

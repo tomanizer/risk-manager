@@ -11,6 +11,7 @@ Recommended local output paths:
 - `artifacts/drift/latest_report.json`
 - `artifacts/drift/reference_integrity.json`
 - `artifacts/drift/registry_alignment.json`
+- `artifacts/drift/surface_liveness.json`
 - `artifacts/drift/summary.md`
 
 Tracked baseline:
