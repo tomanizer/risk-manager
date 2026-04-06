@@ -409,7 +409,6 @@ def load_workflow_run(db_path: Path, work_item_id: str) -> WorkflowRunRecord | N
                 outcome_details_json,
                 retry_count,
                 completed_at,
-                retry_count,
                 updated_at
             FROM workflow_runs
             WHERE work_item_id = ?
@@ -443,7 +442,6 @@ def load_workflow_run_by_run_id(db_path: Path, run_id: str) -> WorkflowRunRecord
                 outcome_details_json,
                 retry_count,
                 completed_at,
-                retry_count,
                 updated_at
             FROM workflow_runs
             WHERE run_id = ?
@@ -477,7 +475,6 @@ def load_workflow_runs(db_path: Path) -> tuple[WorkflowRunRecord, ...]:
                 outcome_details_json,
                 retry_count,
                 completed_at,
-                retry_count,
                 updated_at
             FROM workflow_runs
             ORDER BY updated_at DESC
