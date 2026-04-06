@@ -11,6 +11,7 @@ class RuntimeDefaults:
     repo_root: Path
     poll_interval_seconds: int = 600
     state_db_relative_path: str = ".agent_runtime/state.db"
+    supervisor_lock_relative_path: str = ".agent_runtime/supervisor.lock"
     worktree_root_dirname: str | None = None
     ready_work_items_relative_path: str = "work_items/ready"
     in_progress_work_items_relative_path: str = "work_items/in_progress"
@@ -19,6 +20,10 @@ class RuntimeDefaults:
     @property
     def state_db_path(self) -> Path:
         return self.repo_root / self.state_db_relative_path
+
+    @property
+    def supervisor_lock_path(self) -> Path:
+        return self.repo_root / self.supervisor_lock_relative_path
 
     @property
     def worktree_root_path(self) -> Path:

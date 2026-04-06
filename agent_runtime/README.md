@@ -61,6 +61,7 @@ You can test relay decisions without real GitHub state:
 .venv/bin/python -m agent_runtime --list-scenarios
 .venv/bin/python -m agent_runtime --simulate ready-no-pr
 .venv/bin/python -m agent_runtime --simulate unresolved-review
+.venv/bin/python -m agent_runtime --simulate failing-ci-pr
 ```
 
 ## Live relay decision
@@ -68,6 +69,35 @@ You can test relay decisions without real GitHub state:
 ```bash
 .venv/bin/python -m agent_runtime
 ```
+
+## Supervised loop commands
+
+Run one supervised cycle with repo-level locking and heartbeat persistence:
+
+```bash
+.venv/bin/python -m agent_runtime --run-once
+```
+
+Run the supervised poll loop:
+
+```bash
+.venv/bin/python -m agent_runtime --poll
+```
+
+Optional loop settings:
+
+```bash
+.venv/bin/python -m agent_runtime --poll --poll-interval-seconds 300 --max-iterations 12
+```
+
+The supervisor loop:
+
+- acquires a single-repo lock at `.agent_runtime/supervisor.lock`
+- persists heartbeat and last-action state in SQLite
+- dispatches one eligible runner per iteration
+- continues automatically after completed automatic runs
+- sleeps on `wait_for_reviews` and `noop`
+- stops cleanly on `human_update_repo`, `human_merge`, prepared manual handoffs, and failed runs
 
 ## Build the next runner invocation
 
@@ -247,3 +277,23 @@ The initial built-in scenarios cover:
 - PR ready for human merge
 - PR with failing CI that routes to coding
 - no runnable work
+
+## Inspecting persisted state
+
+Check workflow runs:
+
+```bash
+sqlite3 .agent_runtime/state.db 'select work_item_id, run_id, status, runner_name, runner_status, outcome_status, outcome_summary, completed_at, updated_at from workflow_runs order by updated_at desc;'
+```
+
+Check worktree leases:
+
+```bash
+sqlite3 .agent_runtime/state.db 'select run_id, work_item_id, runner_name, branch_name, worktree_path, status, created_at, released_at from worktree_leases order by created_at desc;'
+```
+
+Check supervisor state:
+
+```bash
+sqlite3 .agent_runtime/state.db 'select status, mode, heartbeat_at, last_started_at, last_completed_at, last_action, last_reason, active_run_id, updated_at from supervisor_state;'
+```
