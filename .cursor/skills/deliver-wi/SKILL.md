@@ -90,13 +90,27 @@ Use the PM implementation brief when one exists from a prior PM session. Fall ba
 
 ## Step 5 — Output the filled prompt
 
-Print the filled prompt in a fenced code block with this header above it:
+Print the filled prompt as one fenced block. The first two lines of the block are always the session header and the recommended model. Use this model table:
+
+| Role | Recommended model |
+|------|------------------|
+| PM | Sonnet (or equivalent mid-tier) |
+| Issue Planner | GPT-4 mini or Composer (cheapest available) |
+| Coding | Sonnet — bump to Opus / GPT-5.4 if the WI is complex or a prior coding pass failed review |
+| Review | Sonnet (or equivalent mid-tier) |
+| PRD/Spec Author | Sonnet minimum — Opus / GPT-5.4 for methodology-heavy specs |
+| Drift Monitor | Sonnet (or equivalent mid-tier) |
+
+The block shape is:
 
 ```text
 Paste this into a FRESH [Role] agent session (new chat / new Codex session):
+Recommended model: [model from table above]
+
+[complete filled invocation template content]
 ```
 
-The user copies this and pastes it into a new chat. You do not act on it.
+The user opens a new chat, selects the recommended model, then pastes the whole block. You do not act on it.
 
 ## Step 6 — Add the freshness reminder
 
