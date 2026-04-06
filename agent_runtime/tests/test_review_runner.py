@@ -19,7 +19,7 @@ def test_dispatch_review_execution_uses_prepared_backend_by_default() -> None:
         metadata={"pr_number": "71", "target_path": "work_items/ready/WI-1.1.4-risk-summary-core-service.md"},
     )
 
-    with patch.dict("os.environ", {"AGENT_RUNTIME_REVIEW_BACKEND": "prepared"}, clear=False):
+    with patch.dict("os.environ", {}, clear=True):
         result = dispatch_review_execution(execution)
 
     assert result.status is RunnerDispatchStatus.PREPARED
