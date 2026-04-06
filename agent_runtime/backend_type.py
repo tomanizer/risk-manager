@@ -19,3 +19,13 @@ class BackendType(str, Enum):
     OPENAI_API = "openai_api"
     ANTHROPIC_API = "anthropic_api"
     CURSOR_API = "cursor_api"
+
+    @classmethod
+    def _missing_(cls, value: object) -> BackendType | None:
+        """Accept env-style values with surrounding whitespace and mixed case."""
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            for member in cls:
+                if member.value == normalized:
+                    return member
+        return None

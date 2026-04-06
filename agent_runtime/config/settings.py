@@ -220,7 +220,6 @@ class AgentRuntimeConfig(BaseSettings):
     coding_openai_model: str = "gpt-4o"
     coding_anthropic_model: str = "claude-sonnet-4-20250514"
     coding_cursor_model: str = "cursor-fast"
-    coding_tool_max_iterations: int = 50
 
     # -- Spec --
     spec_backend: BackendType = BackendType.PREPARED

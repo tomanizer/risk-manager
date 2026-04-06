@@ -58,6 +58,18 @@ def test_backend_override_via_env_var() -> None:
             get_settings.cache_clear()
 
 
+def test_backend_type_accepts_whitespace_and_mixed_case() -> None:
+    assert BackendType("  codex_exec ") is BackendType.CODEX_EXEC
+    assert BackendType("CODEX_EXEC") is BackendType.CODEX_EXEC
+    assert BackendType("PREPARED") is BackendType.PREPARED
+
+
+def test_agent_runtime_config_normalizes_backend_env_strings() -> None:
+    with patch.dict("os.environ", {"AGENT_RUNTIME_PM_BACKEND": "\tCODEX_EXEC "}, clear=False):
+        cfg = AgentRuntimeConfig()
+    assert cfg.pm_backend is BackendType.CODEX_EXEC
+
+
 def test_get_role_model_returns_correct_model_per_backend() -> None:
     cfg = AgentRuntimeConfig()
     assert cfg.get_role_model("pm", BackendType.CODEX_EXEC) == "gpt-5"
