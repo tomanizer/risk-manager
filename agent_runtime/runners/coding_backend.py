@@ -74,7 +74,8 @@ def dispatch_codex_coding_execution(execution: RunnerExecution) -> RunnerResult:
             "-",
         ]
         if model:
-            command[2:2] = ["--model", model]
+            command.insert(2, "--model")
+            command.insert(3, model)
 
         try:
             completed = subprocess.run(
@@ -144,38 +145,17 @@ def dispatch_codex_coding_execution(execution: RunnerExecution) -> RunnerResult:
             details=dict(execution.metadata),
         )
 
-    outcome_details: dict[str, str] = {}
-    if not isinstance(details_value, list):
+    try:
+        outcome_details = _parse_coding_details(details_value)
+    except ValueError as error:
         return RunnerResult(
             runner_name=execution.runner_name,
             work_item_id=execution.work_item_id,
             status=RunnerDispatchStatus.FAILED,
-            summary="Coding backend returned details in an invalid format.",
+            summary=f"Coding backend returned invalid details: {error}",
             prompt=execution.prompt,
             details=dict(execution.metadata),
         )
-    for item in details_value:
-        if not isinstance(item, dict):
-            return RunnerResult(
-                runner_name=execution.runner_name,
-                work_item_id=execution.work_item_id,
-                status=RunnerDispatchStatus.FAILED,
-                summary="Coding backend returned details in an invalid format.",
-                prompt=execution.prompt,
-                details=dict(execution.metadata),
-            )
-        key = item.get("key")
-        value = item.get("value")
-        if not isinstance(key, str) or not isinstance(value, str):
-            return RunnerResult(
-                runner_name=execution.runner_name,
-                work_item_id=execution.work_item_id,
-                status=RunnerDispatchStatus.FAILED,
-                summary="Coding backend returned non-string detail entries.",
-                prompt=execution.prompt,
-                details=dict(execution.metadata),
-            )
-        outcome_details[key] = value
 
     return RunnerResult(
         runner_name=execution.runner_name,
@@ -231,3 +211,21 @@ def _coding_output_schema() -> dict[str, object]:
         },
         "required": ["decision", "summary", "details"],
     }
+
+
+def _parse_coding_details(details_value: object) -> dict[str, str]:
+    if not isinstance(details_value, list):
+        raise ValueError("details must be a list")
+
+    outcome_details: dict[str, str] = {}
+    for index, item in enumerate(details_value):
+        if not isinstance(item, dict):
+            raise ValueError(f"details[{index}] must be an object")
+        key = item.get("key")
+        value = item.get("value")
+        if not isinstance(key, str):
+            raise ValueError(f"details[{index}].key must be a string")
+        if not isinstance(value, str):
+            raise ValueError(f"details[{index}].value for '{key}' must be a string")
+        outcome_details[key] = value
+    return outcome_details

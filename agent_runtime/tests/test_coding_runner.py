@@ -112,7 +112,7 @@ def test_dispatch_coding_execution_codex_backend_rejects_non_string_details() ->
 
     assert result.status is RunnerDispatchStatus.FAILED
     assert result.outcome_status is None
-    assert "non-string detail entries" in result.summary
+    assert "details[0].value for 'changed_paths' must be a string" in result.summary
 
 
 def test_dispatch_coding_execution_codex_backend_rejects_non_object_payload() -> None:
