@@ -153,13 +153,15 @@ These apply to `get_risk_summary`, `get_risk_delta`, and `get_risk_change_profil
 
 ### Optional inputs for as-of-date retrieval
 
+The following optional inputs apply to `get_risk_summary`, `get_risk_delta`, and `get_risk_change_profile`:
+
 - `compare_to_date`
-- `require_complete`
 - `snapshot_id`
 
-These apply to `get_risk_summary`, `get_risk_delta`, and `get_risk_change_profile`.
+The following optional inputs apply to `get_risk_summary` and `get_risk_change_profile` only. `get_risk_delta` does not accept these inputs:
 
-`lookback_window` is an optional input for `get_risk_summary` and `get_risk_change_profile` only.
+- `lookback_window`
+- `require_complete`
 
 `get_risk_history` uses the dedicated request shape defined in the API surface section below.
 
@@ -169,11 +171,11 @@ These apply to `get_risk_summary`, `get_risk_delta`, and `get_risk_change_profil
 - the authoritative business-day calendar for production is the firm risk calendar used by the canonical snapshot process
 - fixture and replay implementations must use the calendar pinned to the fixture or snapshot metadata
 - no consumer may infer business days independently
-- for `get_risk_summary` and `get_risk_change_profile`, if `lookback_window` is omitted, default to `60` business days
+- for `get_risk_summary` and `get_risk_change_profile`, if `lookback_window` is omitted, use a default lookback window of `60` business days
+- `lookback_window` is measured in business days from the canonical risk calendar only, using the canonical risk business-day resolver
 - for `get_risk_summary` and `get_risk_change_profile`, a `lookback_window` of `N` means a window of exactly `N` business days ending on `as_of_date`, inclusive of `as_of_date`; the start date is the `(N-1)`th prior business day from `as_of_date` per the canonical risk business-day resolver
-- `lookback_window` is business-day based only, using the canonical risk business-day resolver
 - in v1, `get_risk_summary` and `get_risk_change_profile` accept `lookback_window` only when omitted or explicitly set to `60`; any other value is an unsupported request
-- `lookback_window` does not apply to `get_risk_delta`
+- `lookback_window` and `require_complete` do not apply to `get_risk_delta`
 - if `require_complete=true`, partial results must return an explicit degraded error/status
 - if `snapshot_id` is provided for as-of-date retrieval, retrieval must be pinned to that snapshot
 - if `hierarchy_scope = TOP_OF_HOUSE`, `legal_entity_id` must be null
@@ -433,6 +435,22 @@ In v1, second-order risk is descriptive and deterministic. It does not introduce
 Purpose:
 Return current summary plus comparison and rolling stats.
 
+Inputs:
+
+- `node_ref`
+- `as_of_date`
+- `measure_type`
+- `compare_to_date=None`
+- `lookback_window=60`
+- `require_complete=False`
+- `snapshot_id=None`
+
+Returns:
+
+- `RiskSummary`
+
+The default `lookback_window=60` applies here as 60 business days ending on `as_of_date`, inclusive of `as_of_date`.
+
 ### `get_risk_history`
 
 Purpose:
@@ -456,10 +474,38 @@ Returns:
 Purpose:
 Return a minimal first-order delta-focused object for fast consumers.
 
+Inputs:
+
+- `node_ref`
+- `as_of_date`
+- `measure_type`
+- `compare_to_date=None`
+- `snapshot_id=None`
+
+Returns:
+
+- `RiskDelta`
+
 ### `get_risk_change_profile`
 
 Purpose:
 Return first-order change plus second-order volatility context for consumers that need more than a simple delta.
+
+Inputs:
+
+- `node_ref`
+- `as_of_date`
+- `measure_type`
+- `compare_to_date=None`
+- `lookback_window=60`
+- `require_complete=False`
+- `snapshot_id=None`
+
+Returns:
+
+- `RiskChangeProfile`
+
+The default `lookback_window=60` applies here as 60 business days ending on `as_of_date`, inclusive of `as_of_date`.
 
 ## Business rules
 
@@ -611,6 +657,23 @@ Result:
 - this deferral does not expand `RiskHistoryPoint` or `RiskHistorySeries` metadata beyond the fields explicitly listed in their v1 contracts
 - `status_reasons` must not be used as a substitute for structured evidence references
 
+## Logging and evidence
+
+- typed outputs and replay artifacts remain the canonical evidence surfaces for this service
+- logs may mirror request, status, and replay context, but logs must not replace replay artifacts or typed evidence/replay metadata
+- minimum structured logging should include:
+  - request or correlation id
+  - operation variant
+  - `node_ref`
+  - `measure_type`
+  - `as_of_date`, or `start_date` and `end_date` for history retrieval
+  - `compare_to_date` when relevant
+  - resolved `lookback_window` when relevant
+  - `snapshot_id` when provided
+  - returned `status`
+  - `history_points_used` when relevant
+  - duration
+
 ## Acceptance criteria
 
 ### Functional
@@ -648,6 +711,34 @@ Result:
 - replay fixtures pass consistently
 - volatility flags are replay-stable for a pinned snapshot
 
+## Test cases
+
+### Positive
+
+- valid `get_risk_summary` retrieval with default `lookback_window`
+- valid `get_risk_delta` retrieval for an explicit compare date
+- valid `get_risk_delta` retrieval with compare date defaulting applied deterministically
+- valid `get_risk_change_profile` retrieval with default `lookback_window`
+- valid `get_risk_history` retrieval over an explicit inclusive date range
+
+### Negative
+
+- unsupported measure
+- missing snapshot
+- missing node
+
+### Edge
+
+- prior value equals zero
+- sparse history in requested range
+- degraded snapshot rows
+- explicit `lookback_window` overriding the default
+
+### Replay cases
+
+- same pinned snapshot and same resolved request context reproduce the same result
+- replay fixtures pin default and explicit `lookback_window` behavior deterministically
+
 ## Minimal fixture pack
 
 Create a small synthetic dataset with:
@@ -667,6 +758,19 @@ Create a small synthetic dataset with:
 - at least one case with modest delta but elevated rolling volatility
 - at least one case with large delta but stable volatility context
 
+## Work item decomposition
+
+Implementation sequencing is governed by the active `work_items/` canon rather than a duplicated decomposition appendix in this PRD.
+
+For v1, the governed slices cover:
+
+- schemas and enums
+- deterministic fixtures
+- history retrieval
+- first-order core retrieval
+- rolling statistics and replay
+- business-day resolution
+
 ## Decisions taken for v1
 
 - v1 continues to support VaR measures; for ES, v1 supports `ES_97_5` only, and stressed ES is out of scope
@@ -675,3 +779,15 @@ Create a small synthetic dataset with:
 - `get_risk_delta` returns a dedicated `RiskDelta` schema
 - `NodeRef` is scope-aware and supports both `TOP_OF_HOUSE` and `LEGAL_ENTITY`
 - volatility-aware change is represented via `RiskChangeProfile`
+
+## Reviewer checklist
+
+- verify contract fidelity for `get_risk_summary`, `get_risk_delta`, `get_risk_history`, and `get_risk_change_profile`
+- verify default `lookback_window` semantics, including unit, anchor, inclusivity, and explicit override behavior
+- verify degraded and missing status behavior remains explicit and typed
+- verify replay/version metadata is preserved without inventing ad hoc evidence or trace fields
+- verify no hidden aggregation logic or scope collapse is introduced
+
+## Open questions
+
+- none for current v1 implementation planning

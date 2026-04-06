@@ -139,11 +139,11 @@ def build_reference_scan_report(root: Path) -> ReferenceScanReport:
 def _tracked_text_files(root: Path) -> tuple[Path, ...]:
     git_files = _git_tracked_files(root)
     if git_files is not None:
-        return tuple(path for path in git_files if _should_scan(path))
+        return tuple(path for path in git_files if _should_scan(path.relative_to(root)))
 
     collected: list[Path] = []
     for path in _fallback_scan_candidates(root):
-        if path.is_file() and _should_scan(path):
+        if path.is_file() and _should_scan(path.relative_to(root)):
             collected.append(path)
     return tuple(sorted(collected))
 

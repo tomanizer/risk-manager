@@ -108,6 +108,19 @@ def test_reference_scan_reports_undocumented_generated_artifact_paths(tmp_path: 
     assert finding.source_file == "artifacts/drift/notes.md"
 
 
+def test_reference_scan_handles_repo_under_hidden_parent_directory(tmp_path: Path) -> None:
+    repo_root = tmp_path / ".shadow" / "repo"
+    docs_dir = repo_root / "docs"
+    docs_dir.mkdir(parents=True)
+    (docs_dir / "guide.md").write_text("See `docs/missing.md`.\n", encoding="utf-8")
+
+    report = build_reference_scan_report(repo_root)
+
+    assert report.stats.files_scanned == 1
+    assert report.stats.findings_count == 1
+    assert report.findings[0].reference == "docs/missing.md"
+
+
 def test_check_references_cli_writes_json_report(tmp_path: Path) -> None:
     docs_dir = tmp_path / "docs"
     docs_dir.mkdir()
@@ -147,8 +160,6 @@ def test_repo_scan_has_no_missing_test_layout_references() -> None:
         ("tests/README.md", "tests/integration/"),
         ("tests/README.md", "tests/replay/"),
         ("tests/README.md", "tests/golden_cases/"),
-        ("work_items/ready/WI-1.1.4-risk-summary-core-service.md", "tests/replay/"),
-        ("work_items/ready/WI-1.1.5-risk-summary-rolling-stats-and-replay.md", "tests/replay/"),
     }
 
     unexpected = {

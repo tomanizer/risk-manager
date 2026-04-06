@@ -25,9 +25,7 @@ Audit for:
 Rules:
 
 - run deterministic drift scanners first when they exist, starting with:
-  - `python scripts/drift/check_dependency_hygiene.py --root . --output artifacts/drift/dependency_hygiene.json`
-  - `python scripts/drift/check_references.py --root . --output artifacts/drift/reference_integrity.json`
-  - `python scripts/drift/check_registry_alignment.py --root . --output artifacts/drift/registry_alignment.json`
+  - `python scripts/drift/run_all.py --root . --artifact-dir artifacts/drift --output artifacts/drift/latest_report.json --summary-output artifacts/drift/summary.md`
 - cite evidence for each material finding
 - distinguish sanctioned duplication from unhealthy duplication
 - classify each material finding as canon, implementation, tooling, operational-instruction, or maturity/status drift

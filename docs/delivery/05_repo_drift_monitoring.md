@@ -237,13 +237,12 @@ Initial deterministic scanners:
 - `scripts/drift/check_dependency_hygiene.py`
 - `scripts/drift/check_references.py`
 - `scripts/drift/check_registry_alignment.py`
+- `scripts/drift/run_all.py`
 
 Recommended usage:
 
 ```bash
-python scripts/drift/check_dependency_hygiene.py --root . --output artifacts/drift/dependency_hygiene.json
-python scripts/drift/check_references.py --root . --output artifacts/drift/reference_integrity.json
-python scripts/drift/check_registry_alignment.py --root . --output artifacts/drift/registry_alignment.json
+python scripts/drift/run_all.py --root . --artifact-dir artifacts/drift --output artifacts/drift/latest_report.json --summary-output artifacts/drift/summary.md
 ```
 
 These scanners check:
@@ -253,6 +252,10 @@ These scanners check:
 - the current-state registry for mismatches between declared implementation status and the repository's actual module roots and registered implementation paths
 
 They let the drift monitor start from machine-generated evidence about dependency/tooling drift, stale paths, deleted files, missing targets, and maturity/status drift in the registry.
+
+Use `artifacts/drift/baseline.json` for explicitly accepted findings that should stay visible in the reports but not count as net-new drift. Keep the baseline narrow and route each accepted finding to a tracked issue when possible.
+
+The scheduled GitHub workflow should use the aggregate report to create or update one stable repo-health issue when net-new findings exist, and close that issue automatically when the suite returns to zero net-new findings.
 
 ## Required output shape
 
