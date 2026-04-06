@@ -158,6 +158,19 @@ Checks:
 
 Does not check architectural correctness inside modules or whether implementation is complete enough for declared semantics.
 
+### Surface liveness
+
+**Implementation:** `agent_runtime/drift/surface_liveness.py`
+**CLI:** `scripts/drift/check_surface_liveness.py`
+**Drift class:** operational-instruction drift, implementation drift
+**Typical owner:** repository maintenance, coding
+
+Checks:
+- Active text surfaces referencing `python -m <module>` entrypoints that don't exist in the repo
+- Active code importing from legacy-marked repo surfaces (paths containing `archive`, `archived`, `deprecated`, or `legacy`)
+
+Does not check whether a module entrypoint is the right design, whether non-legacy imports are architecturally correct, or orphaned module roots (covered by registry alignment).
+
 ## Artifacts
 
 Per-scanner JSON:
@@ -167,6 +180,7 @@ Per-scanner JSON:
 - `artifacts/drift/instruction_surfaces.json`
 - `artifacts/drift/reference_integrity.json`
 - `artifacts/drift/registry_alignment.json`
+- `artifacts/drift/surface_liveness.json`
 
 Aggregate:
 - `artifacts/drift/latest_report.json`
