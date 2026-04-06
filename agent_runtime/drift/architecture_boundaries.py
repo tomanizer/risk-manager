@@ -114,7 +114,11 @@ def build_architecture_boundary_report(root: Path) -> ArchitectureBoundaryReport
     for source_path, scope_name in _scoped_source_files(repo_root):
         python_files_scanned += 1
         module_name = _module_name_for_path(source_path)
-        tree = ast.parse((repo_root / source_path).read_text(encoding="utf-8"), filename=source_path.as_posix())
+        try:
+            source_text = (repo_root / source_path).read_text(encoding="utf-8")
+            tree = ast.parse(source_text, filename=source_path.as_posix())
+        except (SyntaxError, UnicodeDecodeError):
+            continue
         for lineno, import_target in _import_targets(tree, module_name):
             imports_checked += 1
             for rule in _FORBIDDEN_IMPORTS.get(scope_name, ()):
@@ -161,10 +165,7 @@ def _scoped_source_files(repo_root: Path) -> tuple[tuple[Path, str], ...]:
 
 
 def _module_name_for_path(source_path: Path) -> str:
-    module_parts = source_path.with_suffix("").parts
-    if source_path.name == "__init__.py":
-        module_parts = source_path.parent.parts
-    return ".".join(module_parts)
+    return ".".join(source_path.with_suffix("").parts)
 
 
 def _import_targets(tree: ast.AST, module_name: str) -> tuple[tuple[int, str], ...]:
@@ -184,7 +185,7 @@ def _resolve_import_from(module_name: str, node: ast.ImportFrom) -> str | None:
     if node.level == 0:
         return node.module
     module_parts = module_name.split(".")
-    package_parts = module_parts if module_name.endswith(".__init__") else module_parts[:-1]
+    package_parts = module_parts[:-1]
     ascend = node.level - 1
     if ascend > len(package_parts):
         return None

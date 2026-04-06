@@ -57,6 +57,36 @@ def test_architecture_boundary_report_allows_internal_relative_imports(tmp_path:
     assert report.findings == ()
 
 
+def test_architecture_boundary_report_allows_package_relative_imports_from_init(tmp_path: Path) -> None:
+    _write_boundary_repo(tmp_path)
+    init_file = tmp_path / "src" / "modules" / "risk_analytics" / "__init__.py"
+    init_file.write_text("from .service import get_risk_history\n", encoding="utf-8")
+
+    report = build_architecture_boundary_report(tmp_path)
+
+    assert report.findings == ()
+
+
+def test_architecture_boundary_report_skips_syntax_error_file(tmp_path: Path) -> None:
+    _write_boundary_repo(tmp_path)
+    broken_file = tmp_path / "src" / "walkers" / "broken.py"
+    broken_file.write_text("from src.orchestrators.daily import\n", encoding="utf-8")
+
+    report = build_architecture_boundary_report(tmp_path)
+
+    assert report.findings == ()
+
+
+def test_architecture_boundary_report_skips_non_utf8_file(tmp_path: Path) -> None:
+    _write_boundary_repo(tmp_path)
+    binaryish_file = tmp_path / "src" / "walkers" / "latin1.py"
+    binaryish_file.write_bytes(b"from src.orchestrators.daily import run_daily\n\xff")
+
+    report = build_architecture_boundary_report(tmp_path)
+
+    assert report.findings == ()
+
+
 def test_check_architecture_boundaries_cli_writes_json_report(tmp_path: Path) -> None:
     _write_boundary_repo(tmp_path)
     output_path = tmp_path / "artifacts" / "drift" / "architecture_boundaries.json"
