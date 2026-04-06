@@ -645,6 +645,8 @@ Result:
 ### Positive
 
 - valid `get_risk_summary` retrieval with default `lookback_window`
+- valid `get_risk_delta` retrieval for an explicit compare date
+- valid `get_risk_delta` retrieval with compare date defaulting applied deterministically
 - valid `get_risk_change_profile` retrieval with default `lookback_window`
 - valid `get_risk_history` retrieval over an explicit inclusive date range
 
