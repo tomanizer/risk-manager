@@ -19,6 +19,7 @@ _FAILING_CI_STATES = {"ACTION_REQUIRED", "CANCELLED", "ERROR", "FAILURE", "STALE
 _READY_MERGE_STATES = {"CLEAN", "HAS_HOOKS", "UNSTABLE"}
 _PM_READY_OUTCOMES = {"ready"}
 _PM_REPO_UPDATE_OUTCOMES = {"blocked", "split_required"}
+_CODING_REPO_UPDATE_OUTCOMES = {"blocked", "completed", "needs_pm"}
 _REVIEW_CODING_OUTCOMES = {"changes_requested"}
 _REVIEW_REPO_UPDATE_OUTCOMES = {"blocked", "pass"}
 
@@ -141,6 +142,38 @@ def _decision_from_completed_review_outcome(
     return None
 
 
+def _decision_from_completed_coding_outcome(
+    work_item: WorkItemSnapshot,
+    workflow_run: WorkflowRunRecord | None,
+) -> TransitionDecision | None:
+    if workflow_run is None:
+        return None
+    if workflow_run.last_action != NextActionType.RUN_CODING.value:
+        return None
+    if workflow_run.runner_status != "completed":
+        return None
+    if workflow_run.outcome_status is None:
+        return None
+    if _work_item_changed_since_completion(work_item, workflow_run.completed_at):
+        return None
+
+    metadata = {
+        "coding_outcome_status": workflow_run.outcome_status,
+    }
+    if workflow_run.run_id is not None:
+        metadata["coding_run_id"] = workflow_run.run_id
+
+    if workflow_run.outcome_status in _CODING_REPO_UPDATE_OUTCOMES:
+        return TransitionDecision(
+            action=NextActionType.HUMAN_UPDATE_REPO,
+            work_item_id=work_item.id,
+            reason=workflow_run.outcome_summary or f"latest coding run ({workflow_run.outcome_status}) requires human attention",
+            target_path=work_item.path,
+            metadata=metadata,
+        )
+    return None
+
+
 def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
     prs_by_work_item = {pull_request.work_item_id: pull_request for pull_request in snapshot.pull_requests}
     workflow_runs_by_work_item = {workflow_run.work_item_id: workflow_run for workflow_run in snapshot.workflow_runs}
@@ -152,6 +185,12 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
             continue
         pull_request = prs_by_work_item.get(work_item.id)
         if pull_request is None:
+            coding_outcome_decision = _decision_from_completed_coding_outcome(
+                work_item,
+                workflow_runs_by_work_item.get(work_item.id),
+            )
+            if coding_outcome_decision is not None:
+                return coding_outcome_decision
             pm_outcome_decision = _decision_from_completed_pm_outcome(
                 work_item,
                 workflow_runs_by_work_item.get(work_item.id),

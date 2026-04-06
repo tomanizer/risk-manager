@@ -38,9 +38,10 @@ Before real agent API integration lands, a human still does these steps:
 - inspect the result
 - record the reviewed outcome back into the runtime
 
-The first exceptions are the optional PM and review backends. If
+The first exceptions are the optional PM, review, and coding backends. If
 `AGENT_RUNTIME_PM_BACKEND=codex_exec` or
-`AGENT_RUNTIME_REVIEW_BACKEND=codex_exec` is set, those runners can execute
+`AGENT_RUNTIME_REVIEW_BACKEND=codex_exec` or
+`AGENT_RUNTIME_CODING_BACKEND=codex_exec` is set, those runners can execute
 automatically and persist their own structured outcomes.
 
 ## End-to-end loop
@@ -157,6 +158,14 @@ PR changes again:
 - `pass` or `blocked` can stop at a human repo-update gate instead of rerunning
   review on the same unchanged PR
 
+For completed coding runs, the runtime now uses the recorded outcome when no
+PR exists yet:
+
+- `completed` can stop at a human repo-update gate so the branch or PR can be
+  published
+- `blocked` or `needs_pm` can stop at the same human gate instead of rerunning
+  coding on the same unchanged work item
+
 ## Suggested outcome statuses
 
 The runtime does not yet enforce a closed outcome enum. Use short, stable values such as:
@@ -165,6 +174,8 @@ The runtime does not yet enforce a closed outcome enum. Use short, stable values
 - `blocked`
 - `split_required`
 - `changes_requested`
+- `completed`
+- `needs_pm`
 - `pass`
 - `failed`
 

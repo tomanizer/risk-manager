@@ -127,6 +127,24 @@ requests a structured review triage, and persists `pass`,
 `changes_requested`, or `blocked` automatically through the existing workflow
 outcome path.
 
+The coding runner now supports the same opt-in pattern:
+
+```bash
+export AGENT_RUNTIME_CODING_BACKEND=codex_exec
+```
+
+Optional coding backend settings:
+
+```bash
+export AGENT_RUNTIME_CODING_CODEX_BIN=codex
+export AGENT_RUNTIME_CODING_CODEX_MODEL=gpt-5
+```
+
+When enabled, the coding runner uses `codex exec` in the allocated worktree,
+implements the requested slice directly there, and persists `completed`,
+`blocked`, or `needs_pm` automatically through the existing workflow outcome
+path.
+
 ## Record the real manual outcome
 
 ```bash
@@ -153,6 +171,14 @@ the PR changes again:
 - `changes_requested` can route the work item back to coding
 - `pass` or `blocked` can stop at a human repo-update gate instead of rerunning
   review immediately on the same unchanged PR
+
+The runtime now also uses completed coding outcomes as control signals when no
+PR exists yet:
+
+- `completed` can stop at a human repo-update gate so the branch/PR can be
+  inspected and published
+- `blocked` or `needs_pm` can stop at the same human gate instead of rerunning
+  coding immediately on the same unchanged work item
 
 ## Release a completed runner worktree
 
@@ -219,4 +245,5 @@ The initial built-in scenarios cover:
 - draft PR waiting for reviews
 - unresolved review feedback
 - PR ready for human merge
+- PR with failing CI that routes to coding
 - no runnable work

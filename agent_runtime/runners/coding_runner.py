@@ -4,6 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .coding_backend import (
+    CODING_BACKEND_CODEX_EXEC,
+    CODING_BACKEND_PREPARED,
+    dispatch_codex_coding_execution,
+    dispatch_prepared_coding_execution,
+    get_coding_backend_name,
+)
 from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 
 
@@ -13,6 +20,7 @@ class CodingRunnerInput:
     task_summary: str
     pr_number: int | None = None
     pr_url: str | None = None
+    base_ref: str | None = None
 
 
 def build_coding_prompt(input_data: CodingRunnerInput) -> str:
@@ -21,17 +29,24 @@ def build_coding_prompt(input_data: CodingRunnerInput) -> str:
         prompt += f"\nPR: #{input_data.pr_number}"
     if input_data.pr_url is not None:
         prompt += f" ({input_data.pr_url})"
+    if input_data.base_ref is not None:
+        prompt += f"\nBase ref: {input_data.base_ref}"
     return prompt
 
 
 def dispatch_coding_execution(execution: RunnerExecution) -> RunnerResult:
     if execution.runner_name is not RunnerName.CODING:
         raise RuntimeError("Coding dispatch received a non-coding runner execution")
+    backend_name = get_coding_backend_name()
+    if backend_name == CODING_BACKEND_PREPARED:
+        return dispatch_prepared_coding_execution(execution)
+    if backend_name == CODING_BACKEND_CODEX_EXEC:
+        return dispatch_codex_coding_execution(execution)
     return RunnerResult(
         runner_name=execution.runner_name,
         work_item_id=execution.work_item_id,
-        status=RunnerDispatchStatus.PREPARED,
-        summary=f"Prepared coding handoff for {execution.work_item_id}.",
+        status=RunnerDispatchStatus.FAILED,
+        summary=f"Unsupported coding backend configured: {backend_name}",
         prompt=execution.prompt,
         details=dict(execution.metadata),
     )

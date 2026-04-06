@@ -89,6 +89,22 @@ def build_simulation_snapshot(name: str) -> RuntimeSnapshot:
             ),
         )
 
+    if name == "failing-ci-pr":
+        return RuntimeSnapshot(
+            work_items=(_work_item("WI-1.1.3-risk-summary-history-service"),),
+            pull_requests=(
+                PullRequestSnapshot(
+                    work_item_id="WI-1.1.3-risk-summary-history-service",
+                    number=42,
+                    is_draft=False,
+                    url="https://github.com/example/risk-manager/pull/42",
+                    review_decision="APPROVED",
+                    merge_state_status="CLEAN",
+                    ci_status="FAILURE",
+                ),
+            ),
+        )
+
     if name == "noop":
         return RuntimeSnapshot(
             work_items=(
@@ -109,5 +125,6 @@ def simulation_names() -> tuple[str, ...]:
         "draft-pr",
         "unresolved-review",
         "ready-for-merge",
+        "failing-ci-pr",
         "noop",
     )
