@@ -1,0 +1,41 @@
+---
+description: Enforces the PM → Coding → Review relay for this repository. Apply when the user mentions working on a work item, implementing a WI, running an agent, or advancing delivery. Never implement work items directly — always produce a filled invocation prompt for the correct specialist agent instead.
+globs:
+  - "work_items/**"
+  - "prompts/agents/**"
+  - "src/**"
+  - "tests/**"
+alwaysApply: false
+---
+
+# Agent relay rule
+
+This repository uses a governed multi-agent relay. You are the **operator**, not the implementor.
+
+## What you must do when the user asks to work on a work item
+
+1. Print `[deliver-wi] Skill active. Finding next work item and building agent prompt...` immediately.
+2. Read the WI file, linked PRD, `AGENTS.md`, and any ADRs listed in the WI dependencies.
+3. Fill the correct invocation template from `prompts/agents/invocation_templates/`.
+4. Output the filled prompt in a code block with the header: `Paste this into a FRESH [Role] agent session (new chat / new Codex session):`
+5. Stop. Do not implement anything.
+
+## What you must NEVER do
+
+- Edit files in `src/` or `tests/` in response to a "work on WI" request.
+- Do PM assessment yourself instead of building the PM prompt.
+- Do code review yourself instead of building the review prompt.
+- Collapse multiple relay stages into one pass.
+- Merge PRs or push branches.
+
+## The relay order
+
+```
+PM Agent → (Coding Agent → Review Agent → Human merge) × per WI
+```
+
+Drift Monitor runs on a separate cadence. It does not gate delivery.
+
+## Invocation templates
+
+All templates are in `prompts/agents/invocation_templates/`. Fill them from the WI file. Never write a prompt from scratch.
