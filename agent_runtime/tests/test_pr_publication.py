@@ -81,7 +81,9 @@ def test_maybe_publish_completed_coding_run_creates_draft_pr() -> None:
             return result
 
         with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_PR_BACKEND": "gh_draft"}, clear=False):
-            with patch("agent_runtime.orchestrator.pr_publication.infer_github_repository", return_value=GitHubRepository("tomanizer", "risk-manager")):
+            with patch(
+                "agent_runtime.orchestrator.pr_publication.infer_github_repository", return_value=GitHubRepository("tomanizer", "risk-manager")
+            ):
                 with patch("agent_runtime.orchestrator.pr_publication.subprocess.run", side_effect=fake_run):
                     publication = maybe_publish_completed_coding_run(Path("/repo"), execution, runner_result)
 
@@ -145,7 +147,9 @@ def test_maybe_publish_completed_coding_run_reuses_existing_pr() -> None:
             return next(responses)
 
         with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_PR_BACKEND": "gh_draft"}, clear=False):
-            with patch("agent_runtime.orchestrator.pr_publication.infer_github_repository", return_value=GitHubRepository("tomanizer", "risk-manager")):
+            with patch(
+                "agent_runtime.orchestrator.pr_publication.infer_github_repository", return_value=GitHubRepository("tomanizer", "risk-manager")
+            ):
                 with patch("agent_runtime.orchestrator.pr_publication.subprocess.run", side_effect=fake_run):
                     publication = maybe_publish_completed_coding_run(Path("/repo"), execution, runner_result)
 
@@ -226,7 +230,9 @@ def test_maybe_publish_completed_coding_run_handles_gh_list_oserror() -> None:
             return next(responses)
 
         with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_PR_BACKEND": "gh_draft"}, clear=False):
-            with patch("agent_runtime.orchestrator.pr_publication.infer_github_repository", return_value=GitHubRepository("tomanizer", "risk-manager")):
+            with patch(
+                "agent_runtime.orchestrator.pr_publication.infer_github_repository", return_value=GitHubRepository("tomanizer", "risk-manager")
+            ):
                 with patch("agent_runtime.orchestrator.pr_publication.subprocess.run", side_effect=fake_run):
                     publication = maybe_publish_completed_coding_run(Path("/repo"), execution, runner_result)
 
