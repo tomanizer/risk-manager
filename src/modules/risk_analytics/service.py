@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, time, timezone
 from functools import lru_cache
 
-from .contracts import MeasureType, NodeRef, RiskHistoryPoint, RiskHistorySeries, SummaryStatus
-from .fixtures import FixtureIndex, build_fixture_index
+from src.shared import ServiceError
+
+from .contracts import MeasureType, NodeRef, RiskDelta, RiskHistoryPoint, RiskHistorySeries, SummaryStatus
+from .fixtures import FixtureIndex, FixtureRow, FixtureSnapshot, build_fixture_index
+from .time import BusinessDayResolutionError, resolve_compare_to_date
+
+
+_DETERMINISTIC_GENERATED_AT_TIME = time(hour=18, minute=0, tzinfo=timezone.utc)
 
 
 @lru_cache(maxsize=1)
@@ -48,6 +54,160 @@ def _node_measure_exists_in_pinned_context(
 
 def _encode_dates_reason(reason_code: str, dates: list[date]) -> str:
     return reason_code + ":" + ",".join(day.isoformat() for day in dates)
+
+
+def _deterministic_generated_at(as_of_date: date) -> datetime:
+    return datetime.combine(as_of_date, _DETERMINISTIC_GENERATED_AT_TIME)
+
+
+def _resolve_current_snapshot(
+    as_of_date: date,
+    snapshot_id: str | None,
+    index: FixtureIndex,
+) -> FixtureSnapshot | ServiceError:
+    if snapshot_id is not None:
+        snapshot = index.get_snapshot(snapshot_id)
+        if snapshot is None:
+            return ServiceError(
+                operation="get_risk_delta",
+                status_code="MISSING_SNAPSHOT",
+                status_reasons=(f"ANCHOR_SNAPSHOT_NOT_FOUND:{snapshot_id}",),
+            )
+        if snapshot.as_of_date != as_of_date:
+            raise ValueError("snapshot_id must resolve to a snapshot whose as_of_date equals as_of_date")
+        return snapshot
+
+    snapshot = index.get_snapshot_by_date(as_of_date)
+    if snapshot is None:
+        return ServiceError(
+            operation="get_risk_delta",
+            status_code="MISSING_SNAPSHOT",
+            status_reasons=(f"AS_OF_DATE_SNAPSHOT_NOT_FOUND:{as_of_date.isoformat()}",),
+        )
+    return snapshot
+
+
+def _resolve_compare_context(
+    as_of_date: date,
+    compare_to_date: date | None,
+    calendar: tuple[date, ...],
+    index: FixtureIndex,
+) -> tuple[date | None, FixtureSnapshot | None, tuple[str, ...]]:
+    """Resolve the compare date and snapshot.
+
+    Returns (resolved_date, snapshot, reason_codes).
+    Raises ValueError for explicit compare_to_date values not in the calendar.
+    """
+    try:
+        resolved = resolve_compare_to_date(
+            as_of_date=as_of_date,
+            compare_to_date=compare_to_date,
+            calendar=calendar,
+        )
+    except BusinessDayResolutionError:
+        if compare_to_date is not None:
+            raise ValueError(f"compare_to_date {compare_to_date.isoformat()} is not a business day in the supplied calendar")
+        return None, None, (f"NO_PRIOR_BUSINESS_DAY:{as_of_date.isoformat()}",)
+
+    compare_snapshot = index.get_snapshot_by_date(resolved)
+    if compare_snapshot is None:
+        return resolved, None, (f"COMPARE_SNAPSHOT_NOT_FOUND:{resolved.isoformat()}",)
+    return resolved, compare_snapshot, ()
+
+
+def get_risk_delta(
+    node_ref: NodeRef,
+    measure_type: MeasureType,
+    as_of_date: date,
+    compare_to_date: date | None = None,
+    snapshot_id: str | None = None,
+    fixture_index: FixtureIndex | None = None,
+) -> RiskDelta | ServiceError:
+    """Return deterministic first-order delta retrieval for a node and measure.
+
+    Returns a RiskDelta when a current scoped point exists and all required fields
+    can be populated honestly. Returns a typed ServiceError for UNSUPPORTED_MEASURE,
+    MISSING_SNAPSHOT, and MISSING_NODE outcomes. Raises ValueError for request
+    validation failures such as blank snapshot_id or compare_to_date not in calendar.
+    """
+    if snapshot_id is not None and not snapshot_id.strip():
+        raise ValueError("snapshot_id must be non-empty when provided")
+    if compare_to_date is not None and compare_to_date > as_of_date:
+        raise ValueError("compare_to_date must be on or before as_of_date")
+
+    index = _resolve_fixture_index(fixture_index)
+    pack = index.pack
+
+    if _resolve_measure_status(measure_type, index) is not None:
+        return ServiceError(
+            operation="get_risk_delta",
+            status_code="UNSUPPORTED_MEASURE",
+            status_reasons=("UNSUPPORTED_MEASURE_IN_FIXTURE_PACK",),
+        )
+
+    current_snapshot_or_error = _resolve_current_snapshot(as_of_date, snapshot_id, index)
+    if isinstance(current_snapshot_or_error, ServiceError):
+        return current_snapshot_or_error
+    current_snapshot = current_snapshot_or_error
+
+    current_row = index.get_row(current_snapshot.snapshot_id, node_ref, measure_type)
+    if current_row is None:
+        return ServiceError(
+            operation="get_risk_delta",
+            status_code="MISSING_NODE",
+            status_reasons=("CURRENT_NODE_MEASURE_NOT_FOUND_IN_SNAPSHOT",),
+        )
+
+    resolved_compare_date, compare_snapshot, compare_reasons = _resolve_compare_context(
+        as_of_date=as_of_date,
+        compare_to_date=compare_to_date,
+        calendar=pack.calendar,
+        index=index,
+    )
+
+    status_reasons: list[str] = []
+    current_is_degraded = current_snapshot.is_degraded or current_row.status == SummaryStatus.DEGRADED
+    if current_is_degraded:
+        status_reasons.append(f"CURRENT_POINT_DEGRADED:{as_of_date.isoformat()}")
+
+    previous_row: FixtureRow | None = None
+    compare_is_degraded = False
+
+    if compare_snapshot is None:
+        status_reasons.extend(compare_reasons)
+    else:
+        previous_row = index.get_row(compare_snapshot.snapshot_id, node_ref, measure_type)
+        compare_is_degraded = compare_snapshot.is_degraded or (previous_row is not None and previous_row.status == SummaryStatus.DEGRADED)
+        if compare_is_degraded:
+            status_reasons.append(f"COMPARE_POINT_DEGRADED:{compare_snapshot.as_of_date.isoformat()}")
+        if previous_row is None:
+            status_reasons.append(f"COMPARE_NODE_MEASURE_NOT_FOUND:{compare_snapshot.as_of_date.isoformat()}")
+
+    status = SummaryStatus.OK
+    if current_is_degraded or compare_is_degraded:
+        status = SummaryStatus.DEGRADED
+    elif compare_snapshot is None or previous_row is None:
+        status = SummaryStatus.MISSING_COMPARE
+
+    return RiskDelta(
+        node_ref=node_ref,
+        node_level=node_ref.node_level,
+        hierarchy_scope=node_ref.hierarchy_scope,
+        legal_entity_id=node_ref.legal_entity_id,
+        measure_type=measure_type,
+        as_of_date=as_of_date,
+        compare_to_date=resolved_compare_date,
+        current_value=current_row.value,
+        previous_value=None if previous_row is None else previous_row.value,
+        delta_abs=None,
+        delta_pct=None,
+        status=status,
+        status_reasons=tuple(status_reasons),
+        snapshot_id=current_snapshot.snapshot_id,
+        data_version=pack.data_version,
+        service_version=pack.service_version,
+        generated_at=_deterministic_generated_at(current_snapshot.as_of_date),
+    )
 
 
 def get_risk_history(
