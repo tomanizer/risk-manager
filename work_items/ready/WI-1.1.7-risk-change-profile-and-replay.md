@@ -6,7 +6,7 @@ PRD-1.1-v2
 
 ## Purpose
 
-Implement `get_risk_change_profile` and replay-suite coverage once volatility canon is explicit.
+Implement `get_risk_change_profile` and replay-suite coverage using the explicit volatility canon in PRD-1.1-v2.
 
 ## Scope
 
@@ -51,21 +51,18 @@ Create the replay test package and risk-analytics replay test module in-slice ra
 ## Acceptance Criteria
 
 - `get_risk_change_profile` extends the completed summary surface without diverging from WI-1.1.4 and WI-1.1.5 first-order or rolling-stat semantics
-- `volatility_regime` is derived from explicit, versioned threshold rules
-- `volatility_change_flag` is derived from explicit short-window versus baseline-window dispersion rules
+- `volatility_regime` follows PRD-1.1-v2 `Volatility policy` exactly, including `reference_level`, `volatility_ratio`, threshold bands, and zero-denominator classification
+- `volatility_change_flag` follows PRD-1.1-v2 `Volatility policy` exactly, including `short_window = 10`, `baseline_window = 60`, `dispersion_change_ratio`, threshold bands, and zero-denominator classification
+- `volatility_regime` returns `INSUFFICIENT_HISTORY` when fewer than 20 valid baseline-window points are available
+- `volatility_change_flag` returns `INSUFFICIENT_HISTORY` when fewer than 5 valid short-window points or fewer than 20 valid baseline-window points are available
 - replay tests pin the fully resolved request context required by PRD-1.1-v2, including resolved compare date and lookback window when relevant
+- replay tests pin the effective volatility window policy carried by `service_version`, including the governed v1 business-day basis and inclusive anchoring on `as_of_date`
 - replay tests prove stable outputs for repeated runs against the same pinned snapshot context
 - this slice introduces no new evidence/trace fields beyond the approved replay/version metadata already present on the contracts
 
-## Blocking Reason
-
-- PRD-1.1-v2 requires versioned threshold rules for `volatility_regime`, but current `main` does not define the threshold values or where they are configured
-- PRD-1.1-v2 requires `volatility_change_flag` to compare short-window and baseline-window dispersion measures, but current `main` does not define those window lengths or the deterministic rule for `RISING` versus `FALLING`
-- coding must not invent volatility thresholds, baseline windows, or replay assertions for semantics that remain open
-
 ## Suggested Agent
 
-Risk Methodology Spec Agent or PRD Author for blocker closure, then Coding Agent
+Coding Agent
 
 ## Review Focus
 

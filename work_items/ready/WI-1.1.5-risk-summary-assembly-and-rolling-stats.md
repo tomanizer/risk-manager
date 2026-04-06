@@ -51,6 +51,8 @@ Create the summary-service unit test module in the existing risk-analytics unit-
 ## Acceptance Criteria
 
 - `get_risk_summary` reuses WI-1.1.4 first-order retrieval semantics without divergence in compare-date handling, delta construction, or status precedence
+- `get_risk_summary` accepts `lookback_window` only when omitted or explicitly set to `60`; any other value is unsupported in v1
+- the resolved `lookback_window` is defined exactly as 60 business days ending on `as_of_date`, inclusive of `as_of_date`, using the canonical risk business-day resolver
 - rolling statistics use only valid history points within the resolved lookback window
 - `rolling_mean`, `rolling_min`, and `rolling_max` require at least 1 valid history point
 - `rolling_std` uses sample standard deviation (`ddof = 1`) and is null when fewer than 2 valid history points are available
@@ -61,18 +63,13 @@ Create the summary-service unit test module in the existing risk-analytics unit-
 - this slice introduces no `RiskChangeProfile`, no volatility logic, no replay-suite tests, and no new evidence/trace fields
 - unit tests cover complete-history, sparse-history, degraded-history, one-point versus two-point rolling windows, and `history_points_used`
 
-## Blocking Reason
-
-- PRD-1.1-v2 says omitted `lookback_window` must use a service default, but current `main` does not define that default anywhere in merged canon
-- coding must not invent the omitted-`lookback_window` behavior or default value
-
 ## Suggested Agent
 
-Issue Planner or PRD Author for blocker closure, then Coding Agent
+Coding Agent
 
 ## Review Focus
 
 - summary contract fidelity
 - rolling-stat correctness
 - status correctness for insufficient and degraded history
-- confirmation that `lookback_window` default semantics are explicit before promotion back to `ready/`
+- lookback-window default and validation semantics
