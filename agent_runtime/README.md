@@ -157,6 +157,24 @@ requests a structured review triage, and persists `pass`,
 `changes_requested`, or `blocked` automatically through the existing workflow
 outcome path.
 
+The spec runner now supports the same opt-in pattern:
+
+```bash
+export AGENT_RUNTIME_SPEC_BACKEND=codex_exec
+```
+
+Optional spec backend settings:
+
+```bash
+export AGENT_RUNTIME_SPEC_CODEX_BIN=codex
+export AGENT_RUNTIME_SPEC_CODEX_MODEL=gpt-5
+```
+
+When enabled, the spec runner uses `codex exec` in the allocated worktree,
+requests a structured canon-resolution outcome, and persists `clarified`,
+`blocked`, or `split_required` automatically through the existing workflow
+outcome path.
+
 The coding runner now supports the same opt-in pattern:
 
 ```bash
@@ -213,8 +231,12 @@ finished.
 The runtime now uses completed PM outcomes as control signals:
 
 - `ready` can advance a ready item to coding without asking PM again
-- `blocked` or `split_required` can stop at a human repo-update gate until the
-  work item changes
+- `blocked` or `split_required` can escalate into the spec runner before coding
+
+The runtime now also uses completed spec outcomes as control signals:
+
+- `clarified`, `blocked`, or `split_required` can stop at a human repo-update
+  gate until the canon change is reviewed and merged
 
 The runtime now also uses completed review outcomes as control signals until
 the PR changes again:

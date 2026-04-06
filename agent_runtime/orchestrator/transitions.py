@@ -18,10 +18,11 @@ _PENDING_CI_STATES = {"EXPECTED", "PENDING", "QUEUED", "IN_PROGRESS"}
 _FAILING_CI_STATES = {"ACTION_REQUIRED", "CANCELLED", "ERROR", "FAILURE", "STALE", "STARTUP_FAILURE", "TIMED_OUT"}
 _READY_MERGE_STATES = {"CLEAN", "HAS_HOOKS", "UNSTABLE"}
 _PM_READY_OUTCOMES = {"ready"}
-_PM_REPO_UPDATE_OUTCOMES = {"blocked", "split_required"}
+_PM_SPEC_OUTCOMES = {"blocked", "split_required"}
 _CODING_REPO_UPDATE_OUTCOMES = {"blocked", "completed", "needs_pm"}
 _REVIEW_CODING_OUTCOMES = {"changes_requested"}
 _REVIEW_REPO_UPDATE_OUTCOMES = {"blocked", "pass"}
+_SPEC_REPO_UPDATE_OUTCOMES = {"clarified", "blocked", "split_required"}
 
 
 def _dependencies_satisfied(item: WorkItemSnapshot, snapshot: RuntimeSnapshot) -> bool:
@@ -85,11 +86,43 @@ def _decision_from_completed_pm_outcome(
             target_path=work_item.path,
             metadata=metadata,
         )
-    if workflow_run.outcome_status in _PM_REPO_UPDATE_OUTCOMES:
+    if workflow_run.outcome_status in _PM_SPEC_OUTCOMES:
+        return TransitionDecision(
+            action=NextActionType.RUN_SPEC,
+            work_item_id=work_item.id,
+            reason=workflow_run.outcome_summary or "latest PM assessment requires spec clarification before another agent run",
+            target_path=work_item.path,
+            metadata=metadata,
+        )
+    return None
+
+
+def _decision_from_completed_spec_outcome(
+    work_item: WorkItemSnapshot,
+    workflow_run: WorkflowRunRecord | None,
+) -> TransitionDecision | None:
+    if workflow_run is None:
+        return None
+    if workflow_run.last_action != NextActionType.RUN_SPEC.value:
+        return None
+    if workflow_run.runner_status != "completed":
+        return None
+    if workflow_run.outcome_status is None:
+        return None
+    if _work_item_changed_since_completion(work_item, workflow_run.completed_at):
+        return None
+
+    metadata = {
+        "spec_outcome_status": workflow_run.outcome_status,
+    }
+    if workflow_run.run_id is not None:
+        metadata["spec_run_id"] = workflow_run.run_id
+
+    if workflow_run.outcome_status in _SPEC_REPO_UPDATE_OUTCOMES:
         return TransitionDecision(
             action=NextActionType.HUMAN_UPDATE_REPO,
             work_item_id=work_item.id,
-            reason=workflow_run.outcome_summary or "latest PM assessment requires a repo update before another agent run",
+            reason=workflow_run.outcome_summary or f"latest spec resolution ({workflow_run.outcome_status}) requires a repo update before another agent run",
             target_path=work_item.path,
             metadata=metadata,
         )
@@ -185,6 +218,12 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
             continue
         pull_request = prs_by_work_item.get(work_item.id)
         if pull_request is None:
+            spec_outcome_decision = _decision_from_completed_spec_outcome(
+                work_item,
+                workflow_runs_by_work_item.get(work_item.id),
+            )
+            if spec_outcome_decision is not None:
+                return spec_outcome_decision
             coding_outcome_decision = _decision_from_completed_coding_outcome(
                 work_item,
                 workflow_runs_by_work_item.get(work_item.id),

@@ -42,7 +42,7 @@ Before real agent API integration lands, a human still does these steps:
 - inspect the result
 - record the reviewed outcome back into the runtime
 
-The first exceptions are the optional PM, review, and coding backends. If
+The first exceptions are the optional PM, spec, review, and coding backends. If
 `AGENT_RUNTIME_PM_BACKEND=codex_exec` or
 `AGENT_RUNTIME_REVIEW_BACKEND=codex_exec` or
 `AGENT_RUNTIME_CODING_BACKEND=codex_exec` is set, those runners can execute
@@ -94,6 +94,7 @@ Examples:
 
 - PM may return `READY`, `BLOCKED`, or `SPLIT_REQUIRED`
 - review may return findings or a pass
+- spec may clarify or split the canon slice before the next PM/coding pass
 - coding may produce a branch/PR or may stop on canon ambiguity
 - if `AGENT_RUNTIME_CODING_PR_BACKEND=gh_draft` is enabled, the runtime may
   publish a completed coding branch as a draft PR automatically on dispatch

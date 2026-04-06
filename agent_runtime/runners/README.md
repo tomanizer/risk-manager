@@ -16,6 +16,11 @@ The PM runner now supports two modes:
 - `prepared` (default): manual handoff only
 - `codex_exec`: opt-in real backend using the local `codex exec` CLI
 
+The spec runner now supports the same two modes:
+
+- `prepared` (default): manual handoff only
+- `codex_exec`: opt-in real backend using the local `codex exec` CLI
+
 The review runner now supports the same two modes:
 
 - `prepared` (default): manual handoff only

@@ -97,7 +97,7 @@ def test_completed_pm_ready_outcome_routes_to_coding() -> None:
         assert decision.metadata["pm_run_id"] == "pm-wi-1-1-4-test-run"
 
 
-def test_completed_pm_split_required_routes_to_human_update_repo() -> None:
+def test_completed_pm_split_required_routes_to_spec() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         work_item_path = Path(temp_dir) / "WI-1.1.4-risk-summary-core-service.md"
         work_item_path.write_text("# WI-1.1.4\n", encoding="utf-8")
@@ -130,7 +130,7 @@ def test_completed_pm_split_required_routes_to_human_update_repo() -> None:
 
         decision = decide_next_action(snapshot)
 
-        assert decision.action is NextActionType.HUMAN_UPDATE_REPO
+        assert decision.action is NextActionType.RUN_SPEC
         assert decision.reason == "Need to split WI-1.1.4 before coding."
 
 
@@ -168,6 +168,44 @@ def test_completed_pm_outcome_is_ignored_after_work_item_changes() -> None:
         decision = decide_next_action(snapshot)
 
         assert decision.action is NextActionType.RUN_PM
+
+
+def test_completed_spec_outcome_routes_to_human_update_repo() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        work_item_path = Path(temp_dir) / "WI-1.1.4-risk-summary-core-service.md"
+        work_item_path.write_text("# WI-1.1.4\n", encoding="utf-8")
+        os.utime(work_item_path, (1_000_000_000, 1_000_000_000))
+
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-1.1.4-risk-summary-core-service",
+                    title="WI-1.1.4",
+                    path=work_item_path,
+                    stage=WorkItemStage.READY,
+                    dependencies=(),
+                ),
+            ),
+            workflow_runs=(
+                WorkflowRunRecord(
+                    work_item_id="WI-1.1.4-risk-summary-core-service",
+                    status="run_spec",
+                    run_id="spec-wi-1-1-4-test-run",
+                    last_action="run_spec",
+                    runner_name="spec",
+                    runner_status="completed",
+                    outcome_status="clarified",
+                    outcome_summary="Canon was clarified and the work item was updated.",
+                    completed_at="2026-04-06 10:00:00",
+                ),
+            ),
+        )
+
+        decision = decide_next_action(snapshot)
+
+        assert decision.action is NextActionType.HUMAN_UPDATE_REPO
+        assert decision.metadata["spec_outcome_status"] == "clarified"
+        assert decision.metadata["spec_run_id"] == "spec-wi-1-1-4-test-run"
 
 
 def test_completed_coding_outcome_routes_to_human_update_repo_when_no_pr_exists() -> None:

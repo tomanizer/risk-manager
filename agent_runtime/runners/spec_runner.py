@@ -5,6 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
+from .spec_backend import (
+    SPEC_BACKEND_CODEX_EXEC,
+    SPEC_BACKEND_PREPARED,
+    dispatch_codex_spec_execution,
+    dispatch_prepared_spec_execution,
+    get_spec_backend_name,
+)
 
 
 @dataclass(frozen=True)
@@ -26,11 +33,16 @@ def build_spec_prompt(input_data: SpecRunnerInput) -> str:
 def dispatch_spec_execution(execution: RunnerExecution) -> RunnerResult:
     if execution.runner_name is not RunnerName.SPEC:
         raise RuntimeError("Spec dispatch received a non-spec runner execution")
+    backend_name = get_spec_backend_name()
+    if backend_name == SPEC_BACKEND_PREPARED:
+        return dispatch_prepared_spec_execution(execution)
+    if backend_name == SPEC_BACKEND_CODEX_EXEC:
+        return dispatch_codex_spec_execution(execution)
     return RunnerResult(
         runner_name=execution.runner_name,
         work_item_id=execution.work_item_id,
-        status=RunnerDispatchStatus.PREPARED,
-        summary=f"Prepared spec-resolution handoff for {execution.work_item_id}.",
+        status=RunnerDispatchStatus.FAILED,
+        summary=f"Unsupported spec backend configured: {backend_name}",
         prompt=execution.prompt,
         details=dict(execution.metadata),
     )
