@@ -24,23 +24,33 @@ Before doing anything else, print this exact line so the user knows the skill is
 
 If the user says something like "PR #X is merged", "PR for WI-X.Y.Z was merged", or "just merged PR #X":
 
-1. Identify the WI from what the user said or by checking recent PRs with `gh pr list --state merged --limit 5`.
-2. Confirm the WI file exists at `work_items/ready/<WI-ID>-*.md`.
-3. Promote it:
+WI promotion is the PM agent's job — it owns backlog state. Do not run `git mv` or open commits yourself.
 
-```bash
-git fetch origin && git switch main && git pull --ff-only origin main
-git checkout -b chore/promote-<WI-ID>-done
-git mv work_items/ready/<WI-ID>-*.md work_items/done/
-git add work_items/
-git commit -m "chore: promote <WI-ID> to done"
-git push -u origin chore/promote-<WI-ID>-done
-gh pr create --title "chore: promote <WI-ID> to done" --body "WI completed and merged in PR #[PR number]. Moving from ready/ to done/."
+Instead, fill `prompts/agents/invocation_templates/pm_invocation.md` and print one block:
+
+```text
+Paste this into a FRESH PM Agent session (new chat / new Codex session):
+Recommended model: Sonnet (or equivalent mid-tier)
+
+You are the PM / Coordination Agent for this repository.
+
+Work from current `main`.
+
+Read in order:
+- AGENTS.md
+- prompts/agents/pm_agent_instruction.md
+- work_items/READY_CRITERIA.md
+- [path to the WI file that was just merged, still in ready/ until promoted]
+
+Context:
+PR #[PR number] implementing [WI-ID] has been merged. The WI has not yet been promoted.
+
+Task:
+1. Promote [WI-ID]: git mv work_items/ready/[WI filename] work_items/done/, commit on a fresh branch, open a promotion PR.
+2. Then assess the next ready work item and produce an implementation brief.
 ```
 
-4. Tell the user the promotion PR was opened, then continue to Step 1 to find the next work item.
-
-Do not skip the promotion PR — branch protection requires it.
+Do not proceed to Step 1 until the user confirms the PM session is complete or asks to continue.
 
 ## Step 1 — Identify the work item
 
