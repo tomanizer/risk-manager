@@ -97,7 +97,7 @@ def test_completed_pm_ready_outcome_routes_to_coding() -> None:
         assert decision.metadata["pm_run_id"] == "pm-wi-1-1-4-test-run"
 
 
-def test_completed_pm_split_required_routes_to_human_update_repo() -> None:
+def test_completed_pm_split_required_routes_to_issue_planner() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         work_item_path = Path(temp_dir) / "WI-1.1.4-risk-summary-core-service.md"
         work_item_path.write_text("# WI-1.1.4\n", encoding="utf-8")
@@ -130,8 +130,9 @@ def test_completed_pm_split_required_routes_to_human_update_repo() -> None:
 
         decision = decide_next_action(snapshot)
 
-        assert decision.action is NextActionType.HUMAN_UPDATE_REPO
+        assert decision.action is NextActionType.RUN_ISSUE_PLANNER
         assert decision.reason == "Need to split WI-1.1.4 before coding."
+        assert decision.metadata["pm_outcome_status"] == "split_required"
 
 
 def test_completed_pm_outcome_is_ignored_after_work_item_changes() -> None:

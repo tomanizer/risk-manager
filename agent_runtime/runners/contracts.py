@@ -9,8 +9,10 @@ from enum import Enum
 class RunnerName(str, Enum):
     PM = "pm"
     SPEC = "spec"
+    ISSUE_PLANNER = "issue_planner"
     CODING = "coding"
     REVIEW = "review"
+    DRIFT_MONITOR = "drift_monitor"
 
 
 class RunnerDispatchStatus(str, Enum):

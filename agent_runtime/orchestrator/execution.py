@@ -5,6 +5,8 @@ from __future__ import annotations
 from .state import NextActionType, PullRequestSnapshot, RuntimeSnapshot, TransitionDecision, WorkItemSnapshot
 from ..runners.coding_runner import CodingRunnerInput, build_coding_prompt
 from ..runners.contracts import RunnerExecution, RunnerName
+from ..runners.drift_monitor_runner import DriftMonitorRunnerInput, build_drift_monitor_prompt
+from ..runners.issue_planner_runner import IssuePlannerRunnerInput, build_issue_planner_prompt
 from ..runners.pm_runner import PMRunnerInput, build_pm_prompt
 from ..runners.review_runner import ReviewRunnerInput, build_review_prompt
 from ..runners.spec_runner import SpecRunnerInput, build_spec_prompt
@@ -25,6 +27,18 @@ def _find_pull_request(snapshot: RuntimeSnapshot, work_item_id: str) -> PullRequ
 
 
 def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecision) -> RunnerExecution | None:
+    if decision.action is NextActionType.RUN_DRIFT_CHECK:
+        drift_input = DriftMonitorRunnerInput(
+            repo_root=str(decision.target_path or "."),
+            focus_area=decision.metadata.get("focus_area"),
+        )
+        return RunnerExecution(
+            runner_name=RunnerName.DRIFT_MONITOR,
+            work_item_id=decision.work_item_id or "repo",
+            prompt=build_drift_monitor_prompt(drift_input),
+            metadata=dict(decision.metadata),
+        )
+
     if decision.work_item_id is None:
         return None
 
@@ -54,11 +68,26 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
             work_item_id=work_item.id,
             blocked_reason=decision.reason,
             work_item_path=str(work_item.path),
+            linked_prd=work_item.linked_prd,
         )
         return RunnerExecution(
             runner_name=RunnerName.SPEC,
             work_item_id=work_item.id,
             prompt=build_spec_prompt(spec_input),
+            metadata={**base_metadata, "target_path": str(work_item.path)},
+        )
+
+    if decision.action is NextActionType.RUN_ISSUE_PLANNER:
+        issue_planner_input = IssuePlannerRunnerInput(
+            work_item_id=work_item.id,
+            split_reason=decision.reason,
+            work_item_path=str(work_item.path),
+            linked_prd=work_item.linked_prd,
+        )
+        return RunnerExecution(
+            runner_name=RunnerName.ISSUE_PLANNER,
+            work_item_id=work_item.id,
+            prompt=build_issue_planner_prompt(issue_planner_input),
             metadata={**base_metadata, "target_path": str(work_item.path)},
         )
 

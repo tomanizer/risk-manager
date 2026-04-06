@@ -21,9 +21,11 @@ class WorkItemStage(str, Enum):
 class NextActionType(str, Enum):
     RUN_PM = "run_pm"
     RUN_SPEC = "run_spec"
+    RUN_ISSUE_PLANNER = "run_issue_planner"
     RUN_CODING = "run_coding"
     WAIT_FOR_REVIEWS = "wait_for_reviews"
     RUN_REVIEW = "run_review"
+    RUN_DRIFT_CHECK = "run_drift_check"
     HUMAN_MERGE = "human_merge"
     HUMAN_UPDATE_REPO = "human_update_repo"
     NOOP = "noop"
