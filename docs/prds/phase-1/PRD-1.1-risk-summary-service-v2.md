@@ -397,6 +397,7 @@ Rules:
 - `status_reasons` carries secondary detail and supporting diagnostics
 - this vocabulary is shared across object-returning outcomes and typed service-error outcomes; it does not imply that every status is representable inside every returned object
 - typed request validation failures sit outside returned-object status encoding and must not fabricate `RiskDelta`, `RiskSummary`, or `RiskChangeProfile` objects
+- this PRD governs which canonical outcome category applies; it does not redesign the repository's shared typed service-error or request-validation envelope
 - for `get_risk_delta`, `get_risk_summary`, and `get_risk_change_profile`, a typed object is returned only when a current scoped point exists and the required current-value plus replay/version fields can be populated honestly
 - for `get_risk_delta` in v1, reachable in-object statuses are `OK`, `DEGRADED`, and `MISSING_COMPARE`
 - for `get_risk_summary` and `get_risk_change_profile` in v1, reachable in-object statuses are `OK`, `DEGRADED`, `MISSING_COMPARE`, and `MISSING_HISTORY`
@@ -455,7 +456,8 @@ Inputs:
 Returns:
 
 - `RiskSummary` when a current scoped point exists for the requested `as_of_date`
-- typed service error `UNSUPPORTED_MEASURE`, `MISSING_SNAPSHOT`, or `MISSING_NODE` when no current scoped point can be returned honestly
+- typed service error `UNSUPPORTED_MEASURE` when the requested `measure_type` is outside this operation's governed contract
+- typed service error `MISSING_SNAPSHOT` or `MISSING_NODE` when no current scoped point can be returned honestly
 - typed request validation failure for invalid request inputs
 
 The default `lookback_window=60` applies here as 60 business days ending on `as_of_date`, inclusive of `as_of_date`.
@@ -494,7 +496,8 @@ Inputs:
 Returns:
 
 - `RiskDelta` when a current scoped point exists for the requested `as_of_date`
-- typed service error `UNSUPPORTED_MEASURE`, `MISSING_SNAPSHOT`, or `MISSING_NODE` when no current scoped point can be returned honestly
+- typed service error `UNSUPPORTED_MEASURE` when the requested `measure_type` is outside this operation's governed contract
+- typed service error `MISSING_SNAPSHOT` or `MISSING_NODE` when no current scoped point can be returned honestly
 - typed request validation failure for invalid request inputs
 
 ### `get_risk_change_profile`
@@ -515,7 +518,8 @@ Inputs:
 Returns:
 
 - `RiskChangeProfile` when a current scoped point exists for the requested `as_of_date`
-- typed service error `UNSUPPORTED_MEASURE`, `MISSING_SNAPSHOT`, or `MISSING_NODE` when no current scoped point can be returned honestly
+- typed service error `UNSUPPORTED_MEASURE` when the requested `measure_type` is outside this operation's governed contract
+- typed service error `MISSING_SNAPSHOT` or `MISSING_NODE` when no current scoped point can be returned honestly
 - typed request validation failure for invalid request inputs
 
 The default `lookback_window=60` applies here as 60 business days ending on `as_of_date`, inclusive of `as_of_date`.
@@ -637,7 +641,8 @@ Result:
 
 Result:
 
-- typed service error `UNSUPPORTED_MEASURE` for a supported request shape that asks for a measure outside the governed operation contract
+- for `get_risk_delta`, `get_risk_summary`, and `get_risk_change_profile`, typed service error `UNSUPPORTED_MEASURE` for a supported request shape that asks for a measure outside the governed operation contract
+- for `get_risk_history`, `UNSUPPORTED_MEASURE` remains an operation status on `RiskHistorySeries` exactly as defined in the history-status model above
 - typed request validation failure only when the request itself is structurally invalid
 
 ### Case: partial snapshot
