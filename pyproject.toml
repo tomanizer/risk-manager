@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "risk-manager"
 version = "0.0.0"
 requires-python = ">=3.12"
-dependencies = ["pydantic>=2.0,<3.0", "pydantic-settings>=2.0,<3.0"]
+dependencies = ["pydantic>=2.0,<3.0", "pydantic-settings>=2.0,<3.0", "openai>=1.0"]
 
 [project.optional-dependencies]
 dev = [
@@ -59,7 +59,7 @@ warn_required_dynamic_aliases = true
 # All imports are guarded by try/except ImportError so runtime behaviour is
 # unaffected when these packages are absent.
 [[tool.mypy.overrides]]
-module = ["opentelemetry.*", "structlog", "langgraph.*", "langchain_core.*"]
+module = ["opentelemetry.*", "structlog", "langgraph.*", "langchain_core.*", "openai.*"]
 ignore_missing_imports = true
 
 [tool.setuptools.packages.find]

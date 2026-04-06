@@ -43,6 +43,7 @@ artifacts/drift/*.json
 !artifacts/drift/baseline.json
 artifacts/drift/issue_body.md
 artifacts/drift/summary.md
+artifacts/drift/synthesis.md
 
 # Secrets / local config overrides
 .env
