@@ -15,6 +15,7 @@ and writes the filled prompt to stdout (or --output <file>).
 Fields that require operator context (free-text CONTEXT, TASK, etc.) are left as
 bracketed reminders so the operator can complete them before pasting.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -52,6 +53,7 @@ _SECTION_RE = re.compile(r"^##\s+(.+)$", re.MULTILINE)
 # Work-item discovery
 # ---------------------------------------------------------------------------
 
+
 def find_work_item_file(work_item_id: str) -> Optional[Path]:
     """Search all subdirectories of work_items/ for a file matching the WI id."""
     pattern = f"*{work_item_id}*"
@@ -78,6 +80,7 @@ def list_work_items() -> list[Path]:
 # Section extraction from markdown
 # ---------------------------------------------------------------------------
 
+
 def _split_sections(text: str) -> dict[str, str]:
     """Return a dict mapping lowercased section heading → section body text."""
     headings = [(m.start(), m.group(1).strip()) for m in _SECTION_RE.finditer(text)]
@@ -102,6 +105,7 @@ def _extract_section(sections: dict[str, str], *keys: str) -> str:
 # ---------------------------------------------------------------------------
 # PRD / ADR path resolution
 # ---------------------------------------------------------------------------
+
 
 def _find_prd(prd_ref: str) -> Optional[Path]:
     """Resolve a PRD reference like 'PRD-1.1-v2' to a file path."""
@@ -133,6 +137,7 @@ def _repo_relative(path: Path) -> str:
 # ---------------------------------------------------------------------------
 # Work-item parsing
 # ---------------------------------------------------------------------------
+
 
 class WorkItemInfo:
     """Parsed representation of a WI-*.md file."""
@@ -185,6 +190,7 @@ class WorkItemInfo:
 # Template filling
 # ---------------------------------------------------------------------------
 
+
 def _fill_template(template: str, wi: Optional[WorkItemInfo], extra: dict[str, str]) -> str:
     """Replace known <PLACEHOLDER> tokens in template with resolved values.
 
@@ -211,8 +217,12 @@ def _fill_template(template: str, wi: Optional[WorkItemInfo], extra: dict[str, s
         inline["<BULLETED_SCOPE_LIST — what the coding agent must build>"] = wi.scope or "<scope not found>"
         inline["<TARGET_FILES — exact file paths the agent should create or modify>"] = wi.target_area or "<target area not found>"
         inline["<BULLETED_OUT_OF_SCOPE — explicit reminders of what not to touch>"] = wi.out_of_scope or "<out of scope not found>"
-        inline["<BULLETED_ACCEPTANCE_CRITERIA — what must be true when the slice is complete>"] = wi.acceptance_criteria or "<acceptance criteria not found>"
-        inline["<BULLETED_STOP_CONDITIONS — when the agent should stop and report a blocker>"] = wi.stop_conditions or "<stop conditions not found in work item>"
+        inline["<BULLETED_ACCEPTANCE_CRITERIA — what must be true when the slice is complete>"] = (
+            wi.acceptance_criteria or "<acceptance criteria not found>"
+        )
+        inline["<BULLETED_STOP_CONDITIONS — when the agent should stop and report a blocker>"] = (
+            wi.stop_conditions or "<stop conditions not found in work item>"
+        )
 
     inline.update(extra)
 
@@ -245,6 +255,7 @@ def _fill_template(template: str, wi: Optional[WorkItemInfo], extra: dict[str, s
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -370,12 +381,14 @@ def main() -> int:
         # Generic fallback
         extra["<CONTEXT>"] = args.context
     if args.task:
-        extra["<TASK — e.g. \"Reassess whether WI-X.Y.Z is now coding-ready on merged main.\">"] = args.task
-        extra["<TASK — e.g. \"Write PRD for X capability\" or \"Update PRD-1.1 to clarify error semantics for as-of-date retrieval\">"] = args.task
-        extra["<TASK — e.g. \"Create one bounded prerequisite work item that unblocks WI-X.Y.Z\">"] = args.task
+        extra['<TASK — e.g. "Reassess whether WI-X.Y.Z is now coding-ready on merged main.">'] = args.task
+        extra['<TASK — e.g. "Write PRD for X capability" or "Update PRD-1.1 to clarify error semantics for as-of-date retrieval">'] = args.task
+        extra['<TASK — e.g. "Create one bounded prerequisite work item that unblocks WI-X.Y.Z">'] = args.task
         extra["<TASK>"] = args.task
     if args.focus_area:
-        extra["<FOCUS_AREA — \"full repo audit\" or a specific area like \"canon vs implementation coherence for risk_analytics module\">"] = args.focus_area
+        extra['<FOCUS_AREA — "full repo audit" or a specific area like "canon vs implementation coherence for risk_analytics module">'] = (
+            args.focus_area
+        )
         extra["<FOCUS_AREA>"] = args.focus_area
 
     filled = _fill_template(template_text, wi, extra)
