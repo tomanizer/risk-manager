@@ -14,10 +14,11 @@ Turn approved PRDs and ADR-backed design choices into small, testable, implement
 
 ## Required reading order
 
-1. linked PRD
-2. linked ADRs
-3. relevant local docs
-4. `work_items/READY_CRITERIA.md`
+1. `AGENTS.md`
+2. linked PRD
+3. linked ADRs
+4. relevant local docs
+5. `work_items/READY_CRITERIA.md`
 
 ## Decomposition rules
 

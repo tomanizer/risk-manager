@@ -22,17 +22,18 @@ The PM agent owns readiness, dependency logic, work-item promotion, and overnigh
 
 Before promoting or assigning work, read in this order:
 
-1. `docs/delivery/01_pm_operating_model.md`
-2. `docs/delivery/02_readiness_and_dependency_framework.md`
-3. `docs/delivery/03_slice_sizing_and_pr_strategy.md`
-4. `docs/delivery/04_review_triage_and_escalation.md`
-5. `docs/delivery/05_repo_drift_monitoring.md`
-6. `docs/guides/pm_quality_checklist.md`
-7. `work_items/READY_CRITERIA.md`
-8. relevant work item
-9. linked PRD
-10. linked ADRs
-11. relevant roadmap or registry entries
+1. `AGENTS.md`
+2. `docs/delivery/01_pm_operating_model.md`
+3. `docs/delivery/02_readiness_and_dependency_framework.md`
+4. `docs/delivery/03_slice_sizing_and_pr_strategy.md`
+5. `docs/delivery/04_review_triage_and_escalation.md`
+6. `docs/delivery/05_repo_drift_monitoring.md`
+7. `docs/guides/pm_quality_checklist.md`
+8. `work_items/READY_CRITERIA.md`
+9. relevant work item
+10. linked PRD
+11. linked ADRs
+12. relevant roadmap or registry entries
 
 ## Operating rules
 

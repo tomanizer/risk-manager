@@ -35,25 +35,15 @@ def test_instruction_surface_report_detects_readme_inventory_drift(tmp_path: Pat
 
 def test_instruction_surface_report_detects_missing_agents_reference(tmp_path: Path) -> None:
     _write_instruction_surfaces(tmp_path)
-    claude_path = tmp_path / "CLAUDE.md"
-    claude_path.write_text(
-        "\n".join(
-            [
-                "1. git fetch origin",
-                "2. git switch main",
-                "3. git pull --ff-only origin main",
-            ]
-        )
-        + "\n",
-        encoding="utf-8",
-    )
+    prompt_path = tmp_path / "prompts" / "agents" / "pm_agent_instruction.md"
+    prompt_path.write_text("# PM\n", encoding="utf-8")
 
     report = build_instruction_surface_report(tmp_path)
 
     assert report.stats.findings_count == 1
     finding = report.findings[0]
     assert finding.kind == "missing_agents_reference"
-    assert finding.source_path == "CLAUDE.md"
+    assert finding.source_path == "prompts/agents/pm_agent_instruction.md"
 
 
 def test_instruction_surface_report_detects_incomplete_freshness_rule(tmp_path: Path) -> None:
@@ -67,6 +57,20 @@ def test_instruction_surface_report_detects_incomplete_freshness_rule(tmp_path: 
     finding = report.findings[0]
     assert finding.kind == "incomplete_freshness_rule"
     assert finding.source_path == ".github/agents/review.agent.md"
+    assert finding.related_paths == ("git pull --ff-only origin main",)
+
+
+def test_instruction_surface_report_detects_incomplete_prompt_freshness_rule(tmp_path: Path) -> None:
+    _write_instruction_surfaces(tmp_path)
+    prompt_path = tmp_path / "prompts" / "agents" / "review_agent_instruction.md"
+    prompt_path.write_text("Read `AGENTS.md`.\n1. `git fetch origin`\n2. `git switch main`\n", encoding="utf-8")
+
+    report = build_instruction_surface_report(tmp_path)
+
+    assert report.stats.findings_count == 1
+    finding = report.findings[0]
+    assert finding.kind == "incomplete_freshness_rule"
+    assert finding.source_path == "prompts/agents/review_agent_instruction.md"
     assert finding.related_paths == ("git pull --ff-only origin main",)
 
 
@@ -214,11 +218,11 @@ def _write_instruction_surfaces(root: Path) -> None:
         (github_agents_dir / filename).write_text(content, encoding="utf-8")
 
     prompt_agent_contents = {
-        "coding_agent_instruction.md": "# Coding\n",
-        "drift_monitor_agent_instruction.md": "Use `scripts/drift/run_all.py`.\n",
-        "issue_planner_instruction.md": "# Issue planner\n",
-        "pm_agent_instruction.md": "# PM\n",
-        "review_agent_instruction.md": "# Review\n",
+        "coding_agent_instruction.md": "Read `AGENTS.md`.\n# Coding\n",
+        "drift_monitor_agent_instruction.md": "Read `AGENTS.md`.\nUse `scripts/drift/run_all.py`.\n",
+        "issue_planner_instruction.md": "Read `AGENTS.md`.\n# Issue planner\n",
+        "pm_agent_instruction.md": "Read `AGENTS.md`.\n# PM\n",
+        "review_agent_instruction.md": "Read `AGENTS.md`.\n# Review\n",
         "risk_methodology_spec_agent_instruction.md": "Read `AGENTS.md`.\n",
     }
     for filename, content in prompt_agent_contents.items():

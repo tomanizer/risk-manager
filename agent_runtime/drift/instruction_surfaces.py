@@ -58,13 +58,7 @@ README_EXPECTATIONS: tuple[tuple[Path, tuple[str, ...]], ...] = (
 AGENTS_REFERENCE_FILES: tuple[Path, ...] = (
     Path("CLAUDE.md"),
     Path("GEMINI.md"),
-    Path(".github/agents/coding.agent.md"),
-    Path(".github/agents/drift-monitor.agent.md"),
-    Path(".github/agents/issue-planner.agent.md"),
-    Path(".github/agents/pm.agent.md"),
-    Path(".github/agents/review.agent.md"),
-    Path(".github/agents/risk-methodology-spec.agent.md"),
-)
+) + tuple(path for _, github_path, prompt_path in ROLE_SURFACES for path in (github_path, prompt_path))
 
 DRIFT_ENTRYPOINT_FILES: tuple[Path, ...] = (
     Path(".github/agents/drift-monitor.agent.md"),
@@ -117,32 +111,14 @@ class InstructionSurfaceReport:
 def build_instruction_surface_report(root: Path) -> InstructionSurfaceReport:
     repo_root = root.resolve()
     findings: list[InstructionSurfaceFinding] = []
-    instruction_files_scanned = 0
-    freshness_surfaces_checked = 0
-
-    for _, github_path, prompt_path in ROLE_SURFACES:
-        if (repo_root / github_path).is_file():
-            instruction_files_scanned += 1
-        if (repo_root / prompt_path).is_file():
-            instruction_files_scanned += 1
-    for path in (
-        Path("AGENTS.md"),
-        Path("CLAUDE.md"),
-        Path("GEMINI.md"),
-        COPILOT_INSTRUCTIONS_PATH,
-        Path(".github/agents/README.md"),
-        Path("prompts/agents/README.md"),
-        DRIFT_PROMPT_PATH,
-    ):
-        if (repo_root / path).is_file():
-            instruction_files_scanned += 1
+    freshness_rule_files = _freshness_rule_files(repo_root)
+    instruction_files_scanned = sum(1 for path in _instruction_files_scanned(repo_root, freshness_rule_files) if (repo_root / path).is_file())
 
     _append_role_surface_findings(findings, repo_root)
     _append_readme_inventory_findings(findings, repo_root)
     _append_agents_reference_findings(findings, repo_root)
 
-    for path in _freshness_rule_files(repo_root):
-        freshness_surfaces_checked += 1
+    for path in freshness_rule_files:
         _append_freshness_findings(findings, repo_root, path)
 
     _append_drift_entrypoint_findings(findings, repo_root)
@@ -157,7 +133,7 @@ def build_instruction_surface_report(root: Path) -> InstructionSurfaceReport:
             instruction_files_scanned=instruction_files_scanned,
             role_surfaces_checked=len(ROLE_SURFACES),
             readme_inventories_checked=len(README_EXPECTATIONS),
-            freshness_surfaces_checked=freshness_surfaces_checked,
+            freshness_surfaces_checked=len(freshness_rule_files),
             findings_count=len(findings),
         ),
     )
@@ -333,8 +309,21 @@ def _freshness_rule_files(repo_root: Path) -> tuple[Path, ...]:
         Path("GEMINI.md"),
         Path("docs/guides/overnight_agent_runbook.md"),
     ]
-    candidates.extend(github_path for _, github_path, _ in ROLE_SURFACES)
+    candidates.extend(path for _, github_path, prompt_path in ROLE_SURFACES for path in (github_path, prompt_path))
     return tuple(path for path in candidates if (repo_root / path).is_file())
+
+
+def _instruction_files_scanned(repo_root: Path, freshness_rule_files: tuple[Path, ...]) -> tuple[Path, ...]:
+    scanned_paths = {
+        Path("AGENTS.md"),
+        COPILOT_INSTRUCTIONS_PATH,
+        DRIFT_PROMPT_PATH,
+        *AGENTS_REFERENCE_FILES,
+        *(path for path, _ in README_EXPECTATIONS),
+        *DRIFT_ENTRYPOINT_FILES,
+        *freshness_rule_files,
+    }
+    return tuple(sorted((path for path in scanned_paths if (repo_root / path).is_file()), key=lambda path: path.as_posix()))
 
 
 def _listed_backtick_tokens(path: Path) -> tuple[str, ...]:

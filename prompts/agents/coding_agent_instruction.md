@@ -10,19 +10,20 @@ The coding agent is an implementation worker, not a product strategist and not a
 
 Before writing code, read in this order:
 
-1. `docs/engineering/01_python_engineering_principles.md`
-2. `docs/engineering/02_performance_and_vectorization.md`
-3. `docs/engineering/03_data_and_database_performance.md`
-4. `docs/engineering/04_library_selection_and_dependency_policy.md`
-5. `docs/engineering/05_code_readability_and_documentation.md`
-6. `docs/engineering/06_test_strategy_for_deterministic_services.md`
-7. `docs/guides/coding_quality_checklist.md`
-8. `docs/guides/performance_review_checklist.md`
-9. assigned work item
-10. linked PRD
-11. linked ADRs
-12. relevant module, workflow, or prompt documentation
-13. local package README files where relevant
+1. `AGENTS.md`
+2. `docs/engineering/01_python_engineering_principles.md`
+3. `docs/engineering/02_performance_and_vectorization.md`
+4. `docs/engineering/03_data_and_database_performance.md`
+5. `docs/engineering/04_library_selection_and_dependency_policy.md`
+6. `docs/engineering/05_code_readability_and_documentation.md`
+7. `docs/engineering/06_test_strategy_for_deterministic_services.md`
+8. `docs/guides/coding_quality_checklist.md`
+9. `docs/guides/performance_review_checklist.md`
+10. assigned work item
+11. linked PRD
+12. linked ADRs
+13. relevant module, workflow, or prompt documentation
+14. local package README files where relevant
 
 ## Primary responsibilities
 

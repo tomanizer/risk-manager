@@ -335,11 +335,11 @@ def _write_instruction_surfaces(root: Path) -> None:
         (github_agents_dir / filename).write_text(content, encoding="utf-8")
 
     prompt_agent_contents = {
-        "coding_agent_instruction.md": "# Coding\n",
-        "drift_monitor_agent_instruction.md": "Use `scripts/drift/run_all.py`.\n",
-        "issue_planner_instruction.md": "# Issue planner\n",
-        "pm_agent_instruction.md": "# PM\n",
-        "review_agent_instruction.md": "# Review\n",
+        "coding_agent_instruction.md": "Read `AGENTS.md`.\n# Coding\n",
+        "drift_monitor_agent_instruction.md": "Read `AGENTS.md`.\nUse `scripts/drift/run_all.py`.\n",
+        "issue_planner_instruction.md": "Read `AGENTS.md`.\n# Issue planner\n",
+        "pm_agent_instruction.md": "Read `AGENTS.md`.\n# PM\n",
+        "review_agent_instruction.md": "Read `AGENTS.md`.\n# Review\n",
         "risk_methodology_spec_agent_instruction.md": "Read `AGENTS.md`.\n",
     }
     for filename, content in prompt_agent_contents.items():
