@@ -6,6 +6,10 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Protocol, runtime_checkable
 
+from agent_runtime.backend_type import BackendType
+
+__all__ = ["BackendType"]
+
 
 class RunnerName(str, Enum):
     PM = "pm"

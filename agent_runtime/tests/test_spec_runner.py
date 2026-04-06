@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 from unittest.mock import patch
 
+from agent_runtime.config.settings import get_settings
 from agent_runtime.orchestrator.state import (
     NextActionType,
     RuntimeSnapshot,
@@ -32,7 +33,11 @@ def test_dispatch_spec_execution_uses_prepared_backend_by_default() -> None:
     )
 
     with patch.dict("os.environ", {"AGENT_RUNTIME_SPEC_BACKEND": "prepared"}, clear=False):
-        result = dispatch_spec_execution(execution)
+        get_settings.cache_clear()
+        try:
+            result = dispatch_spec_execution(execution)
+        finally:
+            get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.PREPARED
     assert result.outcome_status is None
@@ -74,8 +79,12 @@ def test_dispatch_spec_execution_codex_backend_returns_completed_outcome() -> No
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
     with patch.dict("os.environ", {"AGENT_RUNTIME_SPEC_BACKEND": "codex_exec"}, clear=False):
-        with patch("agent_runtime.runners.spec_backend.subprocess.run", side_effect=fake_run):
-            result = dispatch_spec_execution(execution)
+        get_settings.cache_clear()
+        try:
+            with patch("agent_runtime.runners.spec_backend.subprocess.run", side_effect=fake_run):
+                result = dispatch_spec_execution(execution)
+        finally:
+            get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.COMPLETED
     assert result.outcome_status == "clarified"
@@ -117,8 +126,12 @@ def test_dispatch_spec_execution_codex_backend_rejects_non_string_details() -> N
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
     with patch.dict("os.environ", {"AGENT_RUNTIME_SPEC_BACKEND": "codex_exec"}, clear=False):
-        with patch("agent_runtime.runners.spec_backend.subprocess.run", side_effect=fake_run):
-            result = dispatch_spec_execution(execution)
+        get_settings.cache_clear()
+        try:
+            with patch("agent_runtime.runners.spec_backend.subprocess.run", side_effect=fake_run):
+                result = dispatch_spec_execution(execution)
+        finally:
+            get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.FAILED
     assert result.outcome_status is None
@@ -149,26 +162,30 @@ def test_dispatch_spec_execution_codex_backend_rejects_non_object_payload() -> N
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
     with patch.dict("os.environ", {"AGENT_RUNTIME_SPEC_BACKEND": "codex_exec"}, clear=False):
-        with patch("agent_runtime.runners.spec_backend.subprocess.run", side_effect=fake_run):
-            result = dispatch_spec_execution(execution)
+        get_settings.cache_clear()
+        try:
+            with patch("agent_runtime.runners.spec_backend.subprocess.run", side_effect=fake_run):
+                result = dispatch_spec_execution(execution)
+        finally:
+            get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.FAILED
     assert "parse Codex output" in result.summary
 
 
 def test_dispatch_spec_execution_rejects_unknown_backend() -> None:
-    execution = RunnerExecution(
-        runner_name=RunnerName.SPEC,
-        work_item_id="WI-1.1.4-risk-summary-core-service",
-        prompt="Act only as the spec-resolution agent.",
-        metadata={"target_path": "work_items/ready/WI-1.1.4-risk-summary-core-service.md"},
-    )
+    """Pydantic validation rejects unknown BackendType values at config time."""
+    from pydantic import ValidationError
+    from agent_runtime.config.settings import AgentRuntimeConfig
 
     with patch.dict("os.environ", {"AGENT_RUNTIME_SPEC_BACKEND": "unknown"}, clear=False):
-        result = dispatch_spec_execution(execution)
-
-    assert result.status is RunnerDispatchStatus.FAILED
-    assert "Unsupported spec backend configured" in result.summary
+        raised = False
+        try:
+            AgentRuntimeConfig()
+        except ValidationError as exc:
+            raised = True
+            assert "spec_backend" in str(exc)
+        assert raised, "Expected ValidationError for unknown BackendType"
 
 
 # --- PM → Spec escalation transition tests ---

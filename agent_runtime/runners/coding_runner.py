@@ -5,14 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from .coding_backend import (
-    CODING_BACKEND_CODEX_EXEC,
-    CODING_BACKEND_PREPARED,
-    dispatch_codex_coding_execution,
-    dispatch_prepared_coding_execution,
-    get_coding_backend_name,
-)
-from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
+from agent_runtime.config.settings import get_settings
+
+from .coding_backend import dispatch_codex_coding_execution, dispatch_prepared_coding_execution
+from .contracts import BackendType, RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 from .prompt_loader import load_system_prompt
 
 
@@ -72,16 +68,21 @@ def dispatch_coding_execution(execution: RunnerExecution) -> RunnerResult:
     """Backward-compatible dispatch entry point."""
     if execution.runner_name is not RunnerName.CODING:
         raise RuntimeError("Coding dispatch received a non-coding runner execution")
-    backend_name = get_coding_backend_name()
-    if backend_name == CODING_BACKEND_PREPARED:
+    cfg = get_settings().agent_runtime
+    backend = cfg.get_role_backend("coding")
+    if backend == BackendType.PREPARED:
         return dispatch_prepared_coding_execution(execution)
-    if backend_name == CODING_BACKEND_CODEX_EXEC:
-        return dispatch_codex_coding_execution(execution)
+    if backend == BackendType.CODEX_EXEC:
+        return dispatch_codex_coding_execution(
+            execution,
+            codex_bin=cfg.get_role_codex_bin("coding"),
+            model=cfg.get_role_model("coding", backend),
+        )
     return RunnerResult(
         runner_name=execution.runner_name,
         work_item_id=execution.work_item_id,
         status=RunnerDispatchStatus.FAILED,
-        summary=f"Unsupported coding backend configured: {backend_name}",
+        summary=f"Unsupported coding backend configured: {backend.value}",
         prompt=execution.prompt,
         details=dict(execution.metadata),
     )

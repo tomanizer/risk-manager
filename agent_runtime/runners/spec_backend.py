@@ -3,27 +3,17 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 import subprocess
 import tempfile
 
-from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
+from .contracts import BackendType, RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 
-SPEC_BACKEND_ENV = "AGENT_RUNTIME_SPEC_BACKEND"
-SPEC_CODEX_BIN_ENV = "AGENT_RUNTIME_SPEC_CODEX_BIN"
-SPEC_CODEX_MODEL_ENV = "AGENT_RUNTIME_SPEC_CODEX_MODEL"
-SPEC_BACKEND_PREPARED = "prepared"
-SPEC_BACKEND_CODEX_EXEC = "codex_exec"
-_ALLOWED_SPEC_DECISIONS = {
+ALLOWED_SPEC_DECISIONS = {
     "CLARIFIED": "clarified",
     "BLOCKED": "blocked",
     "SPLIT_REQUIRED": "split_required",
 }
-
-
-def get_spec_backend_name() -> str:
-    return os.getenv(SPEC_BACKEND_ENV, SPEC_BACKEND_CODEX_EXEC).strip().lower() or SPEC_BACKEND_CODEX_EXEC
 
 
 def dispatch_prepared_spec_execution(execution: RunnerExecution) -> RunnerResult:
@@ -37,7 +27,12 @@ def dispatch_prepared_spec_execution(execution: RunnerExecution) -> RunnerResult
     )
 
 
-def dispatch_codex_spec_execution(execution: RunnerExecution) -> RunnerResult:
+def dispatch_codex_spec_execution(
+    execution: RunnerExecution,
+    *,
+    codex_bin: str = "codex",
+    model: str | None = None,
+) -> RunnerResult:
     if execution.runner_name is not RunnerName.SPEC:
         raise RuntimeError("Codex spec backend received a non-spec runner execution")
 
@@ -52,8 +47,6 @@ def dispatch_codex_spec_execution(execution: RunnerExecution) -> RunnerResult:
             details=dict(execution.metadata),
         )
 
-    codex_bin = os.getenv(SPEC_CODEX_BIN_ENV, "codex")
-    model = os.getenv(SPEC_CODEX_MODEL_ENV)
     backend_prompt = _build_codex_spec_prompt(execution.prompt)
 
     with tempfile.TemporaryDirectory(prefix="agent-runtime-spec-") as temp_dir:
@@ -134,7 +127,7 @@ def dispatch_codex_spec_execution(execution: RunnerExecution) -> RunnerResult:
             prompt=execution.prompt,
             details=dict(execution.metadata),
         )
-    normalized_decision = _ALLOWED_SPEC_DECISIONS.get(decision_value.upper())
+    normalized_decision = ALLOWED_SPEC_DECISIONS.get(decision_value.upper())
     if normalized_decision is None:
         return RunnerResult(
             runner_name=execution.runner_name,
@@ -163,7 +156,7 @@ def dispatch_codex_spec_execution(execution: RunnerExecution) -> RunnerResult:
         prompt=execution.prompt,
         details={
             **execution.metadata,
-            "spec_backend": SPEC_BACKEND_CODEX_EXEC,
+            "spec_backend": BackendType.CODEX_EXEC.value,
         },
         outcome_status=normalized_decision,
         outcome_summary=summary_value,

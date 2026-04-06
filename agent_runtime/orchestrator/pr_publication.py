@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import json
-import os
 from pathlib import Path
 import subprocess
 
+from agent_runtime.config.settings import get_settings
 from agent_runtime.runners.contracts import (
     RunnerDispatchStatus,
     RunnerExecution,
@@ -17,8 +17,6 @@ from agent_runtime.runners.contracts import (
 
 from .github_sync import infer_github_repository
 
-CODING_PR_BACKEND_ENV = "AGENT_RUNTIME_CODING_PR_BACKEND"
-CODING_PR_TITLE_PREFIX_ENV = "AGENT_RUNTIME_CODING_PR_TITLE_PREFIX"
 CODING_PR_BACKEND_DISABLED = "disabled"
 CODING_PR_BACKEND_GH_DRAFT = "gh_draft"
 
@@ -33,7 +31,8 @@ class PullRequestPublicationResult:
 
 
 def get_coding_pr_backend_name() -> str:
-    return os.getenv(CODING_PR_BACKEND_ENV, CODING_PR_BACKEND_DISABLED).strip().lower() or CODING_PR_BACKEND_DISABLED
+    cfg = get_settings().agent_runtime
+    return (cfg.coding_pr_backend or CODING_PR_BACKEND_DISABLED).strip().lower() or CODING_PR_BACKEND_DISABLED
 
 
 def maybe_publish_completed_coding_run(
@@ -321,7 +320,7 @@ def _create_draft_pull_request(
     branch_name: str,
     base_branch: str,
 ) -> str | None:
-    title_prefix = os.getenv(CODING_PR_TITLE_PREFIX_ENV, "[codex]").strip() or "[codex]"
+    title_prefix = get_settings().agent_runtime.coding_pr_title_prefix.strip() or "[codex]"
     title = f"{title_prefix} Implement {work_item_id}"
     body = (
         "## Summary\n"

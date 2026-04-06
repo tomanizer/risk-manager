@@ -5,15 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
+from agent_runtime.config.settings import get_settings
+
+from .contracts import BackendType, RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 from .prompt_loader import load_system_prompt
-from .review_backend import (
-    REVIEW_BACKEND_CODEX_EXEC,
-    REVIEW_BACKEND_PREPARED,
-    dispatch_codex_review_execution,
-    dispatch_prepared_review_execution,
-    get_review_backend_name,
-)
+from .review_backend import dispatch_codex_review_execution, dispatch_prepared_review_execution
 
 
 @dataclass(frozen=True)
@@ -65,16 +61,21 @@ class ReviewRunner:
 def dispatch_review_execution(execution: RunnerExecution) -> RunnerResult:
     if execution.runner_name is not RunnerName.REVIEW:
         raise RuntimeError("Review dispatch received a non-review runner execution")
-    backend_name = get_review_backend_name()
-    if backend_name == REVIEW_BACKEND_PREPARED:
+    cfg = get_settings().agent_runtime
+    backend = cfg.get_role_backend("review")
+    if backend == BackendType.PREPARED:
         return dispatch_prepared_review_execution(execution)
-    if backend_name == REVIEW_BACKEND_CODEX_EXEC:
-        return dispatch_codex_review_execution(execution)
+    if backend == BackendType.CODEX_EXEC:
+        return dispatch_codex_review_execution(
+            execution,
+            codex_bin=cfg.get_role_codex_bin("review"),
+            model=cfg.get_role_model("review", backend),
+        )
     return RunnerResult(
         runner_name=execution.runner_name,
         work_item_id=execution.work_item_id,
         status=RunnerDispatchStatus.FAILED,
-        summary=f"Unsupported review backend configured: {backend_name}",
+        summary=f"Unsupported review backend configured: {backend.value}",
         prompt=execution.prompt,
         details=dict(execution.metadata),
     )
