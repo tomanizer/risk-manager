@@ -121,3 +121,44 @@ In these cases, stop the implementation, describe the blocker precisely, and rou
 - row-wise analytical processing without a clear reason
 - unrelated refactors
 - mixing multiple work items into one change without explicit PM approval
+
+## Handoff output
+
+After completing the implementation and opening a draft PR, produce a handoff prompt for the next agent. Print it as a copy-paste-ready block so the operator can open a fresh session for the next role without manual template filling.
+
+### If the PR is open and CI is passing
+
+Fill `prompts/agents/invocation_templates/review_invocation.md` with actual values and print:
+
+```text
+Paste this into a FRESH Review Agent session (new chat / new Codex session):
+```
+
+Followed by the filled prompt. Use these values:
+
+- `<ASSIGNED_WORK_ITEM>` → path to the work item file
+- `<LINKED_PRD>` → path to the linked PRD
+- `<LINKED_ADRS>` → ADR paths used in this slice
+- `<PR_NUMBER>` → the PR number opened
+- `<BRANCH_NAME>` → the branch name
+- `<CONTEXT — what the PR implements, any known concerns>` → one sentence: what the PR implements and any concerns the review agent should know
+
+### If CI is failing
+
+Do not hand off to review. Fix CI failures before producing the review handoff. If the failure is outside the work item scope or requires a contract decision, stop and print:
+
+```text
+BLOCKED — route to PM:
+```
+
+Followed by the precise failure and the recommended routing (PM / PRD / ADR / human).
+
+### If you hit a stop condition before opening a PR
+
+Do not produce a review handoff. Print:
+
+```text
+BLOCKED — route to PM:
+```
+
+Followed by the precise blocker and the recommended routing.
