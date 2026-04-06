@@ -2,19 +2,11 @@
 
 from __future__ import annotations
 
-import time
 from datetime import date
 from functools import lru_cache
 
 from .contracts import MeasureType, NodeRef, RiskHistoryPoint, RiskHistorySeries, SummaryStatus
 from .fixtures import FixtureIndex, build_fixture_index
-
-try:
-    from agent_runtime.telemetry import record_risk_service_call, risk_service_span
-
-    _TELEMETRY_AVAILABLE = True
-except ImportError:
-    _TELEMETRY_AVAILABLE = False
 
 
 @lru_cache(maxsize=1)
@@ -74,59 +66,6 @@ def get_risk_history(
     pinned fixture-backed dataset context for that request, while returned points
     remain restricted to the inclusive requested range.
     """
-    _start = time.monotonic()
-    _span_cm = (
-        risk_service_span(
-            node_ref=str(node_ref),
-            measure_type=measure_type.value,
-            start_date=start_date.isoformat(),
-            end_date=end_date.isoformat(),
-        )
-        if _TELEMETRY_AVAILABLE
-        else _noop_context()
-    )
-
-    with _span_cm as _span:
-        result = _get_risk_history_inner(
-            node_ref=node_ref,
-            measure_type=measure_type,
-            start_date=start_date,
-            end_date=end_date,
-            require_complete=require_complete,
-            snapshot_id=snapshot_id,
-            fixture_index=fixture_index,
-        )
-        if _span is not None:
-            _span.set_attribute("risk.result_status", result.status.value)
-            _span.set_attribute("risk.points_returned", len(result.points))
-
-    if _TELEMETRY_AVAILABLE:
-        _elapsed = time.monotonic() - _start
-        record_risk_service_call(result.status.value, _elapsed)
-
-    return result
-
-
-def _noop_context():
-    """Minimal no-op context manager used when telemetry is unavailable."""
-    from contextlib import contextmanager
-
-    @contextmanager
-    def _cm():
-        yield None
-
-    return _cm()
-
-
-def _get_risk_history_inner(
-    node_ref: NodeRef,
-    measure_type: MeasureType,
-    start_date: date,
-    end_date: date,
-    require_complete: bool,
-    snapshot_id: str | None,
-    fixture_index: FixtureIndex | None,
-) -> RiskHistorySeries:
     if start_date > end_date:
         raise ValueError("start_date must be on or before end_date")
     if snapshot_id is not None and not snapshot_id.strip():

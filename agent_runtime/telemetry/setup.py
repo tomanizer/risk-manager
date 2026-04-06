@@ -145,10 +145,9 @@ def _configure_otel(
     if enable_prometheus_port is not None:
         try:
             from opentelemetry.exporter.prometheus import PrometheusMetricReader
-            from prometheus_client import start_http_server  # type: ignore[import]
 
-            start_http_server(enable_prometheus_port)
-            metric_readers.append(PrometheusMetricReader())
+            # PrometheusMetricReader starts its own HTTP server on the given port.
+            metric_readers.append(PrometheusMetricReader(port=enable_prometheus_port))
         except Exception:
             pass
 
