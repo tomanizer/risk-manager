@@ -124,41 +124,75 @@ In these cases, stop the implementation, describe the blocker precisely, and rou
 
 ## Handoff output
 
-After completing the implementation and opening a draft PR, produce a handoff prompt for the next agent. Print it as a copy-paste-ready block so the operator can open a fresh session for the next role without manual template filling.
+After completing the implementation and opening a draft PR, print a single copy-paste-ready block for the operator to paste into a fresh agent session. The block must contain the header line and the complete filled prompt together — not split across separate blocks.
+
+`prompts/agents/invocation_templates/review_invocation.md` is the template to fill. Do not edit or commit the template file itself; fill it mentally and print the result inline here.
 
 ### If the PR is open and CI is passing
 
-Fill `prompts/agents/invocation_templates/review_invocation.md` with actual values and print:
+Print one block in this shape:
 
 ```text
 Paste this into a FRESH Review Agent session (new chat / new Codex session):
+
+You are the Review Agent for this repository.
+
+Work from current `main`, then checkout the PR head.
+
+Read:
+- AGENTS.md
+- prompts/agents/review_agent_instruction.md
+- [path to work item file]
+- [path to linked PRD]
+- [ADR paths used in this slice]
+
+Review target:
+- PR #[PR number]
+- branch: [branch name]
+
+Context:
+[One sentence: what this PR implements and any concerns the review agent should know]
+
+Review against:
+1. scope fidelity to the linked work item
+2. contract fidelity to the linked PRD
+3. architecture boundary discipline
+4. degraded and error handling
+5. replay and evidence behavior
+6. test sufficiency
+7. Gemini and Copilot review comments if present
+
+Return:
+1. pass or fail recommendation
+2. material findings with evidence
+3. missing tests
+4. scope creep detected (if any)
+5. external bot comment triage (valid / partial / not applicable)
+6. required changes before merge
 ```
 
-Followed by the filled prompt. Use these values:
-
-- `<ASSIGNED_WORK_ITEM>` → path to the work item file
-- `<LINKED_PRD>` → path to the linked PRD
-- `<LINKED_ADRS>` → ADR paths used in this slice
-- `<PR_NUMBER>` → the PR number opened
-- `<BRANCH_NAME>` → the branch name
-- `<CONTEXT — what the PR implements, any known concerns>` → one sentence: what the PR implements and any concerns the review agent should know
+Replace every `[bracketed value]` with the actual value before printing.
 
 ### If CI is failing
 
-Do not hand off to review. Fix CI failures before producing the review handoff. If the failure is outside the work item scope or requires a contract decision, stop and print:
+Do not hand off to review. Fix CI failures before producing the review handoff. If the failure is outside the work item scope or requires a contract decision, stop and print one block:
 
 ```text
 BLOCKED — route to PM:
-```
 
-Followed by the precise failure and the recommended routing (PM / PRD / ADR / human).
+Failure: [precise CI failure description]
+Routing: [PM / PRD / ADR / human]
+Reason: [why this cannot be fixed within the current work item scope]
+```
 
 ### If you hit a stop condition before opening a PR
 
-Do not produce a review handoff. Print:
+Print one block:
 
 ```text
 BLOCKED — route to PM:
-```
 
-Followed by the precise blocker and the recommended routing.
+Blocker: [precise description]
+Routing: [PM / PRD / ADR / human]
+Reason: [what decision or artifact is missing]
+```
