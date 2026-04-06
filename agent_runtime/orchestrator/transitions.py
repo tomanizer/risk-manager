@@ -134,8 +134,7 @@ def _decision_from_completed_review_outcome(
         return TransitionDecision(
             action=NextActionType.HUMAN_UPDATE_REPO,
             work_item_id=work_item.id,
-            reason=workflow_run.outcome_summary
-            or f"latest review triage ({workflow_run.outcome_status}) requires human attention",
+            reason=workflow_run.outcome_summary or f"latest review triage ({workflow_run.outcome_status}) requires human attention",
             target_path=work_item.path,
             metadata=metadata,
         )
