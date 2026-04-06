@@ -49,3 +49,7 @@ artifacts/drift/summary.md
 .env.*
 !.env.example
 secrets/
+
+# Extensionless placeholder created during skill scaffolding; remove this entry
+# when .cursor/skills/run-drift/ directory structure is established.
+.cursor/skills/run-drift
