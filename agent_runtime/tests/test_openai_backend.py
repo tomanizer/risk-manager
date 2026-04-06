@@ -71,9 +71,7 @@ def test_dispatch_openai_reasoning_returns_completed_on_success() -> None:
     mock_openai = _make_mock_openai()
     mock_client = MagicMock()
     mock_openai.OpenAI.return_value = mock_client
-    mock_client.chat.completions.create.return_value = _make_openai_response(
-        {"decision": "READY", "summary": "Ready to implement.", "details": []}
-    )
+    mock_client.chat.completions.create.return_value = _make_openai_response({"decision": "READY", "summary": "Ready to implement.", "details": []})
 
     with patch.dict(sys.modules, {"openai": mock_openai}):
         with patch("agent_runtime.config.get_settings", return_value=_mock_settings()):
@@ -113,7 +111,7 @@ def test_dispatch_openai_reasoning_returns_failed_on_api_error() -> None:
 
 def test_dispatch_openai_reasoning_raises_import_error_when_not_installed() -> None:
     # Setting sys.modules["openai"] = None causes `import openai` to raise ImportError.
-    with patch.dict(sys.modules, {"openai": None}):  # type: ignore[dict-item]
+    with patch.dict(sys.modules, {"openai": None}):
         with pytest.raises(ImportError, match="risk-manager\\[sdk\\]"):
             openai_backend._ensure_openai()
 
@@ -123,9 +121,7 @@ def test_dispatch_openai_reasoning_returns_failed_when_api_key_missing() -> None
 
     # Build a settings mock whose openai.api_key_str raises ValueError.
     settings = MagicMock()
-    type(settings.openai).api_key_str = property(
-        lambda self: (_ for _ in ()).throw(ValueError("OPENAI_API_KEY is not configured"))
-    )
+    type(settings.openai).api_key_str = property(lambda self: (_ for _ in ()).throw(ValueError("OPENAI_API_KEY is not configured")))
 
     with patch.dict(sys.modules, {"openai": mock_openai}):
         with patch("agent_runtime.config.get_settings", return_value=settings):

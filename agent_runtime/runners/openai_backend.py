@@ -21,10 +21,7 @@ def _ensure_openai() -> None:
     try:
         import openai  # noqa: F401
     except ImportError:
-        raise ImportError(
-            "The 'openai' package is required for the openai_api backend. "
-            "Install it with: pip install 'risk-manager[sdk]'"
-        ) from None
+        raise ImportError("The 'openai' package is required for the openai_api backend. Install it with: pip install 'risk-manager[sdk]'") from None
 
 
 def dispatch_openai_reasoning(

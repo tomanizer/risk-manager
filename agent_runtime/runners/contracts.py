@@ -7,9 +7,7 @@ from enum import Enum
 from typing import Protocol, runtime_checkable
 
 
-from agent_runtime.backend_type import BackendType  # re-exported for convenience
-
-__all_backend_type__ = ["BackendType"]
+from agent_runtime.backend_type import BackendType as BackendType  # noqa: PLC0414
 
 
 class RunnerName(str, Enum):

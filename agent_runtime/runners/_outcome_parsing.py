@@ -63,9 +63,7 @@ def _parse_details(details_value: object) -> dict[str, str]:
         ValueError: if the structure deviates from the expected schema.
     """
     if not isinstance(details_value, list):
-        raise ValueError(
-            f"Expected details to be a list of key/value objects, got {type(details_value).__name__}"
-        )
+        raise ValueError(f"Expected details to be a list of key/value objects, got {type(details_value).__name__}")
     outcome_details: dict[str, str] = {}
     for index, item in enumerate(details_value):
         if not isinstance(item, dict):

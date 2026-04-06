@@ -21,8 +21,7 @@ def _ensure_anthropic() -> None:
         import anthropic  # noqa: F401
     except ImportError:
         raise ImportError(
-            "The 'anthropic' package is required for the anthropic_api backend. "
-            "Install it with: pip install 'risk-manager[sdk]'"
+            "The 'anthropic' package is required for the anthropic_api backend. Install it with: pip install 'risk-manager[sdk]'"
         ) from None
 
 
@@ -77,7 +76,7 @@ def dispatch_anthropic_reasoning(
             max_tokens=4096,
             system=system_prompt,
             messages=[{"role": "user", "content": execution.prompt}],
-            tools=[tool_def],  # type: ignore[list-item]
+            tools=[tool_def],
             tool_choice={"type": "tool", "name": tool_name},
         )
     except anthropic.AuthenticationError as exc:
@@ -114,7 +113,7 @@ def dispatch_anthropic_reasoning(
         )
 
     # tool_use_block.input is already a dict in anthropic >= 0.40
-    payload = tool_use_block.input  # type: ignore[union-attr]
+    payload = tool_use_block.input
     if not isinstance(payload, dict):
         return RunnerResult(
             runner_name=execution.runner_name,

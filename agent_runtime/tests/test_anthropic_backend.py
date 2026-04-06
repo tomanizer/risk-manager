@@ -137,6 +137,6 @@ def test_dispatch_anthropic_reasoning_returns_failed_when_no_tool_use_block() ->
 
 def test_dispatch_anthropic_reasoning_raises_import_error_when_not_installed() -> None:
     # Setting sys.modules["anthropic"] = None causes `import anthropic` to raise ImportError.
-    with patch.dict(sys.modules, {"anthropic": None}):  # type: ignore[dict-item]
+    with patch.dict(sys.modules, {"anthropic": None}):
         with pytest.raises(ImportError, match="risk-manager\\[sdk\\]"):
             anthropic_backend._ensure_anthropic()
