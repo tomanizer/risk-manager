@@ -596,7 +596,6 @@ Result:
   - `measure_type`
   - explicit `compare_to_date`, or the resolved comparison date after service defaulting
   - `lookback_window` when relevant
-  - the effective volatility-policy ruleset identifier (`VOLATILITY_RULES_V1` in v1) when relevant
   - history range bounds when relevant
   - `require_complete`
   - `snapshot_id` when provided

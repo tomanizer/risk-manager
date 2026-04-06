@@ -68,7 +68,7 @@ This slice is expected to add replay coverage. Create the replay test directory 
 - degraded history handled explicitly
 - `RiskChangeProfile` retains top-level `node_level`, `hierarchy_scope`, and `legal_entity_id` fields that exactly mirror `node_ref` and therefore match `RiskSummary`
 - replay tests pin the approved replay/version metadata only; explicit evidence/trace fields remain deferred until the shared contract exists
-- replay tests pin the effective volatility-policy ruleset and window policy explicitly, including `VOLATILITY_RULES_V1`, `baseline_window = 60`, `short_window = 10`, business-day basis, and inclusive anchoring on `as_of_date`
+- replay tests pin the effective volatility window policy explicitly, with the governed v1 policy carried by `service_version`, including `baseline_window = 60`, `short_window = 10`, business-day basis, and inclusive anchoring on `as_of_date`
 
 ## Suggested Agent
 
