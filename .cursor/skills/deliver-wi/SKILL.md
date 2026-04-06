@@ -50,6 +50,7 @@ Also read any ADR files listed in the WI's dependencies section.
 | Draft PR exists, needs review | Review | `prompts/agents/invocation_templates/review_invocation.md` |
 | WI too broad / PM said SPLIT_REQUIRED | Issue Planner | `prompts/agents/invocation_templates/issue_planner_invocation.md` |
 | PRD gap blocking the WI | PRD/Spec Author | `prompts/agents/invocation_templates/prd_spec_invocation.md` |
+| User asks for a repo health / governance audit | Drift Monitor | `prompts/agents/invocation_templates/drift_monitor_invocation.md` |
 
 Default to **PM** when in doubt — it is always safe to run PM first.
 
@@ -90,13 +91,27 @@ Use the PM implementation brief when one exists from a prior PM session. Fall ba
 
 ## Step 5 — Output the filled prompt
 
-Print the filled prompt in a fenced code block with this header above it:
+Print the filled prompt as one fenced block. The first two lines of the block are always the session header and the recommended model. Use this model table:
+
+| Role | Recommended model |
+|------|------------------|
+| PM | Sonnet (or equivalent mid-tier) |
+| Issue Planner | GPT-4 mini or Composer (cheapest available) |
+| Coding | Sonnet (consider bumping to Opus / GPT-5.4 for complex WIs or after a failed review) |
+| Review | Sonnet (or equivalent mid-tier) |
+| PRD/Spec Author | Sonnet (consider bumping to Opus / GPT-5.4 for methodology-heavy specs) |
+| Drift Monitor | Sonnet (or equivalent mid-tier) |
+
+The block shape is:
 
 ```text
 Paste this into a FRESH [Role] agent session (new chat / new Codex session):
+Recommended model: [model from table above]
+
+[complete filled invocation template content]
 ```
 
-The user copies this and pastes it into a new chat. You do not act on it.
+The user opens a new chat, selects the recommended model, then pastes the whole block. You do not act on it.
 
 ## Step 6 — Add the freshness reminder
 
