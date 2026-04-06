@@ -19,10 +19,46 @@ _PENDING_CI_STATES = {"EXPECTED", "PENDING", "QUEUED", "IN_PROGRESS"}
 _FAILING_CI_STATES = {"ACTION_REQUIRED", "CANCELLED", "ERROR", "FAILURE", "STALE", "STARTUP_FAILURE", "TIMED_OUT"}
 _READY_MERGE_STATES = {"CLEAN", "HAS_HOOKS", "UNSTABLE"}
 _PM_READY_OUTCOMES = {"ready"}
-_PM_REPO_UPDATE_OUTCOMES = {"blocked", "split_required"}
+_PM_SPEC_OUTCOMES = {"blocked", "split_required"}
 _CODING_REPO_UPDATE_OUTCOMES = {"blocked", "completed", "needs_pm"}
 _REVIEW_CODING_OUTCOMES = {"changes_requested"}
 _REVIEW_REPO_UPDATE_OUTCOMES = {"blocked", "pass"}
+_SPEC_REPO_UPDATE_OUTCOMES = {"clarified", "blocked", "split_required"}
+
+
+def _parse_workflow_run_timestamp(timestamp: str | None) -> float | None:
+    if timestamp is None:
+        return None
+    try:
+        dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=UTC)
+        return dt.timestamp()
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC).timestamp()
+    except ValueError:
+        return None
+
+
+def _workflow_run_recency_key(workflow_run: WorkflowRunRecord) -> tuple[int, float]:
+    updated_timestamp = _parse_workflow_run_timestamp(getattr(workflow_run, "updated_at", None))
+    if updated_timestamp is not None:
+        return (1, updated_timestamp)
+    completed_timestamp = _parse_workflow_run_timestamp(workflow_run.completed_at)
+    if completed_timestamp is not None:
+        return (0, completed_timestamp)
+    return (-1, float("-inf"))
+
+
+def _latest_workflow_runs_by_work_item(snapshot: RuntimeSnapshot) -> dict[str, WorkflowRunRecord]:
+    latest_runs: dict[str, WorkflowRunRecord] = {}
+    for workflow_run in snapshot.workflow_runs:
+        current_latest = latest_runs.get(workflow_run.work_item_id)
+        if current_latest is None or _workflow_run_recency_key(workflow_run) > _workflow_run_recency_key(current_latest):
+            latest_runs[workflow_run.work_item_id] = workflow_run
+    return latest_runs
 
 
 def _dependencies_satisfied(item: WorkItemSnapshot, snapshot: RuntimeSnapshot) -> bool:
@@ -86,11 +122,44 @@ def _decision_from_completed_pm_outcome(
             target_path=work_item.path,
             metadata=metadata,
         )
-    if workflow_run.outcome_status in _PM_REPO_UPDATE_OUTCOMES:
+    if workflow_run.outcome_status in _PM_SPEC_OUTCOMES:
+        return TransitionDecision(
+            action=NextActionType.RUN_SPEC,
+            work_item_id=work_item.id,
+            reason=workflow_run.outcome_summary or "latest PM assessment requires spec clarification before another agent run",
+            target_path=work_item.path,
+            metadata=metadata,
+        )
+    return None
+
+
+def _decision_from_completed_spec_outcome(
+    work_item: WorkItemSnapshot,
+    workflow_run: WorkflowRunRecord | None,
+) -> TransitionDecision | None:
+    if workflow_run is None:
+        return None
+    if workflow_run.last_action != NextActionType.RUN_SPEC.value:
+        return None
+    if workflow_run.runner_status != "completed":
+        return None
+    if workflow_run.outcome_status is None:
+        return None
+    if _work_item_changed_since_completion(work_item, workflow_run.completed_at):
+        return None
+
+    metadata = {
+        "spec_outcome_status": workflow_run.outcome_status,
+    }
+    if workflow_run.run_id is not None:
+        metadata["spec_run_id"] = workflow_run.run_id
+
+    if workflow_run.outcome_status in _SPEC_REPO_UPDATE_OUTCOMES:
         return TransitionDecision(
             action=NextActionType.HUMAN_UPDATE_REPO,
             work_item_id=work_item.id,
-            reason=workflow_run.outcome_summary or "latest PM assessment requires a repo update before another agent run",
+            reason=workflow_run.outcome_summary
+            or f"latest spec resolution ({workflow_run.outcome_status}) requires a repo update before another agent run",
             target_path=work_item.path,
             metadata=metadata,
         )
@@ -186,6 +255,9 @@ def _decide_for_work_item(
     ``decide_all_actions`` (full-scan).
     """
     if pull_request is None:
+        spec_outcome = _decision_from_completed_spec_outcome(work_item, workflow_run)
+        if spec_outcome is not None:
+            return spec_outcome
         coding_outcome = _decision_from_completed_coding_outcome(work_item, workflow_run)
         if coding_outcome is not None:
             return coding_outcome
@@ -274,8 +346,8 @@ def _decide_for_work_item(
 
 
 def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
-    prs_by_work_item = {pr.work_item_id: pr for pr in snapshot.pull_requests}
-    workflow_runs_by_work_item = {wr.work_item_id: wr for wr in snapshot.workflow_runs}
+    prs_by_work_item = {pull_request.work_item_id: pull_request for pull_request in snapshot.pull_requests}
+    workflow_runs_by_work_item = _latest_workflow_runs_by_work_item(snapshot)
 
     for work_item in snapshot.work_items:
         if work_item.stage is not WorkItemStage.READY:
@@ -307,7 +379,7 @@ def decide_all_actions(snapshot: RuntimeSnapshot) -> tuple[TransitionDecision, .
     first match — it evaluates all ready work items in order.
     """
     prs_by_work_item = {pr.work_item_id: pr for pr in snapshot.pull_requests}
-    workflow_runs_by_work_item = {wr.work_item_id: wr for wr in snapshot.workflow_runs}
+    workflow_runs_by_work_item = _latest_workflow_runs_by_work_item(snapshot)
     decisions: list[TransitionDecision] = []
 
     for work_item in snapshot.work_items:
