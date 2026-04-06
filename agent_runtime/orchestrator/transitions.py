@@ -19,6 +19,8 @@ _FAILING_CI_STATES = {"ACTION_REQUIRED", "CANCELLED", "ERROR", "FAILURE", "STALE
 _READY_MERGE_STATES = {"CLEAN", "HAS_HOOKS", "UNSTABLE"}
 _PM_READY_OUTCOMES = {"ready"}
 _PM_REPO_UPDATE_OUTCOMES = {"blocked", "split_required"}
+_REVIEW_CODING_OUTCOMES = {"changes_requested"}
+_REVIEW_REPO_UPDATE_OUTCOMES = {"blocked", "pass"}
 
 
 def _dependencies_satisfied(item: WorkItemSnapshot, snapshot: RuntimeSnapshot) -> bool:
@@ -40,6 +42,17 @@ def _work_item_changed_since_completion(item: WorkItemSnapshot, completed_at: st
         return item.path.stat().st_mtime > completed_timestamp
     except OSError:
         return True
+
+
+def _pull_request_changed_since_completion(pull_request_updated_at: str | None, completed_at: str | None) -> bool:
+    if pull_request_updated_at is None or completed_at is None:
+        return True
+    try:
+        pull_request_timestamp = datetime.fromisoformat(pull_request_updated_at.replace("Z", "+00:00")).timestamp()
+        completed_timestamp = datetime.strptime(completed_at, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC).timestamp()
+    except ValueError:
+        return True
+    return pull_request_timestamp > completed_timestamp
 
 
 def _decision_from_completed_pm_outcome(
@@ -82,6 +95,52 @@ def _decision_from_completed_pm_outcome(
     return None
 
 
+def _decision_from_completed_review_outcome(
+    work_item: WorkItemSnapshot,
+    pull_request_updated_at: str | None,
+    pr_number: int,
+    workflow_run: WorkflowRunRecord | None,
+) -> TransitionDecision | None:
+    if workflow_run is None:
+        return None
+    if workflow_run.last_action != NextActionType.RUN_REVIEW.value:
+        return None
+    if workflow_run.runner_status != "completed":
+        return None
+    if workflow_run.outcome_status is None:
+        return None
+    if workflow_run.pr_number != pr_number:
+        return None
+    if _pull_request_changed_since_completion(pull_request_updated_at, workflow_run.completed_at):
+        return None
+
+    metadata = {
+        "review_outcome_status": workflow_run.outcome_status,
+    }
+    if workflow_run.run_id is not None:
+        metadata["review_run_id"] = workflow_run.run_id
+    if workflow_run.pr_number is not None:
+        metadata["pr_number"] = str(workflow_run.pr_number)
+
+    if workflow_run.outcome_status in _REVIEW_CODING_OUTCOMES:
+        return TransitionDecision(
+            action=NextActionType.RUN_CODING,
+            work_item_id=work_item.id,
+            reason=workflow_run.outcome_summary or "latest review triage requires a coding follow-up",
+            target_path=work_item.path,
+            metadata=metadata,
+        )
+    if workflow_run.outcome_status in _REVIEW_REPO_UPDATE_OUTCOMES:
+        return TransitionDecision(
+            action=NextActionType.HUMAN_UPDATE_REPO,
+            work_item_id=work_item.id,
+            reason=workflow_run.outcome_summary or f"latest review triage ({workflow_run.outcome_status}) requires human attention",
+            target_path=work_item.path,
+            metadata=metadata,
+        )
+    return None
+
+
 def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
     prs_by_work_item = {pull_request.work_item_id: pull_request for pull_request in snapshot.pull_requests}
     workflow_runs_by_work_item = {workflow_run.work_item_id: workflow_run for workflow_run in snapshot.workflow_runs}
@@ -105,6 +164,14 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
                 reason="ready item has no active PR; PM should issue or refresh the implementation brief",
                 target_path=work_item.path,
             )
+        review_outcome_decision = _decision_from_completed_review_outcome(
+            work_item,
+            pull_request.updated_at,
+            pull_request.number,
+            workflow_runs_by_work_item.get(work_item.id),
+        )
+        if review_outcome_decision is not None:
+            return review_outcome_decision
         if pull_request.has_new_review_comments or pull_request.unresolved_review_threads > 0:
             return TransitionDecision(
                 action=NextActionType.RUN_REVIEW,

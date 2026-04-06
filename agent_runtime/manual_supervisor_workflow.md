@@ -38,9 +38,10 @@ Before real agent API integration lands, a human still does these steps:
 - inspect the result
 - record the reviewed outcome back into the runtime
 
-The first exception is the optional PM backend. If
-`AGENT_RUNTIME_PM_BACKEND=codex_exec` is set, the PM runner can execute
-automatically and persist its own structured outcome.
+The first exceptions are the optional PM and review backends. If
+`AGENT_RUNTIME_PM_BACKEND=codex_exec` or
+`AGENT_RUNTIME_REVIEW_BACKEND=codex_exec` is set, those runners can execute
+automatically and persist their own structured outcomes.
 
 ## End-to-end loop
 
@@ -148,6 +149,13 @@ signal:
 - `ready` can advance the item to coding on the next dispatch
 - `blocked` or `split_required` can stop at a human repo-update gate until the
   work item file changes
+
+For completed review runs, the runtime now uses the recorded outcome until the
+PR changes again:
+
+- `changes_requested` can route the item back to coding
+- `pass` or `blocked` can stop at a human repo-update gate instead of rerunning
+  review on the same unchanged PR
 
 ## Suggested outcome statuses
 

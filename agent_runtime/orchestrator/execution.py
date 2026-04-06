@@ -88,6 +88,7 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
             work_item_id=work_item.id,
             pr_number=pull_request.number,
             pr_url=pull_request.url,
+            base_ref=base_metadata["base_ref"],
         )
         metadata = {
             **base_metadata,
