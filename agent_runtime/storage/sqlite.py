@@ -159,6 +159,7 @@ _DEFAULT_COLUMN_DEFINITIONS = {
     "details_json": "TEXT NOT NULL DEFAULT '{}'",
     "result_json": "TEXT NOT NULL DEFAULT '{}'",
     "outcome_details_json": "TEXT NOT NULL DEFAULT '{}'",
+    "retry_count": "INTEGER NOT NULL DEFAULT 0",
     "completed_at": "TEXT",
     "retry_count": "INTEGER NOT NULL DEFAULT 0",
     "updated_at": "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
@@ -326,6 +327,7 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
                 details_json,
                 result_json,
                 outcome_details_json,
+                retry_count,
                 completed_at,
                 retry_count,
                 updated_at
@@ -345,6 +347,7 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
                 details_json = excluded.details_json,
                 result_json = excluded.result_json,
                 outcome_details_json = excluded.outcome_details_json,
+                retry_count = excluded.retry_count,
                 completed_at = excluded.completed_at,
                 retry_count = excluded.retry_count,
                 updated_at = CURRENT_TIMESTAMP
@@ -364,6 +367,7 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
                 json.dumps(record.details or {}, sort_keys=True),
                 json.dumps(record.result, sort_keys=True),
                 json.dumps(record.outcome_details, sort_keys=True),
+                record.retry_count,
                 record.completed_at,
                 record.retry_count,
             ),
@@ -392,6 +396,7 @@ def load_workflow_run(db_path: Path, work_item_id: str) -> WorkflowRunRecord | N
                 details_json,
                 result_json,
                 outcome_details_json,
+                retry_count,
                 completed_at,
                 retry_count,
                 updated_at
@@ -425,6 +430,7 @@ def load_workflow_run_by_run_id(db_path: Path, run_id: str) -> WorkflowRunRecord
                 details_json,
                 result_json,
                 outcome_details_json,
+                retry_count,
                 completed_at,
                 retry_count,
                 updated_at
@@ -458,6 +464,7 @@ def load_workflow_runs(db_path: Path) -> tuple[WorkflowRunRecord, ...]:
                 details_json,
                 result_json,
                 outcome_details_json,
+                retry_count,
                 completed_at,
                 retry_count,
                 updated_at
@@ -780,6 +787,29 @@ def _row_to_workflow_run(row: sqlite3.Row | None) -> WorkflowRunRecord | None:
         completed_at=str(row["completed_at"]) if row["completed_at"] is not None else None,
         updated_at=str(row["updated_at"]) if row["updated_at"] is not None else None,
     )
+
+
+def mark_workflow_run_running(db_path: Path, work_item_id: str, retry_count: int = 0) -> None:
+    """Write runner_status='running' immediately before blocking dispatch.
+
+    Creates the row if it does not yet exist (first-ever run for this work item)
+    so that a crashed supervisor can always detect orphaned in-flight runs by
+    looking for rows where runner_status='running' and updated_at is stale.
+    """
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO workflow_runs (work_item_id, status, runner_status, retry_count, updated_at)
+            VALUES (?, 'ready', 'running', ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(work_item_id) DO UPDATE SET
+                runner_status = 'running',
+                retry_count = excluded.retry_count,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (work_item_id, retry_count),
+        )
+        connection.commit()
 
 
 def append_workflow_event(db_path: Path, event: WorkflowEventRecord) -> int:

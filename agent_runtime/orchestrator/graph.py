@@ -41,11 +41,6 @@ from .work_item_registry import load_work_items
 logger = logging.getLogger(__name__)
 
 
-# ---------------------------------------------------------------------------
-# Timeout dispatch (Iter 1)
-# ---------------------------------------------------------------------------
-
-
 def _runner_timeout_seconds(runner_name: RunnerName, defaults: RuntimeDefaults) -> int:
     if runner_name is RunnerName.CODING:
         return defaults.runner_timeout_seconds_coding
@@ -55,15 +50,21 @@ def _runner_timeout_seconds(runner_name: RunnerName, defaults: RuntimeDefaults) 
 def _dispatch_with_timeout(execution: RunnerExecution, defaults: RuntimeDefaults) -> RunnerResult:
     """Run dispatch_runner_execution in a thread with a wall-clock timeout.
 
-    Returns a ``TIMED_OUT`` ``RunnerResult`` on expiry so the supervisor can
-    record it and apply retry logic without crashing.
+    Returns the RunnerResult. On timeout, returns a TIMED_OUT RunnerResult so
+    the supervisor can record it and apply retry logic without crashing.
     """
     timeout_seconds = _runner_timeout_seconds(execution.runner_name, defaults)
+    # Use an explicit executor (not `with` block) so that on timeout we can call
+    # shutdown(wait=False) and return immediately without blocking until the thread
+    # finishes — which could be minutes for a long-running agent.
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
     future = executor.submit(dispatch_runner_execution, execution)
     try:
-        return future.result(timeout=timeout_seconds)
+        result = future.result(timeout=timeout_seconds)
+        executor.shutdown(wait=False)
+        return result
     except concurrent.futures.TimeoutError:
+        executor.shutdown(wait=False, cancel_futures=True)
         logger.error(
             "Runner %s for %s timed out after %ds",
             execution.runner_name.value,
@@ -78,13 +79,6 @@ def _dispatch_with_timeout(execution: RunnerExecution, defaults: RuntimeDefaults
             prompt=execution.prompt,
             details={**execution.metadata, "timeout_seconds": str(timeout_seconds)},
         )
-    finally:
-        executor.shutdown(wait=False)
-
-
-# ---------------------------------------------------------------------------
-# Snapshot builder
-# ---------------------------------------------------------------------------
 
 
 def find_repo_root(start_path: Path) -> Path:
@@ -156,6 +150,7 @@ def run_runtime_step(
 ) -> dict[str, object]:
     decision = decide_next_action(snapshot)
 
+    # Load existing run early to determine retry_count for this dispatch attempt.
     existing_run_pre = (
         load_workflow_run(defaults.state_db_path, decision.work_item_id) if should_build_execution and decision.work_item_id is not None else None
     )
@@ -174,6 +169,8 @@ def run_runtime_step(
 
     runner_result = None
     if should_dispatch and execution is not None:
+        # Write RUNNING status before the blocking dispatch so a crashed supervisor
+        # can detect orphaned in-flight runs.
         if decision.work_item_id is not None:
             mark_workflow_run_running(defaults.state_db_path, decision.work_item_id, retry_count)
         try:
@@ -194,7 +191,6 @@ def run_runtime_step(
                 prompt=execution.prompt,
                 details={**execution.metadata, "exception_type": type(exc).__name__},
             )
-
     pr_publication = maybe_publish_completed_coding_run(defaults.repo_root, execution, runner_result)
     if runner_result is not None and pr_publication is not None:
         publication_details = {
@@ -528,17 +524,12 @@ def main() -> int:
                         if args.simulate is not None
                         else build_runtime_snapshot(repo_root, defaults.state_db_path)
                     )
-                    if getattr(args, "parallel", False):
-                        from agent_runtime.orchestrator.parallel_dispatch import run_parallel_step
-
-                        payload = run_parallel_step(defaults, snapshot)
-                    else:
-                        payload = run_runtime_step(
-                            defaults,
-                            snapshot,
-                            should_build_execution=True,
-                            should_dispatch=True,
-                        )
+                    payload = run_runtime_step(
+                        defaults,
+                        snapshot,
+                        should_build_execution=True,
+                        should_dispatch=True,
+                    )
                 except Exception as exc:
                     logger.error("Poll iteration %d raised an unexpected exception: %s", iteration, exc, exc_info=True)
                     record_supervisor_heartbeat(
@@ -552,7 +543,6 @@ def main() -> int:
                         return 1
                     sleep_for_poll_interval(defaults.poll_interval_seconds)
                     continue
-
                 payload["dispatch"] = True
                 payload["execute"] = True
                 payload["simulation"] = args.simulate

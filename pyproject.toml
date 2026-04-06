@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "risk-manager"
 version = "0.0.0"
 requires-python = ">=3.12"
-dependencies = ["pydantic>=2.0,<3.0"]
+dependencies = ["pydantic>=2.0,<3.0", "pydantic-settings>=2.0,<3.0"]
 
 [project.optional-dependencies]
 dev = [
