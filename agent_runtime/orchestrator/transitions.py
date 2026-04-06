@@ -307,3 +307,123 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
         work_item_id=None,
         reason="no ready work item is currently runnable",
     )
+
+
+def decide_all_actions(snapshot: RuntimeSnapshot) -> tuple[TransitionDecision, ...]:
+    """Return actionable decisions for *every* eligible work item.
+
+    This is the entry point that a parallel scheduler or LangGraph
+    ``Send`` API should use when dispatching concurrent agent runs.
+    Items that are blocked, non-ready, or have unsatisfied
+    dependencies are excluded.
+
+    Unlike ``decide_next_action``, this does not short-circuit on the
+    first match — it evaluates all ready work items in order.
+    """
+    prs_by_work_item = {pr.work_item_id: pr for pr in snapshot.pull_requests}
+    workflow_runs_by_work_item = {wr.work_item_id: wr for wr in snapshot.workflow_runs}
+    decisions: list[TransitionDecision] = []
+
+    for work_item in snapshot.work_items:
+        if work_item.stage is not WorkItemStage.READY:
+            continue
+        if not _dependencies_satisfied(work_item, snapshot):
+            continue
+        pull_request = prs_by_work_item.get(work_item.id)
+        workflow_run = workflow_runs_by_work_item.get(work_item.id)
+
+        if pull_request is None:
+            coding_outcome = _decision_from_completed_coding_outcome(work_item, workflow_run)
+            if coding_outcome is not None:
+                decisions.append(coding_outcome)
+                continue
+            pm_outcome = _decision_from_completed_pm_outcome(work_item, workflow_run)
+            if pm_outcome is not None:
+                decisions.append(pm_outcome)
+                continue
+            decisions.append(TransitionDecision(
+                action=NextActionType.RUN_PM,
+                work_item_id=work_item.id,
+                reason="ready item has no active PR; PM should issue or refresh the implementation brief",
+                target_path=work_item.path,
+            ))
+            continue
+
+        review_outcome = _decision_from_completed_review_outcome(
+            work_item, pull_request.updated_at, pull_request.number, workflow_run,
+        )
+        if review_outcome is not None:
+            decisions.append(review_outcome)
+            continue
+        if pull_request.has_new_review_comments or pull_request.unresolved_review_threads > 0:
+            decisions.append(TransitionDecision(
+                action=NextActionType.RUN_REVIEW,
+                work_item_id=work_item.id,
+                reason="PR has unresolved review feedback that should be triaged",
+                target_path=work_item.path,
+                metadata={"pr_number": str(pull_request.number), "pr_url": pull_request.url or ""},
+            ))
+            continue
+        if pull_request.is_draft:
+            decisions.append(TransitionDecision(
+                action=NextActionType.WAIT_FOR_REVIEWS,
+                work_item_id=work_item.id,
+                reason="draft PR is open and waiting for external review feedback",
+                target_path=work_item.path,
+                metadata={"pr_number": str(pull_request.number), "pr_url": pull_request.url or ""},
+            ))
+            continue
+        if pull_request.ci_status in _FAILING_CI_STATES:
+            decisions.append(TransitionDecision(
+                action=NextActionType.RUN_CODING,
+                work_item_id=work_item.id,
+                reason="PR checks are failing and need a coding pass",
+                target_path=work_item.path,
+                metadata={"pr_number": str(pull_request.number), "pr_url": pull_request.url or "", "ci_status": pull_request.ci_status or ""},
+            ))
+            continue
+        if pull_request.ci_status in _PENDING_CI_STATES:
+            decisions.append(TransitionDecision(
+                action=NextActionType.WAIT_FOR_REVIEWS,
+                work_item_id=work_item.id,
+                reason="PR checks are still running",
+                target_path=work_item.path,
+                metadata={"pr_number": str(pull_request.number), "pr_url": pull_request.url or "", "ci_status": pull_request.ci_status or ""},
+            ))
+            continue
+        if pull_request.review_decision == "CHANGES_REQUESTED":
+            decisions.append(TransitionDecision(
+                action=NextActionType.RUN_REVIEW,
+                work_item_id=work_item.id,
+                reason="PR has changes requested and should be triaged through review",
+                target_path=work_item.path,
+                metadata={"pr_number": str(pull_request.number), "pr_url": pull_request.url or ""},
+            ))
+            continue
+        if pull_request.review_decision in {None, "REVIEW_REQUIRED"}:
+            decisions.append(TransitionDecision(
+                action=NextActionType.WAIT_FOR_REVIEWS,
+                work_item_id=work_item.id,
+                reason="PR is open and waiting for review completion",
+                target_path=work_item.path,
+                metadata={"pr_number": str(pull_request.number), "pr_url": pull_request.url or ""},
+            ))
+            continue
+        if pull_request.merge_state_status not in {None, *_READY_MERGE_STATES}:
+            decisions.append(TransitionDecision(
+                action=NextActionType.RUN_CODING,
+                work_item_id=work_item.id,
+                reason="PR merge state requires branch updates or conflict resolution",
+                target_path=work_item.path,
+                metadata={"pr_number": str(pull_request.number), "pr_url": pull_request.url or "", "merge_state_status": pull_request.merge_state_status or ""},
+            ))
+            continue
+        decisions.append(TransitionDecision(
+            action=NextActionType.HUMAN_MERGE,
+            work_item_id=work_item.id,
+            reason="PR is ready for human merge review",
+            target_path=work_item.path,
+            metadata={"pr_number": str(pull_request.number), "pr_url": pull_request.url or ""},
+        ))
+
+    return tuple(decisions)
