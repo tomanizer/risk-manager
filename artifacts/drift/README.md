@@ -13,6 +13,7 @@ Recommended local output paths:
 - `artifacts/drift/registry_alignment.json`
 - `artifacts/drift/surface_liveness.json`
 - `artifacts/drift/summary.md`
+- `artifacts/drift/synthesis.md`
 
 Tracked baseline:
 - `artifacts/drift/baseline.json`

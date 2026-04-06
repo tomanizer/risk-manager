@@ -45,6 +45,7 @@ artifacts/drift/*.json
 !artifacts/drift/baseline.json
 artifacts/drift/issue_body.md
 artifacts/drift/summary.md
+artifacts/drift/synthesis.md
 
 # Cursor skills temp/draft files
 .cursor/skills/new-prd-placeholder.txt
