@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import bisect
+import statistics
 from datetime import date, datetime, time, timezone
 from functools import lru_cache
 
 from src.shared import ServiceError
 
-from .contracts import MeasureType, NodeRef, RiskDelta, RiskHistoryPoint, RiskHistorySeries, SummaryStatus
+from .contracts import MeasureType, NodeRef, RiskDelta, RiskHistoryPoint, RiskHistorySeries, RiskSummary, SummaryStatus
 from .fixtures import FixtureIndex, FixtureRow, FixtureSnapshot, build_fixture_index
 from .time import BusinessDayResolutionError, resolve_compare_to_date
 
@@ -64,12 +66,13 @@ def _resolve_current_snapshot(
     as_of_date: date,
     snapshot_id: str | None,
     index: FixtureIndex,
+    operation: str = "get_risk_delta",
 ) -> FixtureSnapshot | ServiceError:
     if snapshot_id is not None:
         snapshot = index.get_snapshot(snapshot_id)
         if snapshot is None:
             return ServiceError(
-                operation="get_risk_delta",
+                operation=operation,
                 status_code="MISSING_SNAPSHOT",
                 status_reasons=(f"ANCHOR_SNAPSHOT_NOT_FOUND:{snapshot_id}",),
             )
@@ -80,11 +83,30 @@ def _resolve_current_snapshot(
     snapshot = index.get_snapshot_by_date(as_of_date)
     if snapshot is None:
         return ServiceError(
-            operation="get_risk_delta",
+            operation=operation,
             status_code="MISSING_SNAPSHOT",
             status_reasons=(f"AS_OF_DATE_SNAPSHOT_NOT_FOUND:{as_of_date.isoformat()}",),
         )
     return snapshot
+
+
+def _resolve_lookback_window_start(
+    as_of_date: date,
+    lookback_window: int,
+    calendar: tuple[date, ...],
+) -> date:
+    """Return the inclusive start date of a lookback window ending on as_of_date.
+
+    The window is lookback_window business days ending on as_of_date inclusive,
+    so the start date is the (lookback_window - 1)th prior business day.
+    If as_of_date is not in the calendar or fewer prior days exist, the earliest
+    available calendar date is used.
+    """
+    idx = bisect.bisect_left(calendar, as_of_date)
+    if idx >= len(calendar) or calendar[idx] != as_of_date:
+        return as_of_date
+    start_idx = max(0, idx - (lookback_window - 1))
+    return calendar[start_idx]
 
 
 def _resolve_compare_context(
@@ -113,6 +135,160 @@ def _resolve_compare_context(
     if compare_snapshot is None:
         return resolved, None, (f"COMPARE_SNAPSHOT_NOT_FOUND:{resolved.isoformat()}",)
     return resolved, compare_snapshot, ()
+
+
+def get_risk_summary(
+    node_ref: NodeRef,
+    measure_type: MeasureType,
+    as_of_date: date,
+    compare_to_date: date | None = None,
+    lookback_window: int = 60,
+    require_complete: bool = False,
+    snapshot_id: str | None = None,
+    fixture_index: FixtureIndex | None = None,
+) -> RiskSummary | ServiceError:
+    """Return deterministic summary with rolling statistics for a node and measure.
+
+    Reuses the same first-order retrieval semantics as get_risk_delta without
+    divergence in compare-date handling, delta construction, or status precedence.
+    Rolling statistics are computed from valid (non-degraded) history points within
+    the resolved 60-business-day lookback window ending on as_of_date inclusive.
+
+    Returns a RiskSummary when a current scoped point exists. Returns a typed
+    ServiceError for UNSUPPORTED_MEASURE, MISSING_SNAPSHOT, and MISSING_NODE
+    outcomes. Raises ValueError for request validation failures.
+    """
+    if lookback_window != 60:
+        raise ValueError("lookback_window must be 60 in v1; any other value is unsupported")
+    if snapshot_id is not None and not snapshot_id.strip():
+        raise ValueError("snapshot_id must be non-empty when provided")
+    if compare_to_date is not None and compare_to_date > as_of_date:
+        raise ValueError("compare_to_date must be on or before as_of_date")
+
+    index = _resolve_fixture_index(fixture_index)
+    pack = index.pack
+
+    if _resolve_measure_status(measure_type, index) is not None:
+        return ServiceError(
+            operation="get_risk_summary",
+            status_code="UNSUPPORTED_MEASURE",
+            status_reasons=("UNSUPPORTED_MEASURE_IN_FIXTURE_PACK",),
+        )
+
+    current_snapshot_or_error = _resolve_current_snapshot(as_of_date, snapshot_id, index, operation="get_risk_summary")
+    if isinstance(current_snapshot_or_error, ServiceError):
+        return current_snapshot_or_error
+    current_snapshot = current_snapshot_or_error
+
+    current_row = index.get_row(current_snapshot.snapshot_id, node_ref, measure_type)
+    if current_row is None:
+        return ServiceError(
+            operation="get_risk_summary",
+            status_code="MISSING_NODE",
+            status_reasons=("CURRENT_NODE_MEASURE_NOT_FOUND_IN_SNAPSHOT",),
+        )
+
+    resolved_compare_date, compare_snapshot, compare_reasons = _resolve_compare_context(
+        as_of_date=as_of_date,
+        compare_to_date=compare_to_date,
+        calendar=pack.calendar,
+        index=index,
+    )
+
+    window_start = _resolve_lookback_window_start(as_of_date, lookback_window, pack.calendar)
+    window_dates = _expected_dates(window_start, as_of_date, pack.calendar)
+
+    valid_values: list[float] = []
+    missing_dates: list[date] = []
+    degraded_dates: list[date] = []
+
+    for hist_date in window_dates:
+        hist_snapshot = index.get_snapshot_by_date(hist_date)
+        if hist_snapshot is None:
+            missing_dates.append(hist_date)
+            continue
+        hist_row = index.get_row(hist_snapshot.snapshot_id, node_ref, measure_type)
+        if hist_row is None:
+            missing_dates.append(hist_date)
+            continue
+        if hist_snapshot.is_degraded or hist_row.status == SummaryStatus.DEGRADED:
+            degraded_dates.append(hist_date)
+        else:
+            valid_values.append(hist_row.value)
+
+    n_valid = len(valid_values)
+    rolling_mean = statistics.mean(valid_values) if n_valid >= 1 else None
+    rolling_std = statistics.stdev(valid_values) if n_valid >= 2 else None
+    rolling_min = min(valid_values) if n_valid >= 1 else None
+    rolling_max = max(valid_values) if n_valid >= 1 else None
+
+    status_reasons: list[str] = []
+
+    current_is_degraded = current_snapshot.is_degraded or current_row.status == SummaryStatus.DEGRADED
+    if current_is_degraded:
+        status_reasons.append(f"CURRENT_POINT_DEGRADED:{as_of_date.isoformat()}")
+
+    previous_row: FixtureRow | None = None
+    compare_is_degraded = False
+
+    if compare_snapshot is None:
+        status_reasons.extend(compare_reasons)
+    else:
+        previous_row = index.get_row(compare_snapshot.snapshot_id, node_ref, measure_type)
+        compare_is_degraded = compare_snapshot.is_degraded or (previous_row is not None and previous_row.status == SummaryStatus.DEGRADED)
+        if compare_is_degraded:
+            status_reasons.append(f"COMPARE_POINT_DEGRADED:{compare_snapshot.as_of_date.isoformat()}")
+        if previous_row is None:
+            status_reasons.append(f"COMPARE_NODE_MEASURE_NOT_FOUND:{compare_snapshot.as_of_date.isoformat()}")
+
+    if degraded_dates:
+        status_reasons.append(_encode_dates_reason("DEGRADED_HISTORY_DATES", degraded_dates))
+
+    if missing_dates:
+        if require_complete:
+            status_reasons.append(_encode_dates_reason("REQUIRE_COMPLETE_MISSING_DATES", missing_dates))
+        else:
+            status_reasons.append(_encode_dates_reason("MISSING_HISTORY_DATES", missing_dates))
+
+    # Status precedence: DEGRADED > MISSING_COMPARE > MISSING_HISTORY > OK.
+    # Sparse history (missing dates) maps to DEGRADED for RiskSummary rather than PARTIAL.
+    history_is_degraded = bool(degraded_dates) or bool(missing_dates)
+    no_history = not window_dates or (n_valid == 0 and not degraded_dates and not missing_dates)
+
+    status: SummaryStatus
+    if current_is_degraded or compare_is_degraded or history_is_degraded:
+        status = SummaryStatus.DEGRADED
+    elif compare_snapshot is None or previous_row is None:
+        status = SummaryStatus.MISSING_COMPARE
+    elif no_history:
+        status = SummaryStatus.MISSING_HISTORY
+    else:
+        status = SummaryStatus.OK
+
+    return RiskSummary(
+        node_ref=node_ref,
+        node_level=node_ref.node_level,
+        hierarchy_scope=node_ref.hierarchy_scope,
+        legal_entity_id=node_ref.legal_entity_id,
+        measure_type=measure_type,
+        as_of_date=as_of_date,
+        compare_to_date=resolved_compare_date,
+        current_value=current_row.value,
+        previous_value=None if previous_row is None else previous_row.value,
+        delta_abs=None,
+        delta_pct=None,
+        rolling_mean=rolling_mean,
+        rolling_std=rolling_std,
+        rolling_min=rolling_min,
+        rolling_max=rolling_max,
+        history_points_used=n_valid,
+        status=status,
+        status_reasons=tuple(status_reasons),
+        snapshot_id=current_snapshot.snapshot_id,
+        data_version=pack.data_version,
+        service_version=pack.service_version,
+        generated_at=_deterministic_generated_at(current_snapshot.as_of_date),
+    )
 
 
 def get_risk_delta(
