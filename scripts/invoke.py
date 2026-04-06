@@ -85,7 +85,7 @@ def _split_sections(text: str) -> dict[str, str]:
     """Return a dict mapping lowercased section heading → section body text."""
     headings = [(m.start(), m.group(1).strip()) for m in _SECTION_RE.finditer(text)]
     sections: dict[str, str] = {}
-    for i, (start, heading) in enumerate(headings):
+        body_start = (text.find("\n", start) + 1) or len(text)
         end = headings[i + 1][0] if i + 1 < len(headings) else len(text)
         # body is everything after the heading line; find() avoids ValueError on trailing headings
         nl = text.find("\n", start)
