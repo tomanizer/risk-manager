@@ -41,7 +41,7 @@ If no ADR files exist yet, start at `001`.
 
 ## Step 3 — Read the ADR README and the most recent ADR
 
-Read `docs/adr/README.md` for required fields and the naming convention.
+Read `docs/adr/README.md` for suggested fields and the naming convention.
 
 Read the most recent ADR file (highest NNN) as a structural exemplar so the draft matches existing repo style.
 
@@ -54,10 +54,15 @@ body sections based on what the user described.
 ```text
 Save this as docs/adr/ADR-<NNN>-<short-kebab-title>.md, review, then commit on a branch and open a PR:
 
-# ADR-<NNN> — <Decision Title>
+# ADR-<NNN>: <Decision Title>
 
-Date: <today's date YYYY-MM-DD>
-Status: Proposed
+## Status
+
+Proposed
+
+## Date
+
+<today's date YYYY-MM-DD>
 
 ## Context
 
@@ -69,7 +74,13 @@ Status: Proposed
 
 ## Consequences
 
-<bullet list — what becomes easier, what becomes harder, what is now constrained>
+### Positive
+
+<bullet list — what becomes easier or better>
+
+### Negative
+
+<bullet list — what becomes harder or is now constrained>
 
 ## Alternatives considered
 
