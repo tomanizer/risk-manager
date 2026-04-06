@@ -10,6 +10,20 @@ from typing import cast
 
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS agent_outcome_scores (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id TEXT NOT NULL,
+    work_item_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    scored_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    passed_stop_conditions INTEGER NOT NULL DEFAULT 1,
+    scope_respected INTEGER NOT NULL DEFAULT 1,
+    tests_green INTEGER NOT NULL DEFAULT 1,
+    review_rounds INTEGER NOT NULL DEFAULT 0,
+    human_override INTEGER NOT NULL DEFAULT 0,
+    notes TEXT
+);
+
 CREATE TABLE IF NOT EXISTS workflow_runs (
     work_item_id TEXT PRIMARY KEY,
     run_id TEXT,
@@ -728,6 +742,108 @@ def _row_to_workflow_run(row: sqlite3.Row | None) -> WorkflowRunRecord | None:
         completed_at=str(row["completed_at"]) if row["completed_at"] is not None else None,
         updated_at=str(row["updated_at"]) if row["updated_at"] is not None else None,
     )
+
+
+# ---------------------------------------------------------------------------
+# Agent outcome scores
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class AgentOutcomeScore:
+    run_id: str
+    work_item_id: str
+    role: str
+    passed_stop_conditions: bool = True
+    scope_respected: bool = True
+    tests_green: bool = True
+    review_rounds: int = 0
+    human_override: bool = False
+    notes: str | None = None
+    scored_at: str | None = None
+    score_id: int | None = None
+
+
+def record_agent_outcome_score(db_path: Path, score: AgentOutcomeScore) -> AgentOutcomeScore:
+    """Insert an agent outcome score and return the score with its assigned id."""
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.execute(
+            """
+            INSERT INTO agent_outcome_scores
+                (run_id, work_item_id, role, passed_stop_conditions, scope_respected,
+                 tests_green, review_rounds, human_override, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                score.run_id,
+                score.work_item_id,
+                score.role,
+                int(score.passed_stop_conditions),
+                int(score.scope_respected),
+                int(score.tests_green),
+                score.review_rounds,
+                int(score.human_override),
+                score.notes,
+            ),
+        )
+        conn.commit()
+        row_id = cursor.lastrowid
+        row = conn.execute("SELECT * FROM agent_outcome_scores WHERE id = ?", (row_id,)).fetchone()
+    return AgentOutcomeScore(
+        score_id=int(row["id"]),
+        run_id=str(row["run_id"]),
+        work_item_id=str(row["work_item_id"]),
+        role=str(row["role"]),
+        passed_stop_conditions=bool(row["passed_stop_conditions"]),
+        scope_respected=bool(row["scope_respected"]),
+        tests_green=bool(row["tests_green"]),
+        review_rounds=int(row["review_rounds"]),
+        human_override=bool(row["human_override"]),
+        notes=str(row["notes"]) if row["notes"] is not None else None,
+        scored_at=str(row["scored_at"]),
+    )
+
+
+def load_agent_outcome_scores(
+    db_path: Path,
+    work_item_id: str | None = None,
+    role: str | None = None,
+) -> list[AgentOutcomeScore]:
+    """Load agent outcome scores, optionally filtered by work item or role."""
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as conn:
+        conn.row_factory = sqlite3.Row
+        clauses: list[str] = []
+        params: list[object] = []
+        if work_item_id is not None:
+            clauses.append("work_item_id = ?")
+            params.append(work_item_id)
+        if role is not None:
+            clauses.append("role = ?")
+            params.append(role)
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        rows = conn.execute(
+            f"SELECT * FROM agent_outcome_scores {where} ORDER BY scored_at ASC",
+            params,
+        ).fetchall()
+    return [
+        AgentOutcomeScore(
+            score_id=int(row["id"]),
+            run_id=str(row["run_id"]),
+            work_item_id=str(row["work_item_id"]),
+            role=str(row["role"]),
+            passed_stop_conditions=bool(row["passed_stop_conditions"]),
+            scope_respected=bool(row["scope_respected"]),
+            tests_green=bool(row["tests_green"]),
+            review_rounds=int(row["review_rounds"]),
+            human_override=bool(row["human_override"]),
+            notes=str(row["notes"]) if row["notes"] is not None else None,
+            scored_at=str(row["scored_at"]),
+        )
+        for row in rows
+    ]
 
 
 def mark_workflow_run_running(db_path: Path, work_item_id: str, retry_count: int = 0) -> None:

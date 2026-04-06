@@ -19,6 +19,7 @@ _ALLOWED_PM_DECISIONS = {
     "READY": "ready",
     "BLOCKED": "blocked",
     "SPLIT_REQUIRED": "split_required",
+    "SPEC_REQUIRED": "spec_required",
 }
 
 
@@ -193,7 +194,7 @@ def _build_codex_pm_prompt(prompt: str) -> str:
     return (
         f"{prompt}\n\n"
         "Return only a JSON object that matches the provided schema.\n"
-        "Allowed decisions are READY, BLOCKED, or SPLIT_REQUIRED.\n"
+        "Allowed decisions are READY, BLOCKED, SPLIT_REQUIRED, or SPEC_REQUIRED.\n"
         'Represent details as a list of {"key": ..., "value": ...} objects with string values.\n'
         "Do not write code.\n"
         "Stay in PM mode only.\n"
@@ -207,7 +208,7 @@ def _pm_output_schema() -> dict[str, object]:
         "properties": {
             "decision": {
                 "type": "string",
-                "enum": ["READY", "BLOCKED", "SPLIT_REQUIRED"],
+                "enum": ["READY", "BLOCKED", "SPLIT_REQUIRED", "SPEC_REQUIRED"],
             },
             "summary": {
                 "type": "string",
