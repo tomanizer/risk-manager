@@ -96,7 +96,7 @@ gh pr create \
   --body "WI completed and merged in PR #<PR-number>. Moving from ready/ to done/."
 ```
 
-3. After opening the promotion PR, immediately assess the next ready work item and produce the next implementation brief or identify blockers.
+1. After opening the promotion PR, immediately assess the next ready work item and produce the next implementation brief or identify blockers.
 
 Do not skip the promotion PR — branch protection requires it. Do not mark the WI as done by editing the file contents; only the directory move is required.
 
