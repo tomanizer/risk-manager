@@ -46,6 +46,9 @@ class DriftSuiteFinding:
 
     @classmethod
     def from_dict(cls, data: dict[str, object]) -> DriftSuiteFinding:
+        raw_finding = data.get("raw_finding")
+        if not isinstance(raw_finding, dict):
+            raise ValueError("DriftSuiteFinding payload `raw_finding` must be an object.")
         return cls(
             scan_name=str(data["scan_name"]),
             signature=str(data["signature"]),
@@ -54,7 +57,7 @@ class DriftSuiteFinding:
             drift_class=str(data["drift_class"]),
             owner=str(data["owner"]),
             message=str(data["message"]),
-            raw_finding=dict(data["raw_finding"]),  # type: ignore[arg-type]
+            raw_finding=dict(raw_finding),
             rationale=_optional_string(data.get("rationale")),
             issue=_optional_string(data.get("issue")),
             expires_on=_optional_string(data.get("expires_on")),
@@ -73,14 +76,23 @@ class DriftScanSummary:
 
     @classmethod
     def from_dict(cls, data: dict[str, object]) -> DriftScanSummary:
+        raw_stats = data.get("stats")
+        raw_new = data.get("new_findings")
+        raw_waived = data.get("waived_findings")
+        if not isinstance(raw_stats, dict):
+            raise ValueError("DriftScanSummary payload `stats` must be an object.")
+        if not isinstance(raw_new, (list, tuple)):
+            raise ValueError("DriftScanSummary payload `new_findings` must be a list.")
+        if not isinstance(raw_waived, (list, tuple)):
+            raise ValueError("DriftScanSummary payload `waived_findings` must be a list.")
         return cls(
             scan_name=str(data["scan_name"]),
             title=str(data["title"]),
             artifact_path=str(data["artifact_path"]),
-            stats={str(k): v for k, v in data["stats"].items()} if isinstance(data["stats"], dict) else {},  # type: ignore[union-attr]
-            total_findings=int(data["total_findings"]),  # type: ignore[arg-type]
-            new_findings=tuple(DriftSuiteFinding.from_dict(f) for f in data["new_findings"]),  # type: ignore[union-attr]
-            waived_findings=tuple(DriftSuiteFinding.from_dict(f) for f in data["waived_findings"]),  # type: ignore[union-attr]
+            stats={str(k): v for k, v in raw_stats.items()},
+            total_findings=_require_payload_int(data, "total_findings"),
+            new_findings=tuple(DriftSuiteFinding.from_dict(f) for f in raw_new if isinstance(f, dict)),
+            waived_findings=tuple(DriftSuiteFinding.from_dict(f) for f in raw_waived if isinstance(f, dict)),
         )
 
 
@@ -117,22 +129,31 @@ class DriftSuiteReport:
 
     @classmethod
     def from_dict(cls, data: dict[str, object]) -> DriftSuiteReport:
-        raw_stats = data["stats"]
+        raw_stats = data.get("stats")
+        raw_scans = data.get("scans")
+        raw_findings = data.get("findings")
+        raw_waived = data.get("waived_findings")
         if not isinstance(raw_stats, dict):
             raise ValueError("DriftSuiteReport payload `stats` must be an object.")
+        if not isinstance(raw_scans, (list, tuple)):
+            raise ValueError("DriftSuiteReport payload `scans` must be a list.")
+        if not isinstance(raw_findings, (list, tuple)):
+            raise ValueError("DriftSuiteReport payload `findings` must be a list.")
+        if not isinstance(raw_waived, (list, tuple)):
+            raise ValueError("DriftSuiteReport payload `waived_findings` must be a list.")
         return cls(
             scan_name=str(data["scan_name"]),
             root=str(data["root"]),
             generated_at=str(data["generated_at"]),
             baseline_path=str(data["baseline_path"]),
-            scans=tuple(DriftScanSummary.from_dict(s) for s in data["scans"]),  # type: ignore[union-attr]
-            findings=tuple(DriftSuiteFinding.from_dict(f) for f in data["findings"]),  # type: ignore[union-attr]
-            waived_findings=tuple(DriftSuiteFinding.from_dict(f) for f in data["waived_findings"]),  # type: ignore[union-attr]
+            scans=tuple(DriftScanSummary.from_dict(s) for s in raw_scans if isinstance(s, dict)),
+            findings=tuple(DriftSuiteFinding.from_dict(f) for f in raw_findings if isinstance(f, dict)),
+            waived_findings=tuple(DriftSuiteFinding.from_dict(f) for f in raw_waived if isinstance(f, dict)),
             stats=DriftSuiteStats(
-                scans_run=int(raw_stats["scans_run"]),  # type: ignore[arg-type]
-                total_findings=int(raw_stats["total_findings"]),  # type: ignore[arg-type]
-                new_findings=int(raw_stats["new_findings"]),  # type: ignore[arg-type]
-                waived_findings=int(raw_stats["waived_findings"]),  # type: ignore[arg-type]
+                scans_run=_require_payload_int(raw_stats, "scans_run"),
+                total_findings=_require_payload_int(raw_stats, "total_findings"),
+                new_findings=_require_payload_int(raw_stats, "new_findings"),
+                waived_findings=_require_payload_int(raw_stats, "waived_findings"),
             ),
         )
 
@@ -523,6 +544,13 @@ def _optional_string(value: object) -> str | None:
     if value is None:
         return None
     return str(value)
+
+
+def _require_payload_int(data: dict[str, object], field_name: str) -> int:
+    value = data[field_name]
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"Payload field `{field_name}` must be an integer.")
+    return value
 
 
 def _sort_suite_finding(finding: DriftSuiteFinding) -> tuple[str, str, str]:
