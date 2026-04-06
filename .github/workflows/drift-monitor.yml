@@ -128,6 +128,7 @@ jobs:
         with:
           name: drift-reports
           path: |
+            artifacts/drift/canon_lineage.json
             artifacts/drift/dependency_hygiene.json
             artifacts/drift/instruction_surfaces.json
             artifacts/drift/issue_body.md

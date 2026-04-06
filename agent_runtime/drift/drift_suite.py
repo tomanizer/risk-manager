@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Callable
 
+from .canon_lineage import CanonLineageReport, build_canon_lineage_report
 from .dependency_hygiene import DependencyHygieneReport, build_dependency_hygiene_report
 from .instruction_surfaces import InstructionSurfaceReport, build_instruction_surface_report
 from .reference_integrity import ReferenceScanReport, build_reference_scan_report
@@ -17,7 +18,7 @@ DEFAULT_BASELINE_PATH = Path("artifacts/drift/baseline.json")
 DEFAULT_LATEST_REPORT_PATH = Path("artifacts/drift/latest_report.json")
 DEFAULT_SUMMARY_PATH = Path("artifacts/drift/summary.md")
 
-_ReportT = DependencyHygieneReport | InstructionSurfaceReport | ReferenceScanReport | RegistryAlignmentReport
+_ReportT = CanonLineageReport | DependencyHygieneReport | InstructionSurfaceReport | ReferenceScanReport | RegistryAlignmentReport
 
 
 @dataclass(frozen=True, slots=True)
@@ -103,6 +104,12 @@ class _ScannerSpec:
 
 _SCANNERS: tuple[_ScannerSpec, ...] = (
     _ScannerSpec(
+        scan_name="canon_lineage",
+        title="Canon Lineage",
+        artifact_name="canon_lineage.json",
+        build_report=build_canon_lineage_report,
+    ),
+    _ScannerSpec(
         scan_name="dependency_hygiene",
         title="Dependency Hygiene",
         artifact_name="dependency_hygiene.json",
@@ -129,6 +136,7 @@ _SCANNERS: tuple[_ScannerSpec, ...] = (
 )
 
 _SIGNATURE_FIELDS: dict[str, tuple[str, ...]] = {
+    "canon_lineage": ("kind", "source_path", "related_paths"),
     "dependency_hygiene": ("kind", "dependency_name", "source_path"),
     "instruction_surfaces": ("kind", "source_path", "related_paths"),
     "reference_integrity": ("kind", "source_file", "source_line", "reference"),
@@ -474,6 +482,8 @@ def _sort_suite_finding(finding: DriftSuiteFinding) -> tuple[str, str, str]:
 
 def _summary_anchor(finding: DriftSuiteFinding) -> str:
     raw = finding.raw_finding
+    if finding.scan_name == "canon_lineage":
+        return f"{raw['source_path']} `{raw['kind']}`"
     if finding.scan_name == "dependency_hygiene":
         return f"{raw['source_path']} `{raw['dependency_name']}`"
     if finding.scan_name == "instruction_surfaces":

@@ -12,7 +12,7 @@ def test_drift_suite_waives_findings_present_in_baseline(tmp_path: Path) -> None
     _write_minimal_repo(tmp_path)
     initial_report = build_drift_suite_report(tmp_path)
 
-    assert initial_report.stats.scans_run == 4
+    assert initial_report.stats.scans_run == 5
     assert initial_report.stats.total_findings == 1
     assert initial_report.stats.new_findings == 1
     assert initial_report.stats.waived_findings == 0
@@ -85,8 +85,9 @@ def test_run_all_cli_writes_combined_and_per_scanner_artifacts(tmp_path: Path) -
 
     assert payload["scan_name"] == "drift_suite"
     assert payload == written_payload
-    assert payload["stats"]["scans_run"] == 4
+    assert payload["stats"]["scans_run"] == 5
     assert payload["stats"]["new_findings"] == 1
+    assert (artifact_dir / "canon_lineage.json").is_file()
     assert (artifact_dir / "dependency_hygiene.json").is_file()
     assert (artifact_dir / "instruction_surfaces.json").is_file()
     assert (artifact_dir / "reference_integrity.json").is_file()
@@ -232,6 +233,22 @@ def _write_minimal_repo(root: Path) -> None:
                 "    contract_status: draft",
                 "walkers:",
                 "orchestrators:",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    prd_archive_dir = root / "docs" / "prds" / "phase-1" / "archive"
+    prd_archive_dir.mkdir(parents=True, exist_ok=True)
+    prd_archive_dir.joinpath("PRD-1.1-example-v1-archived.md").write_text("# PRD v1\n", encoding="utf-8")
+    active_prd = root / "docs" / "prds" / "phase-1" / "PRD-1.1-example-v2.md"
+    active_prd.parent.mkdir(parents=True, exist_ok=True)
+    active_prd.write_text(
+        "\n".join(
+            [
+                "# PRD Example v2",
+                "",
+                "- **Supersedes:** `archive/PRD-1.1-example-v1-archived.md`",
             ]
         )
         + "\n",

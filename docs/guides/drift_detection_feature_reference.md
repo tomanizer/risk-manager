@@ -41,6 +41,39 @@ This gives the drift monitor a stable input surface and reduces hallucinated or 
 
 ## Current scanner inventory
 
+### Canon lineage
+
+Entry point:
+
+- `scripts/drift/check_canon_lineage.py`
+
+Implementation:
+
+- `agent_runtime/drift/canon_lineage.py`
+
+Checks:
+
+- multiple live versioned canon documents in the same lineage group
+- active versioned canon documents that fail to declare the archived predecessor they supersede
+- active versioned canon documents whose `Supersedes` metadata points at the wrong predecessor
+- active execution surfaces that still point at archived PRDs instead of the active canon document
+
+Primary drift class:
+
+- canon drift
+
+Typical owner:
+
+- PRD author
+- PM
+- repository maintenance
+
+Does not check:
+
+- whether the successor document is substantively better than the predecessor
+- whether two non-versioned documents are semantically duplicative
+- whether an archived reference is historically useful in narrative or retrospective documentation outside execution surfaces
+
 ### Dependency hygiene
 
 Entry point:
@@ -185,6 +218,7 @@ python scripts/drift/run_all.py --root . --artifact-dir artifacts/drift --output
 
 Per-scanner JSON artifacts:
 
+- `artifacts/drift/canon_lineage.json`
 - `artifacts/drift/dependency_hygiene.json`
 - `artifacts/drift/instruction_surfaces.json`
 - `artifacts/drift/reference_integrity.json`
