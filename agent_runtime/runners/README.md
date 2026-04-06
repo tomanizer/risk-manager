@@ -10,3 +10,8 @@ Each runner should:
 - return structured output for the orchestrator
 
 They should not own workflow routing logic.
+
+The PM runner now supports two modes:
+
+- `prepared` (default): manual handoff only
+- `codex_exec`: opt-in real backend using the local `codex exec` CLI

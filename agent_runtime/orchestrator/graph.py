@@ -215,6 +215,9 @@ def main() -> int:
                         "summary": runner_result.summary,
                         "prompt": runner_result.prompt,
                         "details": dict(runner_result.details),
+                        "outcome_status": runner_result.outcome_status,
+                        "outcome_summary": runner_result.outcome_summary,
+                        "outcome_details": dict(runner_result.outcome_details),
                     }
                     if runner_result is not None
                     else existing_run.result
@@ -225,6 +228,19 @@ def main() -> int:
                 completed_at=existing_run.completed_at if existing_run is not None else None,
             ),
         )
+        if (
+            execution is not None
+            and runner_result is not None
+            and runner_result.outcome_status is not None
+            and execution.metadata.get("run_id") is not None
+        ):
+            record_workflow_outcome(
+                defaults.state_db_path,
+                execution.metadata["run_id"],
+                runner_result.outcome_status,
+                runner_result.outcome_summary or runner_result.summary,
+                runner_result.outcome_details,
+            )
 
     print(
         json.dumps(
@@ -253,6 +269,9 @@ def main() -> int:
                         "summary": runner_result.summary,
                         "prompt": runner_result.prompt,
                         "details": runner_result.details,
+                        "outcome_status": runner_result.outcome_status,
+                        "outcome_summary": runner_result.outcome_summary,
+                        "outcome_details": runner_result.outcome_details,
                     }
                     if runner_result is not None
                     else None

@@ -675,6 +675,7 @@ def test_dispatch_runner_execution_returns_prepared_result() -> None:
     assert result.status is RunnerDispatchStatus.PREPARED
     assert "Prepared PM readiness handoff" in result.summary
     assert result.details["target_path"].endswith("WI-1.1.4-risk-summary-core-service.md")
+    assert result.outcome_status is None
 
 
 def test_build_pull_request_snapshots_uses_exact_work_item_matching() -> None:
