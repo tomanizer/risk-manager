@@ -7,6 +7,10 @@ This is the bridge workflow between:
 - the current runtime control plane
 - and future real PM/spec/coding/review agent backend execution
 
+For a hands-off cadence-driven loop, prefer the new supervisor commands in
+`agent_runtime --run-once` and `agent_runtime --poll`. This document remains the
+operator recipe for the semi-automatic mode.
+
 Use it when you want `agent_runtime` to remain the authoritative supervisor for:
 
 - next-step routing

@@ -44,6 +44,20 @@ CREATE TABLE IF NOT EXISTS worktree_leases (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_worktree_leases_active_runner
 ON worktree_leases(work_item_id, runner_name)
 WHERE status = 'active';
+
+CREATE TABLE IF NOT EXISTS supervisor_state (
+    singleton_id INTEGER PRIMARY KEY CHECK(singleton_id = 1),
+    status TEXT NOT NULL,
+    lock_owner TEXT,
+    mode TEXT,
+    heartbeat_at TEXT,
+    last_started_at TEXT,
+    last_completed_at TEXT,
+    last_action TEXT,
+    last_reason TEXT,
+    active_run_id TEXT,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 EXPECTED_WORKFLOW_RUN_COLUMNS = (
@@ -75,6 +89,20 @@ EXPECTED_WORKTREE_LEASE_COLUMNS = (
     "status",
     "created_at",
     "released_at",
+)
+
+EXPECTED_SUPERVISOR_STATE_COLUMNS = (
+    "singleton_id",
+    "status",
+    "lock_owner",
+    "mode",
+    "heartbeat_at",
+    "last_started_at",
+    "last_completed_at",
+    "last_action",
+    "last_reason",
+    "active_run_id",
+    "updated_at",
 )
 
 _DEFAULT_COLUMN_DEFINITIONS = {
@@ -125,6 +153,20 @@ class WorktreeLeaseRecord:
     released_at: str | None = None
 
 
+@dataclass(frozen=True)
+class SupervisorStateRecord:
+    status: str
+    lock_owner: str | None = None
+    mode: str | None = None
+    heartbeat_at: str | None = None
+    last_started_at: str | None = None
+    last_completed_at: str | None = None
+    last_action: str | None = None
+    last_reason: str | None = None
+    active_run_id: str | None = None
+    updated_at: str | None = None
+
+
 def _verify_workflow_runs_schema(connection: sqlite3.Connection) -> None:
     rows = connection.execute("PRAGMA table_info(workflow_runs)").fetchall()
     if not rows:
@@ -147,6 +189,17 @@ def _verify_worktree_leases_schema(connection: sqlite3.Connection) -> None:
         raise RuntimeError("database initialization failed: worktree_leases table is missing columns: " + ", ".join(missing_columns))
 
 
+def _verify_supervisor_state_schema(connection: sqlite3.Connection) -> None:
+    rows = connection.execute("PRAGMA table_info(supervisor_state)").fetchall()
+    if not rows:
+        raise RuntimeError("database initialization failed: supervisor_state table was not created")
+
+    actual_columns = {row[1] for row in rows}
+    missing_columns = [column for column in EXPECTED_SUPERVISOR_STATE_COLUMNS if column not in actual_columns]
+    if missing_columns:
+        raise RuntimeError("database initialization failed: supervisor_state table is missing columns: " + ", ".join(missing_columns))
+
+
 def _ensure_expected_columns(connection: sqlite3.Connection) -> None:
     rows = connection.execute("PRAGMA table_info(workflow_runs)").fetchall()
     actual_columns = {row[1] for row in rows}
@@ -166,6 +219,7 @@ def initialize_database(db_path: Path) -> None:
         _ensure_expected_columns(connection)
         _verify_workflow_runs_schema(connection)
         _verify_worktree_leases_schema(connection)
+        _verify_supervisor_state_schema(connection)
         connection.commit()
 
 
@@ -464,6 +518,91 @@ def mark_worktree_lease_released(db_path: Path, run_id: str) -> None:
             (run_id,),
         )
         connection.commit()
+
+
+def upsert_supervisor_state(db_path: Path, record: SupervisorStateRecord) -> None:
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            INSERT INTO supervisor_state (
+                singleton_id,
+                status,
+                lock_owner,
+                mode,
+                heartbeat_at,
+                last_started_at,
+                last_completed_at,
+                last_action,
+                last_reason,
+                active_run_id,
+                updated_at
+            )
+            VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(singleton_id) DO UPDATE SET
+                status = excluded.status,
+                lock_owner = excluded.lock_owner,
+                mode = excluded.mode,
+                heartbeat_at = excluded.heartbeat_at,
+                last_started_at = excluded.last_started_at,
+                last_completed_at = excluded.last_completed_at,
+                last_action = excluded.last_action,
+                last_reason = excluded.last_reason,
+                active_run_id = excluded.active_run_id,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (
+                record.status,
+                record.lock_owner,
+                record.mode,
+                record.heartbeat_at,
+                record.last_started_at,
+                record.last_completed_at,
+                record.last_action,
+                record.last_reason,
+                record.active_run_id,
+            ),
+        )
+        connection.commit()
+
+
+def load_supervisor_state(db_path: Path) -> SupervisorStateRecord | None:
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as connection:
+        connection.row_factory = sqlite3.Row
+        row = connection.execute(
+            """
+            SELECT
+                singleton_id,
+                status,
+                lock_owner,
+                mode,
+                heartbeat_at,
+                last_started_at,
+                last_completed_at,
+                last_action,
+                last_reason,
+                active_run_id,
+                updated_at
+            FROM supervisor_state
+            WHERE singleton_id = 1
+            """
+        ).fetchone()
+
+    if row is None:
+        return None
+    return SupervisorStateRecord(
+        status=str(row["status"]),
+        lock_owner=str(row["lock_owner"]) if row["lock_owner"] is not None else None,
+        mode=str(row["mode"]) if row["mode"] is not None else None,
+        heartbeat_at=str(row["heartbeat_at"]) if row["heartbeat_at"] is not None else None,
+        last_started_at=str(row["last_started_at"]) if row["last_started_at"] is not None else None,
+        last_completed_at=str(row["last_completed_at"]) if row["last_completed_at"] is not None else None,
+        last_action=str(row["last_action"]) if row["last_action"] is not None else None,
+        last_reason=str(row["last_reason"]) if row["last_reason"] is not None else None,
+        active_run_id=str(row["active_run_id"]) if row["active_run_id"] is not None else None,
+        updated_at=str(row["updated_at"]) if row["updated_at"] is not None else None,
+    )
 
 
 def _row_to_worktree_lease(row: sqlite3.Row | None) -> WorktreeLeaseRecord | None:
