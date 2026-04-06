@@ -26,7 +26,9 @@ coverage/
 Thumbs.db
 .vscode/
 .idea/
-.claude/
+.claude/*
+!.claude/commands/
+!.claude/commands/**
 .agent_runtime/
 *.swp
 *.swo
