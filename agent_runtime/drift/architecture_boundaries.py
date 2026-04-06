@@ -157,6 +157,8 @@ def _scoped_source_files(repo_root: Path) -> tuple[tuple[Path, str], ...]:
         if not full_root.exists():
             continue
         for full_path in sorted(full_root.rglob("*.py")):
+            if not full_path.is_file():
+                continue
             rel_path = full_path.relative_to(repo_root)
             if any(part == "tests" for part in rel_path.parts):
                 continue

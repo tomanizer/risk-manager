@@ -57,10 +57,11 @@ def test_architecture_boundary_report_allows_internal_relative_imports(tmp_path:
     assert report.findings == ()
 
 
-def test_architecture_boundary_report_allows_package_relative_imports_from_init(tmp_path: Path) -> None:
+def test_architecture_boundary_report_allows_parent_relative_import_from_nested_init(tmp_path: Path) -> None:
     _write_boundary_repo(tmp_path)
-    init_file = tmp_path / "src" / "modules" / "risk_analytics" / "__init__.py"
-    init_file.write_text("from .service import get_risk_history\n", encoding="utf-8")
+    nested_root = tmp_path / "src" / "modules" / "risk_analytics" / "api"
+    nested_root.mkdir(parents=True, exist_ok=True)
+    nested_root.joinpath("__init__.py").write_text("from ..service import get_risk_history\n", encoding="utf-8")
 
     report = build_architecture_boundary_report(tmp_path)
 
