@@ -208,6 +208,56 @@ def test_completed_spec_outcome_routes_to_human_update_repo() -> None:
         assert decision.metadata["spec_run_id"] == "spec-wi-1-1-4-test-run"
 
 
+def test_latest_workflow_run_wins_when_multiple_history_rows_exist() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        work_item_path = Path(temp_dir) / "WI-1.1.4-risk-summary-core-service.md"
+        work_item_path.write_text("# WI-1.1.4\n", encoding="utf-8")
+        os.utime(work_item_path, (1_000_000_000, 1_000_000_000))
+
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-1.1.4-risk-summary-core-service",
+                    title="WI-1.1.4",
+                    path=work_item_path,
+                    stage=WorkItemStage.READY,
+                    dependencies=(),
+                ),
+            ),
+            workflow_runs=(
+                WorkflowRunRecord(
+                    work_item_id="WI-1.1.4-risk-summary-core-service",
+                    status="run_pm",
+                    run_id="pm-newest-run",
+                    last_action="run_pm",
+                    runner_name="pm",
+                    runner_status="completed",
+                    outcome_status="split_required",
+                    outcome_summary="Newest PM pass requires spec clarification.",
+                    completed_at="2026-04-06 10:00:00",
+                    updated_at="2026-04-06 10:00:00",
+                ),
+                WorkflowRunRecord(
+                    work_item_id="WI-1.1.4-risk-summary-core-service",
+                    status="run_pm",
+                    run_id="pm-oldest-run",
+                    last_action="run_pm",
+                    runner_name="pm",
+                    runner_status="completed",
+                    outcome_status="ready",
+                    outcome_summary="Older PM pass marked the work item ready.",
+                    completed_at="2026-04-06 09:00:00",
+                    updated_at="2026-04-06 09:00:00",
+                ),
+            ),
+        )
+
+        decision = decide_next_action(snapshot)
+
+        assert decision.action is NextActionType.RUN_SPEC
+        assert decision.metadata["pm_run_id"] == "pm-newest-run"
+
+
 def test_completed_coding_outcome_routes_to_human_update_repo_when_no_pr_exists() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         work_item_path = Path(temp_dir) / "WI-1.1.4-risk-summary-core-service.md"

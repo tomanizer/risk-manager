@@ -33,6 +33,13 @@ def _dependencies_satisfied(item: WorkItemSnapshot, snapshot: RuntimeSnapshot) -
     return True
 
 
+def _latest_workflow_runs_by_work_item(snapshot: RuntimeSnapshot) -> dict[str, WorkflowRunRecord]:
+    latest_runs: dict[str, WorkflowRunRecord] = {}
+    for workflow_run in snapshot.workflow_runs:
+        latest_runs.setdefault(workflow_run.work_item_id, workflow_run)
+    return latest_runs
+
+
 def _work_item_changed_since_completion(item: WorkItemSnapshot, completed_at: str | None) -> bool:
     if completed_at is None:
         return True
@@ -122,7 +129,8 @@ def _decision_from_completed_spec_outcome(
         return TransitionDecision(
             action=NextActionType.HUMAN_UPDATE_REPO,
             work_item_id=work_item.id,
-            reason=workflow_run.outcome_summary or f"latest spec resolution ({workflow_run.outcome_status}) requires a repo update before another agent run",
+            reason=workflow_run.outcome_summary
+            or f"latest spec resolution ({workflow_run.outcome_status}) requires a repo update before another agent run",
             target_path=work_item.path,
             metadata=metadata,
         )
@@ -209,7 +217,7 @@ def _decision_from_completed_coding_outcome(
 
 def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
     prs_by_work_item = {pull_request.work_item_id: pull_request for pull_request in snapshot.pull_requests}
-    workflow_runs_by_work_item = {workflow_run.work_item_id: workflow_run for workflow_run in snapshot.workflow_runs}
+    workflow_runs_by_work_item = _latest_workflow_runs_by_work_item(snapshot)
 
     for work_item in snapshot.work_items:
         if work_item.stage is not WorkItemStage.READY:

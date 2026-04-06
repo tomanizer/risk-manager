@@ -62,19 +62,20 @@ def dispatch_codex_spec_execution(execution: RunnerExecution) -> RunnerResult:
         output_path = temp_path / "spec_outcome.json"
         schema_path.write_text(json.dumps(_spec_output_schema(), indent=2, sort_keys=True), encoding="utf-8")
 
-        command = [
-            codex_bin,
-            "exec",
-            "-C",
-            worktree_path,
-            "--output-schema",
-            str(schema_path),
-            "-o",
-            str(output_path),
-            "-",
-        ]
+        command = [codex_bin, "exec"]
         if model:
-            command[2:2] = ["--model", model]
+            command.extend(["--model", model])
+        command.extend(
+            [
+                "-C",
+                worktree_path,
+                "--output-schema",
+                str(schema_path),
+                "-o",
+                str(output_path),
+                "-",
+            ]
+        )
 
         try:
             completed = subprocess.run(
