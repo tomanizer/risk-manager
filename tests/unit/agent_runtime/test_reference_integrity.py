@@ -121,6 +121,51 @@ def test_reference_scan_handles_repo_under_hidden_parent_directory(tmp_path: Pat
     assert report.findings[0].reference == "docs/missing.md"
 
 
+def test_reference_scan_skips_backtick_paths_inside_fenced_code_blocks(tmp_path: Path) -> None:
+    docs_dir = tmp_path / "docs"
+    docs_dir.mkdir()
+    (docs_dir / "guide.md").write_text(
+        "\n".join(
+            [
+                "# Guide",
+                "See `docs/real.md` for details.",
+                "```bash",
+                "python scripts/drift/run_all.py  # docs/missing-in-code-block.md",
+                "cat `docs/also-missing.md`",
+                "```",
+                "After the fence.",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (docs_dir / "real.md").write_text("# real\n", encoding="utf-8")
+
+    report = build_reference_scan_report(tmp_path)
+
+    assert report.stats.findings_count == 0
+
+
+def test_reference_scan_skips_lines_with_drift_ignore_comment(tmp_path: Path) -> None:
+    docs_dir = tmp_path / "docs"
+    docs_dir.mkdir()
+    (docs_dir / "guide.md").write_text(
+        "\n".join(
+            [
+                "See `docs/missing.md`. <!-- drift-ignore -->",
+                "See `docs/also-missing.md`.",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = build_reference_scan_report(tmp_path)
+
+    assert report.stats.findings_count == 1
+    assert report.findings[0].reference == "docs/also-missing.md"
+
+
 def test_check_references_cli_writes_json_report(tmp_path: Path) -> None:
     docs_dir = tmp_path / "docs"
     docs_dir.mkdir()

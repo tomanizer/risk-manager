@@ -345,6 +345,19 @@ def _decide_for_work_item(
     )
 
 
+def _apply_drift_gate(snapshot: RuntimeSnapshot, decision: TransitionDecision) -> TransitionDecision:
+    """Return WAIT_FOR_DRIFT_RESOLUTION if the decision is RUN_CODING and critical drift is present."""
+    if decision.action is not NextActionType.RUN_CODING:
+        return decision
+    if snapshot.drift_critical_findings <= 0:
+        return decision
+    return TransitionDecision(
+        action=NextActionType.WAIT_FOR_DRIFT_RESOLUTION,
+        work_item_id=decision.work_item_id,
+        reason=f"relay gated: {snapshot.drift_critical_findings} critical-severity drift finding(s) must be resolved before dispatching a coding run",
+    )
+
+
 def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
     prs_by_work_item = {pull_request.work_item_id: pull_request for pull_request in snapshot.pull_requests}
     workflow_runs_by_work_item = _latest_workflow_runs_by_work_item(snapshot)
@@ -354,11 +367,12 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
             continue
         if not _dependencies_satisfied(work_item, snapshot):
             continue
-        return _decide_for_work_item(
+        decision = _decide_for_work_item(
             work_item,
             prs_by_work_item.get(work_item.id),
             workflow_runs_by_work_item.get(work_item.id),
         )
+        return _apply_drift_gate(snapshot, decision)
 
     return TransitionDecision(
         action=NextActionType.NOOP,
@@ -387,12 +401,11 @@ def decide_all_actions(snapshot: RuntimeSnapshot) -> tuple[TransitionDecision, .
             continue
         if not _dependencies_satisfied(work_item, snapshot):
             continue
-        decisions.append(
-            _decide_for_work_item(
-                work_item,
-                prs_by_work_item.get(work_item.id),
-                workflow_runs_by_work_item.get(work_item.id),
-            )
+        decision = _decide_for_work_item(
+            work_item,
+            prs_by_work_item.get(work_item.id),
+            workflow_runs_by_work_item.get(work_item.id),
         )
+        decisions.append(_apply_drift_gate(snapshot, decision))
 
     return tuple(decisions)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 import json
 from pathlib import Path
 from typing import Callable
@@ -522,6 +522,7 @@ def _partition_findings(
     raw_findings: list[object],
     baseline_entries: dict[tuple[str, str], DriftBaselineEntry],
 ) -> tuple[list[DriftSuiteFinding], list[DriftSuiteFinding]]:
+    today = datetime.now(UTC).date()
     new_findings: list[DriftSuiteFinding] = []
     waived_findings: list[DriftSuiteFinding] = []
 
@@ -543,11 +544,20 @@ def _partition_findings(
             issue=None if entry is None else entry.issue,
             expires_on=None if entry is None else entry.expires_on,
         )
-        if entry is None:
+        if entry is None or _is_baseline_expired(entry, today):
             new_findings.append(finding)
         else:
             waived_findings.append(finding)
     return new_findings, waived_findings
+
+
+def _is_baseline_expired(entry: DriftBaselineEntry, today: date) -> bool:
+    if entry.expires_on is None:
+        return False
+    try:
+        return today > date.fromisoformat(entry.expires_on)
+    except ValueError:
+        return False
 
 
 def finding_signature(scan_name: str, raw_finding: dict[str, object]) -> str:

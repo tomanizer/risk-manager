@@ -93,7 +93,16 @@ def build_reference_scan_report(root: Path) -> ReferenceScanReport:
             lines = source_file.read_text(encoding="utf-8").splitlines()
         except (FileNotFoundError, UnicodeDecodeError):
             continue
+        in_code_fence = False
         for line_number, line in enumerate(lines, start=1):
+            stripped = line.strip()
+            if stripped.startswith("```") or stripped.startswith("~~~"):
+                in_code_fence = not in_code_fence
+                continue
+            if in_code_fence:
+                continue
+            if "<!-- drift-ignore -->" in line:
+                continue
             for raw_reference in _extract_references(line):
                 normalized = _normalize_reference(raw_reference)
                 if normalized is None:

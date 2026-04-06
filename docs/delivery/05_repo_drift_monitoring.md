@@ -16,8 +16,8 @@ The drift monitor acts like an architecture and governance auditor for the whole
 
 The system has two layers:
 
-1. **Deterministic scanners** -- machine-checkable evidence about specific drift indicators
-2. **Audit synthesis layer** -- an LLM drift-monitor pass that uses scanner output as its first evidence surface
+1. **Deterministic scanners** -- machine-checkable evidence about specific drift indicators (fully wired in CI)
+2. **Audit synthesis layer** -- an LLM drift-monitor pass that uses scanner output as its first evidence surface (**Phase 2: not yet wired in CI**)
 
 The deterministic suite is coordinated by `agent_runtime/drift/drift_suite.py` and run via `scripts/drift/run_all.py`.
 
@@ -43,23 +43,33 @@ Add `--fail-on-findings` to exit non-zero when net-new findings remain after bas
 
 ### CI
 
-`.github/workflows/drift-monitor.yml` runs on push to `main` (for relevant paths), on schedule (weekday mornings), and on manual dispatch. It:
+`.github/workflows/drift-monitor.yml` runs:
+
+- **Nightly at 02:00 UTC** (every day including weekends), to catch findings from overnight agent runs
+- **On push to `main`** for relevant paths
+- **On pull requests labeled `agent-authored`**, posting a non-blocking summary comment
+- **On manual dispatch** (`workflow_dispatch`)
+- **Via `workflow_call`**, so downstream workflows (e.g. the relay) can invoke it as a reusable step
+
+When triggered by a non-PR event it:
 
 1. Runs the deterministic suite
 2. Writes the markdown summary into the GitHub Actions job summary
 3. Renders an issue body from `latest_report.json`
 4. Creates or updates a stable "Repo Health Drift Report" issue when net-new findings exist (identified by title + `<!-- drift-monitor-issue -->` marker)
 5. Closes that issue automatically when the suite returns to zero net-new findings
-6. Uploads all drift artifacts
+6. Creates a `work_items/ready/drift-fix-<date>.md` work item when auto-remediable findings are present
+7. Uploads all drift artifacts
+
+When triggered by a PR event it posts a summary comment on the PR (never blocks merge).
 
 ### Recommended cadence
 
-- On current `main`
+The scheduled nightly run covers the baseline cadence. Additionally:
+
 - Before major planning resets
 - After substantial canon or prompt-pack changes
-- On a regular periodic cadence (weekly or nightly depending on repo activity)
-
-Do not treat it as a mandatory gate on every ordinary PR unless the repository later proves that such a gate is worth the noise.
+- After every agent coding run (via `workflow_call` from the relay CI)
 
 ## Scanner inventory
 
@@ -151,12 +161,14 @@ Does not check whether a reference points to the right source of truth.
 **Typical owner:** PM
 
 Checks:
-- Active registry entries missing expected implementation paths
+- Active registry entries missing expected implementation paths (modules, walkers, orchestrators)
 - Inactive entries that already have implementations
-- Implemented subcomponents with no declared path
-- Module roots under `src/modules/` not represented in the registry
+- Implemented subcomponents with no declared path (modules only)
+- Unregistered roots under `src/modules/`, `src/walkers/`, and `src/orchestrators/`
 
-Does not check architectural correctness inside modules or whether implementation is complete enough for declared semantics.
+ID-to-directory mapping: `MOD-RISK-ANALYTICS` → `src/modules/risk_analytics`, `WALKER-QUANT` → `src/walkers/quant`, `ORCH-LIMIT-BREACH` → `src/orchestrators/limit_breach`. <!-- drift-ignore -->
+
+Does not check architectural correctness inside components or whether implementation is complete enough for declared semantics.
 
 ### Surface liveness
 
@@ -243,6 +255,8 @@ Baseline a finding only when:
 
 Always include a rationale, and strongly prefer linking an issue and setting an expiry date.
 
+`expires_on` is enforced: once the date passes, the entry no longer waives the finding and the finding resurfaces as net-new. This prevents the baseline from becoming a permanent suppress list.
+
 ### Bad patterns
 
 - Bulk-baselining a whole scanner
@@ -315,6 +329,34 @@ Every drift-monitor pass should return:
 7. Whether any duplication is sanctioned and acceptable
 8. The smallest sensible next action for each major or critical item
 
+## Noise reduction
+
+### Inline suppress annotation
+
+Add `<!-- drift-ignore -->` at the end of any line in a tracked text file to suppress all reference integrity and dependency hygiene findings from that line. Use this when a reference is illustrative (example code, template, future placeholder) rather than normative.
+
+```markdown
+See `scripts/drift/run_all.py` for the command. <!-- drift-ignore -->
+```
+
+Do not use `<!-- drift-ignore -->` to suppress real drift. Prefer a baseline entry with a rationale and expiry date for known findings.
+
+### Fenced code blocks
+
+`reference_integrity` and `dependency_hygiene` skip all reference and stale-guidance extraction inside fenced code blocks (triple-backtick or triple-tilde). Example commands in documentation are illustrative, not normative path references.
+
+## LLM synthesis layer (Phase 2)
+
+The system documentation describes a second layer where an LLM drift-monitor agent reads `latest_report.json` alongside key repo surfaces (`AGENTS.md`, registry, recent PRs) and produces:
+
+- Thematic summary of drift patterns
+- Root-cause hypotheses
+- Prioritised fix suggestions
+
+This layer is **not yet wired into CI**. When implemented it will run as a separate, lower-frequency workflow job (`drift-synthesis`, weekly schedule) and append a synthesis comment to the open drift issue rather than blocking the deterministic pipeline.
+
+The drift-monitor agent role is already defined in `.github/agents/drift-monitor.agent.md` and `prompts/agents/drift_monitor_agent_instruction.md`.
+
 ## Extending the system
 
 When adding a new deterministic scanner:
@@ -327,6 +369,8 @@ When adding a new deterministic scanner:
 6. Add artifact path to `artifacts/drift/README.md`
 7. Update workflow artifact upload if a new per-scanner JSON is produced
 
+Reference implementation: `agent_runtime/drift/surface_liveness.py` (`surface_liveness` scanner), added via PR #88.
+
 Good deterministic scanners should operate on clearly defined repo surfaces, emit evidence-rich findings, avoid fuzzy heuristics that create noise, and degrade explicitly when required files are missing or malformed.
 
 ## Debugging
@@ -335,4 +379,8 @@ Good deterministic scanners should operate on clearly defined repo surfaces, emi
 
 **Suite reports findings but the issue did not update:** Check workflow permissions, `actions/github-script` execution, whether the issue marker changed, issue lookup pagination, or whether the job failed before the upsert step.
 
-**Suite reports no findings when expected:** Check whether the finding is currently baselined, the scanner is wired into `drift_suite.py`, the target file surface is in the scanned path, or a generated path is intentionally sanctioned.
+**Suite reports no findings when expected:** Check whether the finding is currently baselined (including whether `expires_on` is still in the future), the scanner is wired into `drift_suite.py`, the target file surface is in the scanned path, the line has a `<!-- drift-ignore -->` annotation, or a generated path is intentionally sanctioned.
+
+**False positive from a backtick in documentation:** If the path is inside a fenced code block, `reference_integrity` will skip it automatically. If the path is outside a code block but illustrative, add `<!-- drift-ignore -->` to that line or add a baseline entry with rationale.
+
+**Baseline entry no longer suppressing a finding:** The `expires_on` date has passed. Either extend the expiry date with an updated rationale, or fix the underlying drift.
