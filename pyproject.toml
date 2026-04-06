@@ -59,7 +59,7 @@ warn_required_dynamic_aliases = true
 # All imports are guarded by try/except ImportError so runtime behaviour is
 # unaffected when these packages are absent.
 [[tool.mypy.overrides]]
-module = ["opentelemetry.*", "structlog", "langgraph.*", "langchain_core.*", "pydantic_settings.*"]
+module = ["opentelemetry.*", "structlog", "langgraph.*", "langchain_core.*"]
 ignore_missing_imports = true
 
 [tool.setuptools.packages.find]
