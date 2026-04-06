@@ -50,10 +50,7 @@ def _report_from_payload(payload: dict[str, object]) -> "DriftSuiteReport":
         root=str(payload["root"]),
         generated_at=str(payload["generated_at"]),
         baseline_path=str(payload["baseline_path"]),
-        scans=tuple(
-            _scan_summary_from_payload(scan)
-            for scan in raw_scans
-        ),
+        scans=tuple(_scan_summary_from_payload(scan) for scan in raw_scans),
         findings=tuple(_finding_from_payload(item) for item in raw_findings),
         waived_findings=tuple(_finding_from_payload(item) for item in raw_waived_findings),
         stats=DriftSuiteStats(
