@@ -790,9 +790,7 @@ def record_agent_outcome_score(db_path: Path, score: AgentOutcomeScore) -> Agent
         )
         conn.commit()
         row_id = cursor.lastrowid
-        row = conn.execute(
-            "SELECT * FROM agent_outcome_scores WHERE id = ?", (row_id,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM agent_outcome_scores WHERE id = ?", (row_id,)).fetchone()
     return AgentOutcomeScore(
         score_id=int(row["id"]),
         run_id=str(row["run_id"]),

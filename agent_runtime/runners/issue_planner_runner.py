@@ -18,13 +18,7 @@ class IssuePlannerRunnerInput:
 
 
 def build_issue_planner_prompt(input_data: IssuePlannerRunnerInput) -> str:
-    prompt = (
-        "Act only as the Issue Planner agent.\n"
-        f"Work from current `main`.\n"
-        f"Read:\n"
-        f"- AGENTS.md\n"
-        f"- prompts/agents/issue_planner_instruction.md\n"
-    )
+    prompt = "Act only as the Issue Planner agent.\nWork from current `main`.\nRead:\n- AGENTS.md\n- prompts/agents/issue_planner_instruction.md\n"
     if input_data.linked_prd:
         prompt += f"- {input_data.linked_prd}\n"
     prompt += (

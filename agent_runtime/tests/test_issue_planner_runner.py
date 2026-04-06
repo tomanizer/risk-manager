@@ -192,9 +192,7 @@ def test_pm_split_required_outcome_routes_to_run_issue_planner() -> None:
 def test_run_issue_planner_decision_builds_issue_planner_execution() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         work_item_path = Path(temp_dir) / "WI-1.1.4-risk-summary-core-service.md"
-        work_item_path.write_text(
-            "# WI-1.1.4\n\n## Linked PRD\n\nPRD-1.1-v2\n", encoding="utf-8"
-        )
+        work_item_path.write_text("# WI-1.1.4\n\n## Linked PRD\n\nPRD-1.1-v2\n", encoding="utf-8")
         os.utime(work_item_path, (1_000_000_000, 1_000_000_000))
 
         snapshot = RuntimeSnapshot(

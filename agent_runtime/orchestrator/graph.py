@@ -521,6 +521,7 @@ def main() -> int:
                     if governance_decision is not None:
                         from .execution import build_runner_execution as _bre
                         from .state import RuntimeSnapshot as _RS
+
                         _empty = _RS(work_items=(), pull_requests=(), workflow_runs=(), warnings=())
                         _exec = _bre(_empty, governance_decision)
                         _result = dispatch_runner_execution(_exec) if _exec is not None else None
@@ -533,8 +534,7 @@ def main() -> int:
                             "simulation": args.simulate,
                             "mode": mode,
                             "runner": (
-                                {"name": _exec.runner_name.value, "prompt": _exec.prompt, "metadata": _exec.metadata}
-                                if _exec is not None else None
+                                {"name": _exec.runner_name.value, "prompt": _exec.prompt, "metadata": _exec.metadata} if _exec is not None else None
                             ),
                             "runner_result": (
                                 {
@@ -544,7 +544,8 @@ def main() -> int:
                                     "outcome_status": _result.outcome_status,
                                     "outcome_summary": _result.outcome_summary,
                                 }
-                                if _result is not None else None
+                                if _result is not None
+                                else None
                             ),
                         }
                         loop_control = classify_loop_payload(payload, defaults.poll_interval_seconds)
@@ -620,6 +621,7 @@ def main() -> int:
         if governance_decision is not None:
             from .execution import build_runner_execution
             from .state import RuntimeSnapshot as _RS
+
             empty_snapshot = _RS(work_items=(), pull_requests=(), workflow_runs=(), warnings=())
             execution = build_runner_execution(empty_snapshot, governance_decision)
             runner_result = dispatch_runner_execution(execution) if args.dispatch and execution is not None else None
@@ -632,7 +634,8 @@ def main() -> int:
                 "simulation": None,
                 "runner": (
                     {"name": execution.runner_name.value, "prompt": execution.prompt, "metadata": execution.metadata}
-                    if execution is not None else None
+                    if execution is not None
+                    else None
                 ),
                 "runner_result": (
                     {
@@ -642,7 +645,8 @@ def main() -> int:
                         "outcome_status": runner_result.outcome_status,
                         "outcome_summary": runner_result.outcome_summary,
                     }
-                    if runner_result is not None else None
+                    if runner_result is not None
+                    else None
                 ),
             }
             print(json.dumps(governance_payload, indent=2, sort_keys=True))

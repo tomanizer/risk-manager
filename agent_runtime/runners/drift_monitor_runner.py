@@ -56,6 +56,7 @@ def build_drift_monitor_prompt(input_data: DriftMonitorRunnerInput) -> str:
 
 def _get_backend() -> str:
     import os
+
     return os.getenv(DRIFT_MONITOR_BACKEND_ENV, DRIFT_MONITOR_BACKEND_PREPARED).strip().lower() or DRIFT_MONITOR_BACKEND_PREPARED
 
 

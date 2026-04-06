@@ -115,10 +115,7 @@ def _render_markdown(report: dict[str, object]) -> str:
         lines.append("| Work Item | Runs | Completion | Override Count |")
         lines.append("|-----------|------|-----------|----------------|")
         for wi, stats in by_wi.items():
-            lines.append(
-                f"| {wi} | {stats.get('total_runs')} | {stats.get('relay_completion_rate')} "
-                f"| {stats.get('human_override_count')} |"
-            )
+            lines.append(f"| {wi} | {stats.get('total_runs')} | {stats.get('relay_completion_rate')} | {stats.get('human_override_count')} |")
         lines.append("")
 
     return "\n".join(lines)
