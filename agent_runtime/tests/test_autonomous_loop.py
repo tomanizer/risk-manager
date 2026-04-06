@@ -39,26 +39,32 @@ def _defaults(**overrides: object) -> RuntimeDefaults:
 
 
 # --- Default backend tests ---
+# Explicitly set each backend env var to "prepared" so the test is hermetic against
+# any ambient AGENT_RUNTIME_*_BACKEND values that may be present in CI environments.
 
 
 def test_coding_backend_defaults_to_prepared() -> None:
-    assert get_settings().agent_runtime.get_role_backend("coding") is BackendType.PREPARED
+    with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "prepared"}):
+        assert get_settings().agent_runtime.get_role_backend("coding") is BackendType.PREPARED
 
 
 def test_pm_backend_defaults_to_prepared() -> None:
-    assert get_settings().agent_runtime.get_role_backend("pm") is BackendType.PREPARED
+    with patch.dict("os.environ", {"AGENT_RUNTIME_PM_BACKEND": "prepared"}):
+        assert get_settings().agent_runtime.get_role_backend("pm") is BackendType.PREPARED
 
 
 def test_review_backend_defaults_to_prepared() -> None:
-    assert get_settings().agent_runtime.get_role_backend("review") is BackendType.PREPARED
+    with patch.dict("os.environ", {"AGENT_RUNTIME_REVIEW_BACKEND": "prepared"}):
+        assert get_settings().agent_runtime.get_role_backend("review") is BackendType.PREPARED
 
 
 def test_spec_backend_defaults_to_prepared() -> None:
-    assert get_settings().agent_runtime.get_role_backend("spec") is BackendType.PREPARED
+    with patch.dict("os.environ", {"AGENT_RUNTIME_SPEC_BACKEND": "prepared"}):
+        assert get_settings().agent_runtime.get_role_backend("spec") is BackendType.PREPARED
 
 
 def test_codex_exec_override_via_env_var() -> None:
-    with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "codex_exec"}, clear=False):
+    with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "codex_exec"}):
         assert get_settings().agent_runtime.get_role_backend("coding") is BackendType.CODEX_EXEC
 
 

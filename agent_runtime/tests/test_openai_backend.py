@@ -195,7 +195,7 @@ class TestDispatchOpenAIReasoning:
         assert result.status is RunnerDispatchStatus.FAILED
         assert "unparseable" in result.summary
 
-    def test_raises_import_error_when_openai_not_installed(self) -> None:
+    def test_returns_failed_when_openai_not_installed(self) -> None:
         # Temporarily remove openai from sys.modules to simulate absent package.
         original = sys.modules.pop("openai", None)
         # Also remove any cached import of the backend module so the guard re-runs.
@@ -205,14 +205,15 @@ class TestDispatchOpenAIReasoning:
             from agent_runtime.runners._outcome_parsing import get_output_schema
             from agent_runtime.runners.pm_backend import ALLOWED_PM_DECISIONS
 
-            with pytest.raises(ImportError, match="pip install"):
-                dispatch_openai_reasoning(
-                    _execution(),
-                    repo_root=_REPO_ROOT,
-                    model="gpt-4o",
-                    allowed_decisions=ALLOWED_PM_DECISIONS,
-                    output_schema=get_output_schema(RunnerName.PM),
-                )
+            result = dispatch_openai_reasoning(
+                _execution(),
+                repo_root=_REPO_ROOT,
+                model="gpt-4o",
+                allowed_decisions=ALLOWED_PM_DECISIONS,
+                output_schema=get_output_schema(RunnerName.PM),
+            )
+            assert result.status is RunnerDispatchStatus.FAILED
+            assert "pip install" in result.summary
         finally:
             if original is not None:
                 sys.modules["openai"] = original

@@ -43,16 +43,24 @@ def dispatch_openai_reasoning(
     """
     try:
         import openai
-    except ImportError as exc:
-        raise ImportError(
-            "openai package is required for the openai_api backend. "
-            "Install it with: pip install '.[sdk]'"
-        ) from exc
+    except ImportError:
+        return RunnerResult(
+            runner_name=execution.runner_name,
+            work_item_id=execution.work_item_id,
+            status=RunnerDispatchStatus.FAILED,
+            summary=(
+                f"{execution.runner_name.value} OpenAI backend requires the openai package. "
+                "Install it with: pip install '.[sdk]'"
+            ),
+            prompt=execution.prompt,
+            details=dict(execution.metadata),
+        )
 
     role = execution.runner_name.value
 
+    openai_cfg = get_settings().openai
     try:
-        api_key = get_settings().openai.api_key_str
+        api_key = openai_cfg.api_key_str
     except ValueError as exc:
         return RunnerResult(
             runner_name=execution.runner_name,
@@ -64,7 +72,11 @@ def dispatch_openai_reasoning(
         )
 
     system_prompt = load_system_prompt(execution.runner_name, repo_root)
-    client = openai.OpenAI(api_key=api_key)
+    client = openai.OpenAI(
+        api_key=api_key,
+        organization=openai_cfg.organization,
+        base_url=openai_cfg.base_url,
+    )
 
     try:
         response = client.chat.completions.create(

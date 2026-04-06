@@ -144,7 +144,7 @@ def test_dispatch_review_execution_codex_backend_rejects_non_object_payload() ->
     assert "could not parse Codex output" in result.summary
 
 
-def test_dispatch_review_execution_rejects_unknown_backend() -> None:
+def test_dispatch_review_execution_returns_failed_for_unimplemented_backend() -> None:
     execution = RunnerExecution(
         runner_name=RunnerName.REVIEW,
         work_item_id="WI-1.1.4-risk-summary-core-service",

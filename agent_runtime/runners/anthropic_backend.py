@@ -42,16 +42,24 @@ def dispatch_anthropic_reasoning(
     """
     try:
         import anthropic
-    except ImportError as exc:
-        raise ImportError(
-            "anthropic package is required for the anthropic_api backend. "
-            "Install it with: pip install '.[sdk]'"
-        ) from exc
+    except ImportError:
+        return RunnerResult(
+            runner_name=execution.runner_name,
+            work_item_id=execution.work_item_id,
+            status=RunnerDispatchStatus.FAILED,
+            summary=(
+                f"{execution.runner_name.value} Anthropic backend requires the anthropic package. "
+                "Install it with: pip install '.[sdk]'"
+            ),
+            prompt=execution.prompt,
+            details=dict(execution.metadata),
+        )
 
     role = execution.runner_name.value
 
+    anthropic_cfg = get_settings().anthropic
     try:
-        api_key = get_settings().anthropic.api_key_str
+        api_key = anthropic_cfg.api_key_str
     except ValueError as exc:
         return RunnerResult(
             runner_name=execution.runner_name,
@@ -63,7 +71,10 @@ def dispatch_anthropic_reasoning(
         )
 
     system_prompt = load_system_prompt(execution.runner_name, repo_root)
-    client = anthropic.Anthropic(api_key=api_key)
+    client = anthropic.Anthropic(
+        api_key=api_key,
+        base_url=anthropic_cfg.base_url,
+    )
 
     tool_name = "emit_outcome"
     tools = [

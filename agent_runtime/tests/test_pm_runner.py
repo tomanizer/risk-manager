@@ -143,7 +143,7 @@ def test_dispatch_pm_execution_codex_backend_rejects_non_string_details() -> Non
     assert "must be a string" in result.summary
 
 
-def test_dispatch_pm_execution_rejects_unknown_backend() -> None:
+def test_dispatch_pm_execution_returns_failed_for_unimplemented_backend() -> None:
     execution = RunnerExecution(
         runner_name=RunnerName.PM,
         work_item_id="WI-1.1.4-risk-summary-core-service",

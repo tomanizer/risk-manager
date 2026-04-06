@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from agent_runtime.config import BackendType, get_settings
 
 from .coding_backend import ALLOWED_CODING_DECISIONS, dispatch_codex_coding_execution, dispatch_prepared_coding_execution
@@ -71,7 +73,17 @@ def dispatch_coding_execution(execution: RunnerExecution) -> RunnerResult:
     if execution.runner_name is not RunnerName.CODING:
         raise RuntimeError("Coding dispatch received a non-coding runner execution")
 
-    cfg = get_settings().agent_runtime
+    try:
+        cfg = get_settings().agent_runtime
+    except ValidationError as exc:
+        return RunnerResult(
+            runner_name=execution.runner_name,
+            work_item_id=execution.work_item_id,
+            status=RunnerDispatchStatus.FAILED,
+            summary=f"Coding runner config is invalid: {exc}",
+            prompt=execution.prompt,
+            details=dict(execution.metadata),
+        )
     backend = cfg.get_role_backend("coding")
 
     if backend is BackendType.PREPARED:

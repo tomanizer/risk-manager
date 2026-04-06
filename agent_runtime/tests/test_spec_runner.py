@@ -156,7 +156,7 @@ def test_dispatch_spec_execution_codex_backend_rejects_non_object_payload() -> N
     assert "parse Codex output" in result.summary
 
 
-def test_dispatch_spec_execution_rejects_unknown_backend() -> None:
+def test_dispatch_spec_execution_returns_failed_for_unimplemented_backend() -> None:
     execution = RunnerExecution(
         runner_name=RunnerName.SPEC,
         work_item_id="WI-1.1.4-risk-summary-core-service",

@@ -216,7 +216,7 @@ class TestDispatchAnthropicReasoning:
         assert result.status is RunnerDispatchStatus.FAILED
         assert "no tool_use block" in result.summary
 
-    def test_raises_import_error_when_anthropic_not_installed(self) -> None:
+    def test_returns_failed_when_anthropic_not_installed(self) -> None:
         original = sys.modules.pop("anthropic", None)
         backend_module = sys.modules.pop("agent_runtime.runners.anthropic_backend", None)
         try:
@@ -224,14 +224,15 @@ class TestDispatchAnthropicReasoning:
             from agent_runtime.runners._outcome_parsing import get_output_schema
             from agent_runtime.runners.pm_backend import ALLOWED_PM_DECISIONS
 
-            with pytest.raises(ImportError, match="pip install"):
-                dispatch_anthropic_reasoning(
-                    _execution(),
-                    repo_root=_REPO_ROOT,
-                    model="claude-sonnet-4-5",
-                    allowed_decisions=ALLOWED_PM_DECISIONS,
-                    output_schema=get_output_schema(RunnerName.PM),
-                )
+            result = dispatch_anthropic_reasoning(
+                _execution(),
+                repo_root=_REPO_ROOT,
+                model="claude-sonnet-4-5",
+                allowed_decisions=ALLOWED_PM_DECISIONS,
+                output_schema=get_output_schema(RunnerName.PM),
+            )
+            assert result.status is RunnerDispatchStatus.FAILED
+            assert "pip install" in result.summary
         finally:
             if original is not None:
                 sys.modules["anthropic"] = original

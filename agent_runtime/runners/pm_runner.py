@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from agent_runtime.config import BackendType, get_settings
 
 from ._outcome_parsing import get_output_schema
@@ -67,7 +69,17 @@ def dispatch_pm_execution(execution: RunnerExecution) -> RunnerResult:
     if execution.runner_name is not RunnerName.PM:
         raise RuntimeError("PM dispatch received a non-PM runner execution")
 
-    cfg = get_settings().agent_runtime
+    try:
+        cfg = get_settings().agent_runtime
+    except ValidationError as exc:
+        return RunnerResult(
+            runner_name=execution.runner_name,
+            work_item_id=execution.work_item_id,
+            status=RunnerDispatchStatus.FAILED,
+            summary=f"PM runner config is invalid: {exc}",
+            prompt=execution.prompt,
+            details=dict(execution.metadata),
+        )
     backend = cfg.get_role_backend("pm")
 
     if backend is BackendType.PREPARED:
@@ -83,7 +95,8 @@ def dispatch_pm_execution(execution: RunnerExecution) -> RunnerResult:
     if backend is BackendType.OPENAI_API:
         from .openai_backend import dispatch_openai_reasoning
 
-        repo_root = Path(execution.metadata.get("repo_root", "")) or _REPO_ROOT
+        repo_root_str = execution.metadata.get("repo_root")
+        repo_root = Path(repo_root_str) if repo_root_str else _REPO_ROOT
         return dispatch_openai_reasoning(
             execution,
             repo_root=repo_root,
@@ -95,7 +108,8 @@ def dispatch_pm_execution(execution: RunnerExecution) -> RunnerResult:
     if backend is BackendType.ANTHROPIC_API:
         from .anthropic_backend import dispatch_anthropic_reasoning
 
-        repo_root = Path(execution.metadata.get("repo_root", "")) or _REPO_ROOT
+        repo_root_str = execution.metadata.get("repo_root")
+        repo_root = Path(repo_root_str) if repo_root_str else _REPO_ROOT
         return dispatch_anthropic_reasoning(
             execution,
             repo_root=repo_root,
