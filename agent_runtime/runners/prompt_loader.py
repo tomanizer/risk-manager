@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 from pathlib import Path
 
 from .contracts import RunnerName
+
+_log = logging.getLogger(__name__)
 
 _INSTRUCTION_FILES: dict[RunnerName, str] = {
     RunnerName.PM: "prompts/agents/pm_agent_instruction.md",
@@ -33,6 +36,7 @@ def load_system_prompt(runner_name: RunnerName, repo_root: Path) -> str:
 
     instruction_path = repo_root / relative_path
     if not instruction_path.is_file():
+        _log.warning("Governed prompt file missing: %s", instruction_path)
         return f"You are the {runner_name.value} agent."
 
     return _read_file(instruction_path)

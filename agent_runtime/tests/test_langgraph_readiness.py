@@ -37,17 +37,21 @@ from agent_runtime.storage.sqlite import (
 )
 
 
-def _ready_item(work_item_id: str, **kwargs: object) -> WorkItemSnapshot:
+def _ready_item(
+    work_item_id: str,
+    dependencies: tuple[str, ...] = (),
+) -> WorkItemSnapshot:
     return WorkItemSnapshot(
         id=work_item_id,
         title=work_item_id,
         path=Path(f"work_items/ready/{work_item_id}.md"),
         stage=WorkItemStage.READY,
-        **kwargs,
+        dependencies=dependencies,
     )
 
 
 # --- Runner protocol tests ---
+
 
 def test_all_runners_satisfy_protocol() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -95,6 +99,7 @@ def test_runner_async_execute_delegates_to_prepare() -> None:
 
 # --- Prompt loader tests ---
 
+
 def test_load_system_prompt_returns_governed_prompt_when_present() -> None:
     repo_root = Path(__file__).resolve()
     for _ in range(10):
@@ -133,6 +138,7 @@ def test_runner_get_system_prompt_loads_from_repo() -> None:
 
 # --- Dispatch status lifecycle tests ---
 
+
 def test_dispatch_status_has_full_lifecycle_values() -> None:
     expected = {"prepared", "running", "completed", "succeeded", "failed", "timed_out", "needs_human"}
     actual = {status.value for status in RunnerDispatchStatus}
@@ -140,6 +146,7 @@ def test_dispatch_status_has_full_lifecycle_values() -> None:
 
 
 # --- Event log tests ---
+
 
 def test_event_log_schema_is_created() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -203,13 +210,15 @@ def test_load_workflow_events_returns_empty_for_unknown_item() -> None:
 
 # --- decide_all_actions tests ---
 
+
 def test_decide_all_actions_returns_all_eligible() -> None:
     snapshot = RuntimeSnapshot(
         work_items=(
             _ready_item("WI-A"),
             _ready_item("WI-B"),
             WorkItemSnapshot(
-                id="WI-C", title="WI-C",
+                id="WI-C",
+                title="WI-C",
                 path=Path("work_items/blocked/WI-C.md"),
                 stage=WorkItemStage.BLOCKED,
             ),
@@ -238,7 +247,8 @@ def test_decide_all_actions_returns_empty_when_nothing_runnable() -> None:
     snapshot = RuntimeSnapshot(
         work_items=(
             WorkItemSnapshot(
-                id="WI-done", title="WI-done",
+                id="WI-done",
+                title="WI-done",
                 path=Path("work_items/done/WI-done.md"),
                 stage=WorkItemStage.DONE,
             ),

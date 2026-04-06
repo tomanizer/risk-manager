@@ -198,6 +198,7 @@ class WorkflowEventRecord:
     status: str | None = None
     details: dict[str, str] | None = None
     created_at: str | None = None
+    id: int | None = None
 
 
 def _verify_workflow_events_schema(connection: sqlite3.Connection) -> None:
@@ -754,12 +755,15 @@ def load_workflow_events(
     limit: int = 100,
 ) -> tuple[WorkflowEventRecord, ...]:
     """Load the most recent events for a work item, newest first."""
+    if limit < 1:
+        raise ValueError(f"limit must be positive, got {limit}")
     initialize_database(db_path)
     with sqlite3.connect(db_path) as connection:
         connection.row_factory = sqlite3.Row
         rows = connection.execute(
             """
             SELECT
+                id,
                 work_item_id,
                 action,
                 runner_name,
@@ -781,12 +785,14 @@ def load_workflow_events(
         if details_json:
             try:
                 raw = json.loads(details_json)
-                if isinstance(raw, dict):
-                    details_payload = {str(k): str(v) for k, v in raw.items()}
-            except json.JSONDecodeError:
-                pass
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"Invalid JSON in details_json for event {row['id']}: {exc}") from exc
+            if not isinstance(raw, dict):
+                raise ValueError(f"Expected dictionary for details_json, got {type(raw).__name__}")
+            details_payload = {str(k): str(v) for k, v in raw.items()}
         events.append(
             WorkflowEventRecord(
+                id=int(row["id"]),
                 work_item_id=str(row["work_item_id"]),
                 action=str(row["action"]),
                 runner_name=str(row["runner_name"]) if row["runner_name"] is not None else None,
