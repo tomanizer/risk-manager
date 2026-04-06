@@ -69,7 +69,7 @@ class TestNotifyRunnerFailed:
         mock_response.__exit__ = MagicMock(return_value=False)
 
         def capture_request(req: object, timeout: int = 10) -> MagicMock:
-            posted_payloads.append(req.data)  # type: ignore[union-attr]
+            posted_payloads.append(req.data)  # type: ignore[attr-defined]
             return mock_response
 
         with patch.dict("os.environ", {"SLACK_WEBHOOK_URL": "https://hooks.slack.com/test"}):
@@ -91,7 +91,7 @@ class TestSendMorningDigest:
         posted_payloads: list[bytes] = []
 
         def capture_request(req: object, timeout: int = 10) -> MagicMock:
-            posted_payloads.append(req.data)  # type: ignore[union-attr]
+            posted_payloads.append(req.data)  # type: ignore[attr-defined]
             return mock_response
 
         with tempfile.TemporaryDirectory() as tmp:

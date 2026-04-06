@@ -69,7 +69,8 @@ if _LANGGRAPH_AVAILABLE:
 
         def _checkpoint_id(self, config: RunnableConfig) -> str | None:
             configurable = config.get("configurable") or {}
-            return configurable.get("checkpoint_id")  # type: ignore[return-value]
+            val = configurable.get("checkpoint_id")
+            return str(val) if val is not None else None
 
         # ------------------------------------------------------------------
         # BaseCheckpointSaver interface

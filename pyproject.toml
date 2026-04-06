@@ -55,5 +55,12 @@ init_forbid_extra = true
 init_typed = true
 warn_required_dynamic_aliases = true
 
+# Optional telemetry and agent extras — not installed in the default dev environment.
+# All imports are guarded by try/except ImportError so runtime behaviour is
+# unaffected when these packages are absent.
+[[tool.mypy.overrides]]
+module = ["opentelemetry.*", "structlog", "langgraph.*", "langchain_core.*"]
+ignore_missing_imports = true
+
 [tool.setuptools.packages.find]
 include = ["src*", "agent_runtime*"]

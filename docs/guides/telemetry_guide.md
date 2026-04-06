@@ -45,9 +45,9 @@ docker compose -f docker-compose.observability.yml up -d
 
 | Service | URL | What you see |
 |---------|-----|-------------|
-| Jaeger | http://localhost:16686 | Per-run distributed traces, span timelines |
-| Prometheus | http://localhost:9090 | Raw metric time-series, PromQL explorer |
-| Grafana | http://localhost:3000 | Pre-built dashboards (admin / admin) |
+| Jaeger | <http://localhost:16686> | Per-run distributed traces, span timelines |
+| Prometheus | <http://localhost:9090> | Raw metric time-series, PromQL explorer |
+| Grafana | <http://localhost:3000> | Pre-built dashboards (admin / admin) |
 
 ### 3. Run the agent runtime
 
@@ -63,7 +63,7 @@ Telemetry is configured automatically in `main()`. Spans are sent to Jaeger at
 
 ## Architecture
 
-```
+```text
 agent_runtime/               src/modules/
 orchestrator/graph.py        risk_analytics/service.py (*)
 runners/dispatch.py
@@ -267,7 +267,7 @@ The runtime never fails because telemetry is unavailable.
 
 ## File inventory
 
-```
+```text
 agent_runtime/telemetry/
   __init__.py          public API exports
   _compat.py           graceful degradation shims

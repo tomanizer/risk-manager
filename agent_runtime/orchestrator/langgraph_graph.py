@@ -98,7 +98,7 @@ def _snapshot_node(state: DeliveryState, *, defaults: RuntimeDefaults) -> Delive
     # that aren't serialisable) — instead we store the decisions produced from it.
     snapshot = build_runtime_snapshot(defaults.repo_root, defaults.state_db_path)
     decisions = decide_all_actions(snapshot)
-    serialised = [
+    serialised: list[dict[str, object]] = [
         {
             "action": d.action.value,
             "work_item_id": d.work_item_id,
@@ -113,7 +113,7 @@ def _snapshot_node(state: DeliveryState, *, defaults: RuntimeDefaults) -> Delive
     }
 
 
-def _decide_node(state: DeliveryState) -> list[Send] | str:
+def _decide_node(state: DeliveryState) -> list[Any] | str:
     """Route decisions to the appropriate agent nodes or to the human gate.
 
     Uses LangGraph ``Send`` for parallel fan-out when multiple items are ready.
@@ -122,9 +122,9 @@ def _decide_node(state: DeliveryState) -> list[Send] | str:
     decisions: list[dict[str, object]] = state.get("_decisions") or []
 
     if not decisions:
-        return END
+        return str(END)
 
-    sends: list[Send] = []
+    sends: list[Any] = []
     human_gate_needed = False
     for decision in decisions:
         action = str(decision.get("action") or "")
@@ -137,8 +137,8 @@ def _decide_node(state: DeliveryState) -> list[Send] | str:
     if human_gate_needed and not sends:
         return "human_gate_node"
     if sends:
-        return sends  # type: ignore[return-value]
-    return END
+        return sends
+    return str(END)
 
 
 def _dispatch_node(decision_payload: dict[str, object], *, defaults: RuntimeDefaults) -> DeliveryState:
@@ -151,9 +151,9 @@ def _dispatch_node(decision_payload: dict[str, object], *, defaults: RuntimeDefa
     )
     return {
         "action": str(payload.get("action") or ""),
-        "work_item_id": payload.get("work_item_id"),  # type: ignore[typeddict-item]
+        "work_item_id": str(payload["work_item_id"]) if payload.get("work_item_id") is not None else None,
         "reason": str(payload.get("reason") or ""),
-        "retry_count": int(payload.get("retry_count") or 0),
+        "retry_count": int(str(payload.get("retry_count") or 0)),
         "runner_result": payload.get("runner_result"),  # type: ignore[typeddict-item]
     }
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
+from typing import cast
 from unittest.mock import patch
 
 
@@ -40,25 +41,36 @@ class TestPickPrimaryResult:
         assert result["action"] == NextActionType.NOOP.value
 
     def test_failed_takes_priority_over_completed(self) -> None:
-        results = [
-            {"action": "run_pm", "runner_result": {"status": "completed"}},
-            {"action": "run_coding", "runner_result": {"status": "failed"}},
-        ]
+        results = cast(
+            list[dict[str, object]],
+            [
+                {"action": "run_pm", "runner_result": {"status": "completed"}},
+                {"action": "run_coding", "runner_result": {"status": "failed"}},
+            ],
+        )
         primary = _pick_primary_result(results)
         rr = primary.get("runner_result")
         assert isinstance(rr, dict) and rr["status"] == "failed"
 
     def test_timed_out_priority_over_completed(self) -> None:
-        results = [
-            {"action": "run_pm", "runner_result": {"status": "completed"}},
-            {"action": "run_coding", "runner_result": {"status": "timed_out"}},
-        ]
+        results = cast(
+            list[dict[str, object]],
+            [
+                {"action": "run_pm", "runner_result": {"status": "completed"}},
+                {"action": "run_coding", "runner_result": {"status": "timed_out"}},
+            ],
+        )
         primary = _pick_primary_result(results)
         rr = primary.get("runner_result")
         assert isinstance(rr, dict) and rr["status"] == "timed_out"
 
     def test_single_result_returned(self) -> None:
-        results = [{"action": "run_pm", "runner_result": {"status": "completed"}}]
+        results = cast(
+            list[dict[str, object]],
+            [
+                {"action": "run_pm", "runner_result": {"status": "completed"}},
+            ],
+        )
         primary = _pick_primary_result(results)
         rr = primary.get("runner_result")
         assert isinstance(rr, dict) and rr["status"] == "completed"

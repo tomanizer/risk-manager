@@ -216,12 +216,20 @@ def test_check_dependency_hygiene_cli_writes_json_report(tmp_path: Path) -> None
     assert payload["stats"]["findings_count"] == 0
 
 
-def test_repo_dependency_hygiene_scan_has_no_findings() -> None:
+def test_repo_dependency_hygiene_scan_has_no_new_findings() -> None:
+    """The dependency hygiene scanner has no *net-new* findings against the repo baseline.
+
+    Optional telemetry/agent deps (opentelemetry, structlog, langgraph, langchain-core)
+    are intentionally declared in optional extras and are baselined in
+    artifacts/drift/baseline.json with rationales.
+    """
+    from agent_runtime.drift.drift_suite import build_drift_suite_report
+
     repo_root = Path(__file__).resolve().parents[3]
+    report = build_drift_suite_report(repo_root)
 
-    report = build_dependency_hygiene_report(repo_root)
-
-    assert report.findings == ()
+    dep_hygiene_findings = [f for f in report.findings if f.scan_name == "dependency_hygiene"]
+    assert dep_hygiene_findings == [], dep_hygiene_findings
 
 
 def _write_pyproject(
