@@ -18,7 +18,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, SecretStr
+from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Resolve the .env file relative to this file's location so the config works
@@ -94,7 +94,7 @@ class GeminiConfig(BaseSettings):
         extra="ignore",
     )
 
-    api_key: SecretStr | None = Field(default=None, validation_alias="GEMINI_API_KEY")
+    api_key: SecretStr | None = Field(default=None, validation_alias=AliasChoices("GEMINI_API_KEY", "GOOGLE_API_KEY"))
     model: str = "gemini-2.0-flash"
     embedding_model: str = "models/text-embedding-004"
 
@@ -229,20 +229,26 @@ class Settings(BaseSettings):
     agent_runtime: AgentRuntimeConfig = Field(default_factory=AgentRuntimeConfig)
 
     def is_provider_configured(self, provider: str) -> bool:
-        """Return True if the named provider has an API key set.
+        """Return True if the named provider has a non-blank API key set.
 
         Args:
-            provider: one of ``"openai"``, ``"anthropic"``, ``"gemini"``,
-                ``"cursor"``, ``"langchain"``, ``"langgraph"``
+            provider: a field name on ``Settings`` other than ``"agent_runtime"``
         """
         block = getattr(self, provider, None)
         if block is None:
             return False
-        return getattr(block, "api_key", None) is not None
+        key: SecretStr | None = getattr(block, "api_key", None)
+        if key is None:
+            return False
+        return bool(key.get_secret_value().strip())
 
     def configured_providers(self) -> list[str]:
-        """Return names of providers that have an API key set."""
-        return [p for p in ("openai", "anthropic", "gemini", "cursor", "langchain", "langgraph") if self.is_provider_configured(p)]
+        """Return names of all provider fields that have a non-blank API key set.
+
+        Automatically includes any provider field added to ``Settings`` in the
+        future; ``agent_runtime`` is excluded because it has no API key.
+        """
+        return [name for name in type(self).model_fields if name != "agent_runtime" and self.is_provider_configured(name)]
 
 
 @lru_cache(maxsize=1)
