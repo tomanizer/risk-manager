@@ -11,7 +11,7 @@ from agent_runtime.runners.coding_runner import dispatch_coding_execution
 from agent_runtime.runners.contracts import RunnerDispatchStatus, RunnerExecution, RunnerName
 
 
-def test_dispatch_coding_execution_uses_prepared_backend_by_default() -> None:
+def test_dispatch_coding_execution_prepared_backend_when_explicitly_set() -> None:
     execution = RunnerExecution(
         runner_name=RunnerName.CODING,
         work_item_id="WI-1.1.4-risk-summary-core-service",
@@ -19,7 +19,7 @@ def test_dispatch_coding_execution_uses_prepared_backend_by_default() -> None:
         metadata={"target_path": "work_items/ready/WI-1.1.4-risk-summary-core-service.md"},
     )
 
-    with patch.dict("os.environ", {}, clear=True):
+    with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "prepared"}, clear=False):
         result = dispatch_coding_execution(execution)
 
     assert result.status is RunnerDispatchStatus.PREPARED

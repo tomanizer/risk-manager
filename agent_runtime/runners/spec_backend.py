@@ -23,7 +23,7 @@ _ALLOWED_SPEC_DECISIONS = {
 
 
 def get_spec_backend_name() -> str:
-    return os.getenv(SPEC_BACKEND_ENV, SPEC_BACKEND_PREPARED).strip().lower() or SPEC_BACKEND_PREPARED
+    return os.getenv(SPEC_BACKEND_ENV, SPEC_BACKEND_CODEX_EXEC).strip().lower() or SPEC_BACKEND_CODEX_EXEC
 
 
 def dispatch_prepared_spec_execution(execution: RunnerExecution) -> RunnerResult:
