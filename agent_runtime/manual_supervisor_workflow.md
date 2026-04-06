@@ -95,6 +95,8 @@ Examples:
 - PM may return `READY`, `BLOCKED`, or `SPLIT_REQUIRED`
 - review may return findings or a pass
 - coding may produce a branch/PR or may stop on canon ambiguity
+- if `AGENT_RUNTIME_CODING_PR_BACKEND=gh_draft` is enabled, the runtime may
+  publish a completed coding branch as a draft PR automatically on dispatch
 
 ### 5. Record the reviewed outcome back into the runtime
 
