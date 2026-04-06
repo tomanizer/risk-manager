@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Callable
 
 from .dependency_hygiene import DependencyHygieneReport, build_dependency_hygiene_report
+from .instruction_surfaces import InstructionSurfaceReport, build_instruction_surface_report
 from .reference_integrity import ReferenceScanReport, build_reference_scan_report
 from .registry_alignment import RegistryAlignmentReport, build_registry_alignment_report
 
@@ -16,7 +17,7 @@ DEFAULT_BASELINE_PATH = Path("artifacts/drift/baseline.json")
 DEFAULT_LATEST_REPORT_PATH = Path("artifacts/drift/latest_report.json")
 DEFAULT_SUMMARY_PATH = Path("artifacts/drift/summary.md")
 
-_ReportT = DependencyHygieneReport | ReferenceScanReport | RegistryAlignmentReport
+_ReportT = DependencyHygieneReport | InstructionSurfaceReport | ReferenceScanReport | RegistryAlignmentReport
 
 
 @dataclass(frozen=True, slots=True)
@@ -108,6 +109,12 @@ _SCANNERS: tuple[_ScannerSpec, ...] = (
         build_report=build_dependency_hygiene_report,
     ),
     _ScannerSpec(
+        scan_name="instruction_surfaces",
+        title="Instruction Surfaces",
+        artifact_name="instruction_surfaces.json",
+        build_report=build_instruction_surface_report,
+    ),
+    _ScannerSpec(
         scan_name="reference_integrity",
         title="Reference Integrity",
         artifact_name="reference_integrity.json",
@@ -123,6 +130,7 @@ _SCANNERS: tuple[_ScannerSpec, ...] = (
 
 _SIGNATURE_FIELDS: dict[str, tuple[str, ...]] = {
     "dependency_hygiene": ("kind", "dependency_name", "source_path"),
+    "instruction_surfaces": ("kind", "source_path", "related_paths"),
     "reference_integrity": ("kind", "source_file", "source_line", "reference"),
     "registry_alignment": ("kind", "component_id", "implementation_path", "registry_path"),
 }
@@ -468,6 +476,8 @@ def _summary_anchor(finding: DriftSuiteFinding) -> str:
     raw = finding.raw_finding
     if finding.scan_name == "dependency_hygiene":
         return f"{raw['source_path']} `{raw['dependency_name']}`"
+    if finding.scan_name == "instruction_surfaces":
+        return f"{raw['source_path']} `{raw['kind']}`"
     if finding.scan_name == "reference_integrity":
         return f"{raw['source_file']}:{raw['source_line']} `{raw['reference']}`"
     if finding.scan_name == "registry_alignment":

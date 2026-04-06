@@ -8,11 +8,12 @@ The review agent is not a style enforcer first. Its main job is to detect wrong 
 
 ## Required reading order
 
-1. assigned work item
-2. linked PRD
-3. linked ADRs
-4. relevant changed files
-5. relevant tests
+1. `AGENTS.md`
+2. assigned work item
+3. linked PRD
+4. linked ADRs
+5. relevant changed files
+6. relevant tests
 
 ## Review priorities
 
