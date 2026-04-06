@@ -6,7 +6,6 @@ import subprocess
 import sys
 
 from agent_runtime.drift.instruction_surfaces import build_instruction_surface_report
-from tests.unit.agent_runtime.test_drift_suite import _write_instruction_surfaces
 
 
 def test_instruction_surface_report_detects_missing_role_pair(tmp_path: Path) -> None:
@@ -118,3 +117,109 @@ def test_repo_instruction_surface_scan_has_no_findings() -> None:
     report = build_instruction_surface_report(repo_root)
 
     assert report.findings == ()
+
+
+def _write_instruction_surfaces(root: Path) -> None:
+    (root / "AGENTS.md").write_text("# AGENTS\n", encoding="utf-8")
+    (root / "CLAUDE.md").write_text(
+        "\n".join(
+            [
+                "Read `AGENTS.md` first.",
+                "1. git fetch origin",
+                "2. git switch main",
+                "3. git pull --ff-only origin main",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (root / "GEMINI.md").write_text(
+        "\n".join(
+            [
+                "Read `AGENTS.md` first.",
+                "1. git fetch origin",
+                "2. git switch main",
+                "3. git pull --ff-only origin main",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    copilot_path = root / ".github" / "copilot-instructions.md"
+    copilot_path.parent.mkdir(parents=True, exist_ok=True)
+    copilot_path.write_text("# Copilot\n", encoding="utf-8")
+    (root / "docs" / "guides").mkdir(parents=True, exist_ok=True)
+    (root / "docs" / "guides" / "overnight_agent_runbook.md").write_text(
+        "\n".join(
+            [
+                "1. git fetch origin",
+                "2. git switch main",
+                "3. git pull --ff-only origin main",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    github_agents_dir = root / ".github" / "agents"
+    github_agents_dir.mkdir(parents=True, exist_ok=True)
+    (github_agents_dir / "README.md").write_text(
+        "\n".join(
+            [
+                "- `pm.agent.md`",
+                "- `issue-planner.agent.md`",
+                "- `risk-methodology-spec.agent.md`",
+                "- `coding.agent.md`",
+                "- `review.agent.md`",
+                "- `drift-monitor.agent.md`",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    prompt_agents_dir = root / "prompts" / "agents"
+    prompt_agents_dir.mkdir(parents=True, exist_ok=True)
+    (prompt_agents_dir / "README.md").write_text(
+        "\n".join(
+            [
+                "- `pm_agent_instruction.md`",
+                "- `coding_agent_instruction.md`",
+                "- `review_agent_instruction.md`",
+                "- `issue_planner_instruction.md`",
+                "- `risk_methodology_spec_agent_instruction.md`",
+                "- `drift_monitor_agent_instruction.md`",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    prompt_drift_dir = root / "prompts" / "drift_monitor"
+    prompt_drift_dir.mkdir(parents=True, exist_ok=True)
+    script_dir = root / "scripts" / "drift"
+    script_dir.mkdir(parents=True, exist_ok=True)
+    script_dir.joinpath("run_all.py").write_text("print('drift')\n", encoding="utf-8")
+    prompt_drift_dir.joinpath("repo_health_audit_prompt.md").write_text(
+        "Use `python scripts/drift/run_all.py --root . --artifact-dir artifacts/drift --output artifacts/drift/latest_report.json --summary-output artifacts/drift/summary.md`.\n",
+        encoding="utf-8",
+    )
+
+    github_agent_contents = {
+        "coding.agent.md": "Read `AGENTS.md`.\n1. `git fetch origin`\n2. `git switch main`\n3. `git pull --ff-only origin main`\n",
+        "drift-monitor.agent.md": "Read `AGENTS.md`.\n1. `git fetch origin`\n2. `git switch main`\n3. `git pull --ff-only origin main`\nUse `scripts/drift/run_all.py`.\n",
+        "issue-planner.agent.md": "Read `AGENTS.md`.\n",
+        "pm.agent.md": "Read `AGENTS.md`.\n1. `git fetch origin`\n2. `git switch main`\n3. `git pull --ff-only origin main`\n",
+        "review.agent.md": "Read `AGENTS.md`.\n1. `git fetch origin`\n2. `git switch main`\n3. `git pull --ff-only origin main`\n",
+        "risk-methodology-spec.agent.md": "Read `AGENTS.md`.\n",
+    }
+    for filename, content in github_agent_contents.items():
+        (github_agents_dir / filename).write_text(content, encoding="utf-8")
+
+    prompt_agent_contents = {
+        "coding_agent_instruction.md": "# Coding\n",
+        "drift_monitor_agent_instruction.md": "Use `scripts/drift/run_all.py`.\n",
+        "issue_planner_instruction.md": "# Issue planner\n",
+        "pm_agent_instruction.md": "# PM\n",
+        "review_agent_instruction.md": "# Review\n",
+        "risk_methodology_spec_agent_instruction.md": "Read `AGENTS.md`.\n",
+    }
+    for filename, content in prompt_agent_contents.items():
+        (prompt_agents_dir / filename).write_text(content, encoding="utf-8")
