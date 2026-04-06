@@ -333,7 +333,11 @@ def main() -> int:
             while True:
                 iteration += 1
                 record_started_at = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
-                snapshot = build_simulation_snapshot(args.simulate) if args.simulate is not None else build_runtime_snapshot(repo_root, defaults.state_db_path)
+                snapshot = (
+                    build_simulation_snapshot(args.simulate)
+                    if args.simulate is not None
+                    else build_runtime_snapshot(repo_root, defaults.state_db_path)
+                )
                 payload = run_runtime_step(
                     defaults,
                     snapshot,
@@ -341,7 +345,7 @@ def main() -> int:
                     should_dispatch=True,
                 )
                 payload["dispatch"] = True
-                payload["execute"] = False
+                payload["execute"] = True
                 payload["simulation"] = args.simulate
                 loop_control = classify_loop_payload(payload, defaults.poll_interval_seconds)
                 supervisor_status = "waiting" if loop_control.continue_polling and (loop_control.sleep_seconds or 0) > 0 else "idle"
@@ -374,7 +378,7 @@ def main() -> int:
         should_dispatch=args.dispatch,
     )
     payload["dispatch"] = args.dispatch
-    payload["execute"] = args.execute
+    payload["execute"] = args.execute or args.dispatch
     payload["simulation"] = args.simulate
     print(json.dumps(payload, indent=2, sort_keys=True))
     return 0

@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 import fcntl
+import os
 import time
 from pathlib import Path
 from typing import Generator, Mapping
@@ -81,7 +82,7 @@ def supervisor_lock(lock_path: Path) -> Generator[str, None, None]:
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as error:
             raise RuntimeError(f"another supervisor loop is already active for {lock_path}") from error
-        lock_owner = f"{lock_path}:{lock_file.fileno()}"
+        lock_owner = f"{lock_path}:{os.getpid()}:{lock_file.fileno()}"
         lock_file.write(lock_owner)
         lock_file.flush()
         try:

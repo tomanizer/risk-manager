@@ -5,7 +5,11 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from agent_runtime.orchestrator.supervisor import LoopControl, classify_loop_payload
+from agent_runtime.orchestrator.supervisor import (
+    LoopControl,
+    classify_loop_payload,
+    supervisor_lock,
+)
 from agent_runtime.storage.sqlite import SupervisorStateRecord, load_supervisor_state, upsert_supervisor_state
 
 
@@ -85,3 +89,15 @@ def test_supervisor_state_round_trips() -> None:
         assert loaded.last_action == "wait_for_reviews"
         assert loaded.active_run_id == "review-run-1"
         assert loaded.updated_at is not None
+
+
+def test_supervisor_lock_owner_includes_pid_and_file_descriptor() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        lock_path = Path(temp_dir) / "runtime" / "supervisor.lock"
+
+        with supervisor_lock(lock_path) as lock_owner:
+            assert str(lock_path) in lock_owner
+            parts = lock_owner.rsplit(":", maxsplit=2)
+            assert len(parts) == 3
+            assert parts[1].isdigit()
+            assert parts[2].isdigit()
