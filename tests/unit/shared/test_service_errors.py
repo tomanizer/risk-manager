@@ -60,12 +60,19 @@ class ServiceErrorTestCase(unittest.TestCase):
             RequestValidationFailure(operation=" ", status_code="INVALID_REQUEST")
 
     def test_rejects_blank_status_reason_entries(self) -> None:
-        with self.assertRaises(ValidationError):
-            ServiceError(
-                operation="get_risk_delta",
-                status_code="MISSING_SNAPSHOT",
-                status_reasons=(" ",),
-            )
+        invalid_reasons_cases = [
+            (" ",),
+            ("",),
+            ("VALID_REASON", " "),
+        ]
+        for reasons in invalid_reasons_cases:
+            with self.subTest(reasons=reasons):
+                with self.assertRaises(ValidationError):
+                    ServiceError(
+                        operation="get_risk_delta",
+                        status_code="MISSING_SNAPSHOT",
+                        status_reasons=reasons,
+                    )
 
     def test_normalizes_trimmed_string_fields(self) -> None:
         error = ServiceError(
