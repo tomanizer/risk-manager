@@ -23,7 +23,7 @@ _ALLOWED_CODING_DECISIONS = {
 
 
 def get_coding_backend_name() -> str:
-    return os.getenv(CODING_BACKEND_ENV, CODING_BACKEND_PREPARED).strip().lower() or CODING_BACKEND_PREPARED
+    return os.getenv(CODING_BACKEND_ENV, CODING_BACKEND_CODEX_EXEC).strip().lower() or CODING_BACKEND_CODEX_EXEC
 
 
 def dispatch_prepared_coding_execution(execution: RunnerExecution) -> RunnerResult:

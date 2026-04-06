@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 from dataclasses import replace
 from datetime import UTC, datetime
 import json
+import logging
 from pathlib import Path
 
 from agent_runtime.config.defaults import RuntimeDefaults, build_defaults
@@ -18,12 +20,13 @@ from agent_runtime.orchestrator.supervisor import (
     supervisor_lock,
 )
 from agent_runtime.orchestrator.worktree_manager import allocate_worktree, bind_worktree_to_execution, release_worktree
-from agent_runtime.runners.contracts import RunnerDispatchStatus
+from agent_runtime.runners.contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 from agent_runtime.runners.dispatch import dispatch_runner_execution
 from agent_runtime.storage.sqlite import (
     WorkflowRunRecord,
     load_workflow_run,
     load_workflow_runs,
+    mark_workflow_run_running,
     record_workflow_outcome,
     upsert_workflow_run,
 )
@@ -33,6 +36,42 @@ from .state import NextActionType, RuntimeSnapshot
 from .simulations import build_simulation_snapshot, simulation_names
 from .transitions import decide_next_action
 from .work_item_registry import load_work_items
+
+logger = logging.getLogger(__name__)
+
+
+def _runner_timeout_seconds(runner_name: RunnerName, defaults: RuntimeDefaults) -> int:
+    if runner_name is RunnerName.CODING:
+        return defaults.runner_timeout_seconds_coding
+    return defaults.runner_timeout_seconds_default
+
+
+def _dispatch_with_timeout(execution: RunnerExecution, defaults: RuntimeDefaults) -> RunnerResult:
+    """Run dispatch_runner_execution in a thread with a wall-clock timeout.
+
+    Returns the RunnerResult. On timeout, returns a TIMED_OUT RunnerResult so
+    the supervisor can record it and apply retry logic without crashing.
+    """
+    timeout_seconds = _runner_timeout_seconds(execution.runner_name, defaults)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(dispatch_runner_execution, execution)
+        try:
+            return future.result(timeout=timeout_seconds)
+        except concurrent.futures.TimeoutError:
+            logger.error(
+                "Runner %s for %s timed out after %ds",
+                execution.runner_name.value,
+                execution.work_item_id,
+                timeout_seconds,
+            )
+            return RunnerResult(
+                runner_name=execution.runner_name,
+                work_item_id=execution.work_item_id,
+                status=RunnerDispatchStatus.TIMED_OUT,
+                summary=f"Runner {execution.runner_name.value} timed out after {timeout_seconds}s.",
+                prompt=execution.prompt,
+                details={**execution.metadata, "timeout_seconds": str(timeout_seconds)},
+            )
 
 
 def find_repo_root(start_path: Path) -> Path:
@@ -63,12 +102,44 @@ def run_runtime_step(
     should_dispatch: bool,
 ) -> dict[str, object]:
     decision = decide_next_action(snapshot)
+
+    # Load existing run early to determine retry_count for this dispatch attempt.
+    existing_run_pre = (
+        load_workflow_run(defaults.state_db_path, decision.work_item_id) if should_build_execution and decision.work_item_id is not None else None
+    )
+    is_retry = existing_run_pre is not None and existing_run_pre.runner_status in ("failed", "timed_out")
+    retry_count = (existing_run_pre.retry_count + 1) if is_retry else (existing_run_pre.retry_count if existing_run_pre is not None else 0)
+
     execution = build_runner_execution(snapshot, decision) if should_build_execution else None
     worktree_lease = None
     if should_dispatch and execution is not None:
         worktree_lease = allocate_worktree(defaults, defaults.state_db_path, execution)
         execution = bind_worktree_to_execution(execution, worktree_lease)
-    runner_result = dispatch_runner_execution(execution) if should_dispatch and execution is not None else None
+
+    runner_result = None
+    if should_dispatch and execution is not None:
+        # Write RUNNING status before the blocking dispatch so a crashed supervisor
+        # can detect orphaned in-flight runs.
+        if decision.work_item_id is not None:
+            mark_workflow_run_running(defaults.state_db_path, decision.work_item_id, retry_count)
+        try:
+            runner_result = _dispatch_with_timeout(execution, defaults)
+        except Exception as exc:
+            logger.error(
+                "Runner %s for %s raised unexpected exception: %s",
+                execution.runner_name.value,
+                execution.work_item_id,
+                exc,
+                exc_info=True,
+            )
+            runner_result = RunnerResult(
+                runner_name=execution.runner_name,
+                work_item_id=execution.work_item_id,
+                status=RunnerDispatchStatus.FAILED,
+                summary=f"Runner raised an unexpected exception: {exc}",
+                prompt=execution.prompt,
+                details={**execution.metadata, "exception_type": type(exc).__name__},
+            )
     pr_publication = maybe_publish_completed_coding_run(defaults.repo_root, execution, runner_result)
     if runner_result is not None and pr_publication is not None:
         publication_details = {
@@ -126,6 +197,7 @@ def run_runtime_step(
                 else None,
                 outcome_status=existing_run.outcome_status if existing_run is not None else None,
                 outcome_summary=existing_run.outcome_summary if existing_run is not None else None,
+                retry_count=retry_count,
                 details=(
                     {
                         **dict(decision.metadata),
@@ -173,6 +245,7 @@ def run_runtime_step(
         "reason": decision.reason,
         "target_path": str(decision.target_path) if decision.target_path else None,
         "work_item_id": decision.work_item_id,
+        "retry_count": retry_count,
         "runner": (
             {
                 "name": execution.runner_name.value,
@@ -370,21 +443,39 @@ def main() -> int:
             while True:
                 iteration += 1
                 record_started_at = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
-                snapshot = (
-                    build_simulation_snapshot(args.simulate)
-                    if args.simulate is not None
-                    else build_runtime_snapshot(repo_root, defaults.state_db_path)
-                )
-                payload = run_runtime_step(
-                    defaults,
-                    snapshot,
-                    should_build_execution=True,
-                    should_dispatch=True,
-                )
+                try:
+                    snapshot = (
+                        build_simulation_snapshot(args.simulate)
+                        if args.simulate is not None
+                        else build_runtime_snapshot(repo_root, defaults.state_db_path)
+                    )
+                    payload = run_runtime_step(
+                        defaults,
+                        snapshot,
+                        should_build_execution=True,
+                        should_dispatch=True,
+                    )
+                except Exception as exc:
+                    logger.error("Poll iteration %d raised an unexpected exception: %s", iteration, exc, exc_info=True)
+                    record_supervisor_heartbeat(
+                        defaults,
+                        status="waiting",
+                        lock_owner=lock_owner,
+                        mode=mode,
+                        started_at=record_started_at,
+                    )
+                    if not args.poll:
+                        return 1
+                    sleep_for_poll_interval(defaults.poll_interval_seconds)
+                    continue
                 payload["dispatch"] = True
                 payload["execute"] = True
                 payload["simulation"] = args.simulate
-                loop_control = classify_loop_payload(payload, defaults.poll_interval_seconds)
+                loop_control = classify_loop_payload(
+                    payload,
+                    defaults.poll_interval_seconds,
+                    max_retries=defaults.runner_max_retries,
+                )
                 supervisor_status = "waiting" if loop_control.continue_polling and (loop_control.sleep_seconds or 0) > 0 else "idle"
                 if not loop_control.continue_polling:
                     supervisor_status = "stopped"

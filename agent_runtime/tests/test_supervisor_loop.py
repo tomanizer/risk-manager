@@ -10,7 +10,15 @@ from agent_runtime.orchestrator.supervisor import (
     classify_loop_payload,
     supervisor_lock,
 )
-from agent_runtime.storage.sqlite import SupervisorStateRecord, load_supervisor_state, upsert_supervisor_state
+from agent_runtime.storage.sqlite import (
+    SupervisorStateRecord,
+    WorkflowRunRecord,
+    load_supervisor_state,
+    load_workflow_run,
+    mark_workflow_run_running,
+    upsert_supervisor_state,
+    upsert_workflow_run,
+)
 
 
 def test_classify_loop_payload_waits_for_reviews() -> None:
@@ -50,12 +58,29 @@ def test_classify_loop_payload_continues_after_completed_runner() -> None:
     assert control == LoopControl(continue_polling=True, sleep_seconds=0, exit_code=0)
 
 
-def test_classify_loop_payload_stops_with_failure() -> None:
+def test_classify_loop_payload_retries_on_first_failure() -> None:
+    """First failure (retry_count=0) should continue polling so the supervisor retries."""
     payload = {
         "action": "run_coding",
         "runner_result": {
             "status": "failed",
         },
+        "retry_count": 0,
+    }
+
+    control = classify_loop_payload(payload, 300)
+
+    assert control == LoopControl(continue_polling=True, sleep_seconds=0, exit_code=0)
+
+
+def test_classify_loop_payload_stops_after_max_retries() -> None:
+    """Failure after max_retries exhausted stops the loop with exit_code=1."""
+    payload = {
+        "action": "run_coding",
+        "runner_result": {
+            "status": "failed",
+        },
+        "retry_count": 2,
     }
 
     control = classify_loop_payload(payload, 300)
@@ -101,3 +126,130 @@ def test_supervisor_lock_owner_includes_pid_and_file_descriptor() -> None:
             assert len(parts) == 3
             assert parts[1].isdigit()
             assert parts[2].isdigit()
+
+
+# --- Retry logic tests ---
+
+
+def test_classify_loop_payload_retries_on_failed_below_limit() -> None:
+    payload = {
+        "action": "run_coding",
+        "runner_result": {"status": "failed"},
+        "retry_count": 1,
+    }
+
+    control = classify_loop_payload(payload, 300, max_retries=2)
+
+    assert control == LoopControl(continue_polling=True, sleep_seconds=0, exit_code=0)
+
+
+def test_classify_loop_payload_stops_on_failed_at_limit() -> None:
+    payload = {
+        "action": "run_coding",
+        "runner_result": {"status": "failed"},
+        "retry_count": 2,
+    }
+
+    control = classify_loop_payload(payload, 300, max_retries=2)
+
+    assert control == LoopControl(continue_polling=False, sleep_seconds=None, exit_code=1)
+
+
+def test_classify_loop_payload_retries_on_timed_out_below_limit() -> None:
+    payload = {
+        "action": "run_coding",
+        "runner_result": {"status": "timed_out"},
+        "retry_count": 0,
+    }
+
+    control = classify_loop_payload(payload, 300, max_retries=2)
+
+    assert control == LoopControl(continue_polling=True, sleep_seconds=0, exit_code=0)
+
+
+def test_classify_loop_payload_stops_on_timed_out_at_limit() -> None:
+    payload = {
+        "action": "run_coding",
+        "runner_result": {"status": "timed_out"},
+        "retry_count": 2,
+    }
+
+    control = classify_loop_payload(payload, 300, max_retries=2)
+
+    assert control == LoopControl(continue_polling=False, sleep_seconds=None, exit_code=1)
+
+
+def test_classify_loop_payload_default_max_retries_is_two() -> None:
+    # With the default max_retries=2, retry_count=2 should stop polling.
+    payload = {
+        "action": "run_pm",
+        "runner_result": {"status": "failed"},
+        "retry_count": 2,
+    }
+
+    control = classify_loop_payload(payload, 300)
+
+    assert control.continue_polling is False
+    assert control.exit_code == 1
+
+
+# --- RUNNING status upsert tests ---
+
+
+def test_mark_workflow_run_running_sets_runner_status() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "runtime" / "state.db"
+        upsert_workflow_run(
+            db_path,
+            WorkflowRunRecord(
+                work_item_id="WI-test-1",
+                status="run_coding",
+                runner_status="prepared",
+                retry_count=0,
+            ),
+        )
+
+        mark_workflow_run_running(db_path, "WI-test-1", retry_count=0)
+
+        record = load_workflow_run(db_path, "WI-test-1")
+        assert record is not None
+        assert record.runner_status == "running"
+
+
+def test_mark_workflow_run_running_sets_retry_count() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "runtime" / "state.db"
+        upsert_workflow_run(
+            db_path,
+            WorkflowRunRecord(
+                work_item_id="WI-test-2",
+                status="run_coding",
+                runner_status="failed",
+                retry_count=0,
+            ),
+        )
+
+        mark_workflow_run_running(db_path, "WI-test-2", retry_count=1)
+
+        record = load_workflow_run(db_path, "WI-test-2")
+        assert record is not None
+        assert record.runner_status == "running"
+        assert record.retry_count == 1
+
+
+def test_workflow_run_record_retry_count_persists() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "runtime" / "state.db"
+        upsert_workflow_run(
+            db_path,
+            WorkflowRunRecord(
+                work_item_id="WI-test-3",
+                status="run_pm",
+                runner_status="failed",
+                retry_count=2,
+            ),
+        )
+
+        record = load_workflow_run(db_path, "WI-test-3")
+        assert record is not None
+        assert record.retry_count == 2
