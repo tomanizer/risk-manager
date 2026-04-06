@@ -17,9 +17,12 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import cast
 
 from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from agent_runtime.backend_type import BackendType
 
 # Resolve the .env file relative to this file's location so the config works
 # regardless of the current working directory when the runtime is invoked.
@@ -175,10 +178,11 @@ class LangGraphConfig(BaseSettings):
 
 
 class AgentRuntimeConfig(BaseSettings):
-    """Agent runtime backend and Codex execution settings.
+    """Agent runtime backend and Codex/SDK execution settings.
 
-    These mirror the ``AGENT_RUNTIME_*`` env vars documented in
-    ``agent_runtime/README.md``.
+    All values map to ``AGENT_RUNTIME_*`` env vars.  Backends default to
+    ``prepared`` (safe no-op handoff) so autonomous execution requires
+    explicit opt-in.
     """
 
     model_config = SettingsConfigDict(
@@ -188,20 +192,62 @@ class AgentRuntimeConfig(BaseSettings):
         extra="ignore",
     )
 
-    pm_backend: str = "prepared"
+    # --- PM role ---
+    pm_backend: BackendType = BackendType.PREPARED
     pm_codex_bin: str = "codex"
     pm_codex_model: str = "gpt-5"
+    pm_openai_model: str = "gpt-4o"
+    pm_anthropic_model: str = "claude-sonnet-4-20250514"
+    pm_cursor_model: str = "cursor-fast"
 
-    review_backend: str = "prepared"
+    # --- Review role ---
+    review_backend: BackendType = BackendType.PREPARED
     review_codex_bin: str = "codex"
     review_codex_model: str = "gpt-5"
+    review_openai_model: str = "gpt-4o"
+    review_anthropic_model: str = "claude-sonnet-4-20250514"
+    review_cursor_model: str = "cursor-fast"
 
-    coding_backend: str = "prepared"
+    # --- Spec role ---
+    spec_backend: BackendType = BackendType.PREPARED
+    spec_codex_bin: str = "codex"
+    spec_codex_model: str = "gpt-5"
+    spec_openai_model: str = "gpt-4o"
+    spec_anthropic_model: str = "claude-sonnet-4-20250514"
+    spec_cursor_model: str = "cursor-fast"
+
+    # --- Coding role ---
+    coding_backend: BackendType = BackendType.PREPARED
     coding_codex_bin: str = "codex"
     coding_codex_model: str = "gpt-5"
+    coding_openai_model: str = "gpt-4o"
+    coding_anthropic_model: str = "claude-sonnet-4-20250514"
+    coding_cursor_model: str = "cursor-fast"
+    coding_tool_max_iterations: int = 50
 
+    # --- Coding PR helpers (retained) ---
     coding_pr_backend: str | None = None
     coding_pr_title_prefix: str = "[codex]"
+
+    # --- Autonomy control ---
+    auto_merge: bool = False
+    auto_promote_wi: bool = False
+
+    def get_role_backend(self, role: str) -> BackendType:
+        """Return the configured ``BackendType`` for the given role name."""
+        return cast(BackendType, getattr(self, f"{role}_backend"))
+
+    def get_role_model(self, role: str, backend: BackendType) -> str:
+        """Return the configured model string for a role/backend pair."""
+        _suffix: dict[BackendType, str] = {
+            BackendType.CODEX_EXEC: "codex_model",
+            BackendType.OPENAI_API: "openai_model",
+            BackendType.ANTHROPIC_API: "anthropic_model",
+            BackendType.CURSOR_API: "cursor_model",
+        }
+        if backend not in _suffix:
+            raise ValueError(f"No model field for backend {backend!r} on role {role!r}")
+        return cast(str, getattr(self, f"{role}_{_suffix[backend]}"))
 
 
 # ---------------------------------------------------------------------------

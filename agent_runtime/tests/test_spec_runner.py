@@ -8,6 +8,10 @@ import subprocess
 import tempfile
 from unittest.mock import patch
 
+import pytest
+from pydantic import ValidationError
+
+from agent_runtime.config import get_settings
 from agent_runtime.orchestrator.state import (
     NextActionType,
     RuntimeSnapshot,
@@ -31,8 +35,11 @@ def test_dispatch_spec_execution_uses_prepared_backend_by_default() -> None:
         metadata={"target_path": "work_items/ready/WI-1.1.4-risk-summary-core-service.md"},
     )
 
+    get_settings.cache_clear()
     with patch.dict("os.environ", {"AGENT_RUNTIME_SPEC_BACKEND": "prepared"}, clear=False):
+        get_settings.cache_clear()
         result = dispatch_spec_execution(execution)
+    get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.PREPARED
     assert result.outcome_status is None
@@ -73,15 +80,18 @@ def test_dispatch_spec_execution_codex_backend_returns_completed_outcome() -> No
         )
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
+    get_settings.cache_clear()
     with patch.dict("os.environ", {"AGENT_RUNTIME_SPEC_BACKEND": "codex_exec"}, clear=False):
+        get_settings.cache_clear()
         with patch("agent_runtime.runners.spec_backend.subprocess.run", side_effect=fake_run):
             result = dispatch_spec_execution(execution)
+    get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.COMPLETED
     assert result.outcome_status == "clarified"
     assert result.outcome_summary == "The canon gap is resolved and the work item was narrowed."
     assert result.outcome_details["updated_artifact"] == "work_items/ready/WI-1.1.4-risk-summary-core-service.md"
-    assert result.details["spec_backend"] == "codex_exec"
+    assert result.details["backend"] == "codex_exec"
 
 
 def test_dispatch_spec_execution_codex_backend_rejects_non_string_details() -> None:
@@ -116,9 +126,12 @@ def test_dispatch_spec_execution_codex_backend_rejects_non_string_details() -> N
         )
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
+    get_settings.cache_clear()
     with patch.dict("os.environ", {"AGENT_RUNTIME_SPEC_BACKEND": "codex_exec"}, clear=False):
+        get_settings.cache_clear()
         with patch("agent_runtime.runners.spec_backend.subprocess.run", side_effect=fake_run):
             result = dispatch_spec_execution(execution)
+    get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.FAILED
     assert result.outcome_status is None
@@ -148,9 +161,12 @@ def test_dispatch_spec_execution_codex_backend_rejects_non_object_payload() -> N
         output_path.write_text(json.dumps([1, 2, 3]), encoding="utf-8")
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
+    get_settings.cache_clear()
     with patch.dict("os.environ", {"AGENT_RUNTIME_SPEC_BACKEND": "codex_exec"}, clear=False):
+        get_settings.cache_clear()
         with patch("agent_runtime.runners.spec_backend.subprocess.run", side_effect=fake_run):
             result = dispatch_spec_execution(execution)
+    get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.FAILED
     assert "parse Codex output" in result.summary
@@ -164,11 +180,12 @@ def test_dispatch_spec_execution_rejects_unknown_backend() -> None:
         metadata={"target_path": "work_items/ready/WI-1.1.4-risk-summary-core-service.md"},
     )
 
+    get_settings.cache_clear()
     with patch.dict("os.environ", {"AGENT_RUNTIME_SPEC_BACKEND": "unknown"}, clear=False):
-        result = dispatch_spec_execution(execution)
-
-    assert result.status is RunnerDispatchStatus.FAILED
-    assert "Unsupported spec backend configured" in result.summary
+        get_settings.cache_clear()
+        with pytest.raises(ValidationError, match="spec_backend"):
+            dispatch_spec_execution(execution)
+    get_settings.cache_clear()
 
 
 # --- PM → Spec escalation transition tests ---

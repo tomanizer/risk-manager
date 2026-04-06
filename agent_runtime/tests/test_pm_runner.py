@@ -7,6 +7,10 @@ from pathlib import Path
 import subprocess
 from unittest.mock import patch
 
+import pytest
+from pydantic import ValidationError
+
+from agent_runtime.config import get_settings
 from agent_runtime.runners.contracts import RunnerDispatchStatus, RunnerExecution, RunnerName
 from agent_runtime.runners.pm_runner import dispatch_pm_execution
 
@@ -19,8 +23,11 @@ def test_dispatch_pm_execution_uses_prepared_backend_by_default() -> None:
         metadata={"target_path": "work_items/ready/WI-1.1.4-risk-summary-core-service.md"},
     )
 
+    get_settings.cache_clear()
     with patch.dict("os.environ", {"AGENT_RUNTIME_PM_BACKEND": "prepared"}, clear=False):
+        get_settings.cache_clear()
         result = dispatch_pm_execution(execution)
+    get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.PREPARED
     assert result.outcome_status is None
@@ -64,15 +71,18 @@ def test_dispatch_pm_execution_codex_backend_returns_completed_outcome() -> None
         )
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
+    get_settings.cache_clear()
     with patch.dict("os.environ", {"AGENT_RUNTIME_PM_BACKEND": "codex_exec"}, clear=False):
+        get_settings.cache_clear()
         with patch("agent_runtime.runners.pm_backend.subprocess.run", side_effect=fake_run):
             result = dispatch_pm_execution(execution)
+    get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.COMPLETED
     assert result.outcome_status == "ready"
     assert result.outcome_summary == "The work item is implementation-ready."
     assert result.outcome_details["reason"] == "contracts are stable"
-    assert result.details["pm_backend"] == "codex_exec"
+    assert result.details["backend"] == "codex_exec"
 
 
 def test_dispatch_pm_execution_codex_backend_handles_cli_failure() -> None:
@@ -86,7 +96,9 @@ def test_dispatch_pm_execution_codex_backend_handles_cli_failure() -> None:
         },
     )
 
+    get_settings.cache_clear()
     with patch.dict("os.environ", {"AGENT_RUNTIME_PM_BACKEND": "codex_exec"}, clear=False):
+        get_settings.cache_clear()
         with patch(
             "agent_runtime.runners.pm_backend.subprocess.run",
             return_value=subprocess.CompletedProcess(
@@ -97,6 +109,7 @@ def test_dispatch_pm_execution_codex_backend_handles_cli_failure() -> None:
             ),
         ):
             result = dispatch_pm_execution(execution)
+    get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.FAILED
     assert result.outcome_status is None
@@ -134,16 +147,20 @@ def test_dispatch_pm_execution_codex_backend_rejects_non_string_details() -> Non
         )
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
+    get_settings.cache_clear()
     with patch.dict("os.environ", {"AGENT_RUNTIME_PM_BACKEND": "codex_exec"}, clear=False):
+        get_settings.cache_clear()
         with patch("agent_runtime.runners.pm_backend.subprocess.run", side_effect=fake_run):
             result = dispatch_pm_execution(execution)
+    get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.FAILED
     assert result.outcome_status is None
-    assert "non-string detail entries" in result.summary
+    assert "to be a str" in result.summary
 
 
 def test_dispatch_pm_execution_rejects_unknown_backend() -> None:
+    """An unrecognised backend name is rejected by pydantic at config load time."""
     execution = RunnerExecution(
         runner_name=RunnerName.PM,
         work_item_id="WI-1.1.4-risk-summary-core-service",
@@ -151,8 +168,9 @@ def test_dispatch_pm_execution_rejects_unknown_backend() -> None:
         metadata={"target_path": "work_items/ready/WI-1.1.4-risk-summary-core-service.md"},
     )
 
+    get_settings.cache_clear()
     with patch.dict("os.environ", {"AGENT_RUNTIME_PM_BACKEND": "unknown"}, clear=False):
-        result = dispatch_pm_execution(execution)
-
-    assert result.status is RunnerDispatchStatus.FAILED
-    assert "Unsupported PM backend configured" in result.summary
+        get_settings.cache_clear()
+        with pytest.raises(ValidationError, match="pm_backend"):
+            dispatch_pm_execution(execution)
+    get_settings.cache_clear()

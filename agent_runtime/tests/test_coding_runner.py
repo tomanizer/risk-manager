@@ -7,6 +7,10 @@ from pathlib import Path
 import subprocess
 from unittest.mock import patch
 
+import pytest
+from pydantic import ValidationError
+
+from agent_runtime.config import get_settings
 from agent_runtime.runners.coding_runner import dispatch_coding_execution
 from agent_runtime.runners.contracts import RunnerDispatchStatus, RunnerExecution, RunnerName
 
@@ -19,8 +23,11 @@ def test_dispatch_coding_execution_prepared_backend_when_explicitly_set() -> Non
         metadata={"target_path": "work_items/ready/WI-1.1.4-risk-summary-core-service.md"},
     )
 
+    get_settings.cache_clear()
     with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "prepared"}, clear=False):
+        get_settings.cache_clear()
         result = dispatch_coding_execution(execution)
+    get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.PREPARED
     assert result.outcome_status is None
@@ -64,15 +71,18 @@ def test_dispatch_coding_execution_codex_backend_returns_completed_outcome() -> 
         )
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
+    get_settings.cache_clear()
     with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "codex_exec"}, clear=False):
+        get_settings.cache_clear()
         with patch("agent_runtime.runners.coding_backend.subprocess.run", side_effect=fake_run):
             result = dispatch_coding_execution(execution)
+    get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.COMPLETED
     assert result.outcome_status == "completed"
     assert result.outcome_summary == "Implemented the requested slice and updated tests."
     assert result.outcome_details["changed_paths"] == "src/foo.py,tests/test_foo.py"
-    assert result.details["coding_backend"] == "codex_exec"
+    assert result.details["backend"] == "codex_exec"
 
 
 def test_dispatch_coding_execution_codex_backend_rejects_non_string_details() -> None:
@@ -106,13 +116,16 @@ def test_dispatch_coding_execution_codex_backend_rejects_non_string_details() ->
         )
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
+    get_settings.cache_clear()
     with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "codex_exec"}, clear=False):
+        get_settings.cache_clear()
         with patch("agent_runtime.runners.coding_backend.subprocess.run", side_effect=fake_run):
             result = dispatch_coding_execution(execution)
+    get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.FAILED
     assert result.outcome_status is None
-    assert "details[0].value for 'changed_paths' must be a string" in result.summary
+    assert "to be a str" in result.summary
 
 
 def test_dispatch_coding_execution_codex_backend_rejects_non_object_payload() -> None:
@@ -137,9 +150,12 @@ def test_dispatch_coding_execution_codex_backend_rejects_non_object_payload() ->
         output_path.write_text(json.dumps(["not", "an", "object"]), encoding="utf-8")
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
+    get_settings.cache_clear()
     with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "codex_exec"}, clear=False):
+        get_settings.cache_clear()
         with patch("agent_runtime.runners.coding_backend.subprocess.run", side_effect=fake_run):
             result = dispatch_coding_execution(execution)
+    get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.FAILED
     assert result.outcome_status is None
@@ -154,8 +170,9 @@ def test_dispatch_coding_execution_rejects_unknown_backend() -> None:
         metadata={"target_path": "work_items/ready/WI-1.1.4-risk-summary-core-service.md"},
     )
 
+    get_settings.cache_clear()
     with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "unknown"}, clear=False):
-        result = dispatch_coding_execution(execution)
-
-    assert result.status is RunnerDispatchStatus.FAILED
-    assert "Unsupported coding backend configured" in result.summary
+        get_settings.cache_clear()
+        with pytest.raises(ValidationError, match="coding_backend"):
+            dispatch_coding_execution(execution)
+    get_settings.cache_clear()

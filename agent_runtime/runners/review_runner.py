@@ -5,15 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
+from agent_runtime.config import get_settings
+from ._outcome_parsing import get_output_schema
+from .contracts import BackendType, RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 from .prompt_loader import load_system_prompt
-from .review_backend import (
-    REVIEW_BACKEND_CODEX_EXEC,
-    REVIEW_BACKEND_PREPARED,
-    dispatch_codex_review_execution,
-    dispatch_prepared_review_execution,
-    get_review_backend_name,
-)
+from .review_backend import ALLOWED_REVIEW_DECISIONS, dispatch_codex_review_execution, dispatch_prepared_review_execution
+
+_REPO_ROOT = Path(__file__).parent.parent.parent
 
 
 @dataclass(frozen=True)
@@ -65,16 +63,47 @@ class ReviewRunner:
 def dispatch_review_execution(execution: RunnerExecution) -> RunnerResult:
     if execution.runner_name is not RunnerName.REVIEW:
         raise RuntimeError("Review dispatch received a non-review runner execution")
-    backend_name = get_review_backend_name()
-    if backend_name == REVIEW_BACKEND_PREPARED:
+
+    cfg = get_settings().agent_runtime
+    backend = cfg.get_role_backend("review")
+
+    if backend is BackendType.PREPARED:
         return dispatch_prepared_review_execution(execution)
-    if backend_name == REVIEW_BACKEND_CODEX_EXEC:
-        return dispatch_codex_review_execution(execution)
+
+    if backend is BackendType.CODEX_EXEC:
+        return dispatch_codex_review_execution(
+            execution,
+            codex_bin=cfg.review_codex_bin,
+            model=cfg.review_codex_model or None,
+        )
+
+    if backend is BackendType.OPENAI_API:
+        from .openai_backend import dispatch_openai_reasoning
+
+        return dispatch_openai_reasoning(
+            execution,
+            repo_root=_REPO_ROOT,
+            model=cfg.get_role_model("review", backend),
+            allowed_decisions=ALLOWED_REVIEW_DECISIONS,
+            output_schema=get_output_schema(RunnerName.REVIEW),
+        )
+
+    if backend is BackendType.ANTHROPIC_API:
+        from .anthropic_backend import dispatch_anthropic_reasoning
+
+        return dispatch_anthropic_reasoning(
+            execution,
+            repo_root=_REPO_ROOT,
+            model=cfg.get_role_model("review", backend),
+            allowed_decisions=ALLOWED_REVIEW_DECISIONS,
+            output_schema=get_output_schema(RunnerName.REVIEW),
+        )
+
     return RunnerResult(
         runner_name=execution.runner_name,
         work_item_id=execution.work_item_id,
         status=RunnerDispatchStatus.FAILED,
-        summary=f"Unsupported review backend configured: {backend_name}",
+        summary=f"Unsupported review backend configured: {backend}",
         prompt=execution.prompt,
         details=dict(execution.metadata),
     )

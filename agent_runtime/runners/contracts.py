@@ -7,6 +7,11 @@ from enum import Enum
 from typing import Protocol, runtime_checkable
 
 
+from agent_runtime.backend_type import BackendType  # re-exported for convenience
+
+__all_backend_type__ = ["BackendType"]
+
+
 class RunnerName(str, Enum):
     PM = "pm"
     SPEC = "spec"

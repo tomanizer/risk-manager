@@ -15,16 +15,14 @@ from unittest.mock import patch
 
 from agent_runtime.config.defaults import RuntimeDefaults
 from agent_runtime.orchestrator.graph import _dispatch_with_timeout, _runner_timeout_seconds
+from agent_runtime.backend_type import BackendType
+from agent_runtime.config import get_settings
 from agent_runtime.runners.contracts import (
     RunnerDispatchStatus,
     RunnerExecution,
     RunnerName,
     RunnerResult,
 )
-from agent_runtime.runners.coding_backend import CODING_BACKEND_CODEX_EXEC, get_coding_backend_name
-from agent_runtime.runners.pm_backend import PM_BACKEND_CODEX_EXEC, get_pm_backend_name
-from agent_runtime.runners.review_backend import REVIEW_BACKEND_CODEX_EXEC, get_review_backend_name
-from agent_runtime.runners.spec_backend import SPEC_BACKEND_CODEX_EXEC, get_spec_backend_name
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -44,29 +42,54 @@ def _defaults(**overrides: object) -> RuntimeDefaults:
 # --- Default backend tests ---
 
 
-def test_coding_backend_defaults_to_codex_exec() -> None:
-    with patch.dict("os.environ", {}, clear=True):
-        assert get_coding_backend_name() == CODING_BACKEND_CODEX_EXEC
+def test_coding_backend_defaults_to_prepared() -> None:
+    get_settings.cache_clear()
+    try:
+        with patch.dict("os.environ", {}, clear=False):
+            get_settings.cache_clear()
+            assert get_settings().agent_runtime.coding_backend is BackendType.PREPARED
+    finally:
+        get_settings.cache_clear()
 
 
-def test_pm_backend_defaults_to_codex_exec() -> None:
-    with patch.dict("os.environ", {}, clear=True):
-        assert get_pm_backend_name() == PM_BACKEND_CODEX_EXEC
+def test_pm_backend_defaults_to_prepared() -> None:
+    get_settings.cache_clear()
+    try:
+        with patch.dict("os.environ", {}, clear=False):
+            get_settings.cache_clear()
+            assert get_settings().agent_runtime.pm_backend is BackendType.PREPARED
+    finally:
+        get_settings.cache_clear()
 
 
-def test_review_backend_defaults_to_codex_exec() -> None:
-    with patch.dict("os.environ", {}, clear=True):
-        assert get_review_backend_name() == REVIEW_BACKEND_CODEX_EXEC
+def test_review_backend_defaults_to_prepared() -> None:
+    get_settings.cache_clear()
+    try:
+        with patch.dict("os.environ", {}, clear=False):
+            get_settings.cache_clear()
+            assert get_settings().agent_runtime.review_backend is BackendType.PREPARED
+    finally:
+        get_settings.cache_clear()
 
 
-def test_spec_backend_defaults_to_codex_exec() -> None:
-    with patch.dict("os.environ", {}, clear=True):
-        assert get_spec_backend_name() == SPEC_BACKEND_CODEX_EXEC
+def test_spec_backend_defaults_to_prepared() -> None:
+    get_settings.cache_clear()
+    try:
+        with patch.dict("os.environ", {}, clear=False):
+            get_settings.cache_clear()
+            assert get_settings().agent_runtime.spec_backend is BackendType.PREPARED
+    finally:
+        get_settings.cache_clear()
 
 
-def test_prepared_override_via_env_var() -> None:
-    with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "prepared"}, clear=False):
-        assert get_coding_backend_name() == "prepared"
+def test_codex_exec_override_via_env_var() -> None:
+    get_settings.cache_clear()
+    try:
+        with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "codex_exec"}, clear=False):
+            get_settings.cache_clear()
+            assert get_settings().agent_runtime.coding_backend is BackendType.CODEX_EXEC
+    finally:
+        get_settings.cache_clear()
 
 
 # --- _runner_timeout_seconds tests ---

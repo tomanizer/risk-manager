@@ -5,15 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
+from agent_runtime.config import get_settings
+from ._outcome_parsing import get_output_schema
+from .contracts import BackendType, RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 from .prompt_loader import load_system_prompt
-from .spec_backend import (
-    SPEC_BACKEND_CODEX_EXEC,
-    SPEC_BACKEND_PREPARED,
-    dispatch_codex_spec_execution,
-    dispatch_prepared_spec_execution,
-    get_spec_backend_name,
-)
+from .spec_backend import ALLOWED_SPEC_DECISIONS, dispatch_codex_spec_execution, dispatch_prepared_spec_execution
+
+_REPO_ROOT = Path(__file__).parent.parent.parent
 
 
 @dataclass(frozen=True)
@@ -66,16 +64,47 @@ def dispatch_spec_execution(execution: RunnerExecution) -> RunnerResult:
     """Dispatch through the configured spec backend."""
     if execution.runner_name is not RunnerName.SPEC:
         raise RuntimeError("Spec dispatch received a non-spec runner execution")
-    backend_name = get_spec_backend_name()
-    if backend_name == SPEC_BACKEND_PREPARED:
+
+    cfg = get_settings().agent_runtime
+    backend = cfg.get_role_backend("spec")
+
+    if backend is BackendType.PREPARED:
         return dispatch_prepared_spec_execution(execution)
-    if backend_name == SPEC_BACKEND_CODEX_EXEC:
-        return dispatch_codex_spec_execution(execution)
+
+    if backend is BackendType.CODEX_EXEC:
+        return dispatch_codex_spec_execution(
+            execution,
+            codex_bin=cfg.spec_codex_bin,
+            model=cfg.spec_codex_model or None,
+        )
+
+    if backend is BackendType.OPENAI_API:
+        from .openai_backend import dispatch_openai_reasoning
+
+        return dispatch_openai_reasoning(
+            execution,
+            repo_root=_REPO_ROOT,
+            model=cfg.get_role_model("spec", backend),
+            allowed_decisions=ALLOWED_SPEC_DECISIONS,
+            output_schema=get_output_schema(RunnerName.SPEC),
+        )
+
+    if backend is BackendType.ANTHROPIC_API:
+        from .anthropic_backend import dispatch_anthropic_reasoning
+
+        return dispatch_anthropic_reasoning(
+            execution,
+            repo_root=_REPO_ROOT,
+            model=cfg.get_role_model("spec", backend),
+            allowed_decisions=ALLOWED_SPEC_DECISIONS,
+            output_schema=get_output_schema(RunnerName.SPEC),
+        )
+
     return RunnerResult(
         runner_name=execution.runner_name,
         work_item_id=execution.work_item_id,
         status=RunnerDispatchStatus.FAILED,
-        summary=f"Unsupported spec backend configured: {backend_name}",
+        summary=f"Unsupported spec backend configured: {backend}",
         prompt=execution.prompt,
         details=dict(execution.metadata),
     )

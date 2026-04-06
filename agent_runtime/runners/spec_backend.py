@@ -3,27 +3,18 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 import subprocess
 import tempfile
 
+from ._outcome_parsing import get_output_schema, parse_structured_outcome
 from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 
-SPEC_BACKEND_ENV = "AGENT_RUNTIME_SPEC_BACKEND"
-SPEC_CODEX_BIN_ENV = "AGENT_RUNTIME_SPEC_CODEX_BIN"
-SPEC_CODEX_MODEL_ENV = "AGENT_RUNTIME_SPEC_CODEX_MODEL"
-SPEC_BACKEND_PREPARED = "prepared"
-SPEC_BACKEND_CODEX_EXEC = "codex_exec"
-_ALLOWED_SPEC_DECISIONS = {
+ALLOWED_SPEC_DECISIONS = {
     "CLARIFIED": "clarified",
     "BLOCKED": "blocked",
     "SPLIT_REQUIRED": "split_required",
 }
-
-
-def get_spec_backend_name() -> str:
-    return os.getenv(SPEC_BACKEND_ENV, SPEC_BACKEND_CODEX_EXEC).strip().lower() or SPEC_BACKEND_CODEX_EXEC
 
 
 def dispatch_prepared_spec_execution(execution: RunnerExecution) -> RunnerResult:
@@ -37,7 +28,11 @@ def dispatch_prepared_spec_execution(execution: RunnerExecution) -> RunnerResult
     )
 
 
-def dispatch_codex_spec_execution(execution: RunnerExecution) -> RunnerResult:
+def dispatch_codex_spec_execution(
+    execution: RunnerExecution,
+    codex_bin: str = "codex",
+    model: str | None = None,
+) -> RunnerResult:
     if execution.runner_name is not RunnerName.SPEC:
         raise RuntimeError("Codex spec backend received a non-spec runner execution")
 
@@ -52,30 +47,18 @@ def dispatch_codex_spec_execution(execution: RunnerExecution) -> RunnerResult:
             details=dict(execution.metadata),
         )
 
-    codex_bin = os.getenv(SPEC_CODEX_BIN_ENV, "codex")
-    model = os.getenv(SPEC_CODEX_MODEL_ENV)
     backend_prompt = _build_codex_spec_prompt(execution.prompt)
 
     with tempfile.TemporaryDirectory(prefix="agent-runtime-spec-") as temp_dir:
         temp_path = Path(temp_dir)
         schema_path = temp_path / "spec_outcome_schema.json"
         output_path = temp_path / "spec_outcome.json"
-        schema_path.write_text(json.dumps(_spec_output_schema(), indent=2, sort_keys=True), encoding="utf-8")
+        schema_path.write_text(json.dumps(get_output_schema(RunnerName.SPEC), indent=2, sort_keys=True), encoding="utf-8")
 
         command = [codex_bin, "exec"]
         if model:
             command.extend(["--model", model])
-        command.extend(
-            [
-                "-C",
-                worktree_path,
-                "--output-schema",
-                str(schema_path),
-                "-o",
-                str(output_path),
-                "-",
-            ]
-        )
+        command.extend(["-C", worktree_path, "--output-schema", str(schema_path), "-o", str(output_path), "-"])
 
         try:
             completed = subprocess.run(
@@ -122,53 +105,7 @@ def dispatch_codex_spec_execution(execution: RunnerExecution) -> RunnerResult:
                 details=dict(execution.metadata),
             )
 
-    decision_value = payload.get("decision")
-    summary_value = payload.get("summary")
-    details_value = payload.get("details")
-    if not isinstance(decision_value, str) or not isinstance(summary_value, str):
-        return RunnerResult(
-            runner_name=execution.runner_name,
-            work_item_id=execution.work_item_id,
-            status=RunnerDispatchStatus.FAILED,
-            summary="Spec backend returned an invalid structured response.",
-            prompt=execution.prompt,
-            details=dict(execution.metadata),
-        )
-    normalized_decision = _ALLOWED_SPEC_DECISIONS.get(decision_value.upper())
-    if normalized_decision is None:
-        return RunnerResult(
-            runner_name=execution.runner_name,
-            work_item_id=execution.work_item_id,
-            status=RunnerDispatchStatus.FAILED,
-            summary=f"Spec backend returned an unsupported decision: {decision_value}",
-            prompt=execution.prompt,
-            details=dict(execution.metadata),
-        )
-    try:
-        outcome_details = _parse_spec_details(details_value)
-    except ValueError as exc:
-        return RunnerResult(
-            runner_name=execution.runner_name,
-            work_item_id=execution.work_item_id,
-            status=RunnerDispatchStatus.FAILED,
-            summary=f"Spec backend returned details in an invalid format: {exc}",
-            prompt=execution.prompt,
-            details=dict(execution.metadata),
-        )
-    return RunnerResult(
-        runner_name=execution.runner_name,
-        work_item_id=execution.work_item_id,
-        status=RunnerDispatchStatus.COMPLETED,
-        summary=f"Completed spec resolution for {execution.work_item_id}.",
-        prompt=execution.prompt,
-        details={
-            **execution.metadata,
-            "spec_backend": SPEC_BACKEND_CODEX_EXEC,
-        },
-        outcome_status=normalized_decision,
-        outcome_summary=summary_value,
-        outcome_details=outcome_details,
-    )
+    return parse_structured_outcome(payload, ALLOWED_SPEC_DECISIONS, execution, "codex_exec")
 
 
 def _build_codex_spec_prompt(prompt: str) -> str:
@@ -180,54 +117,3 @@ def _build_codex_spec_prompt(prompt: str) -> str:
         "Do not write product code.\n"
         "Stay in spec-resolution mode only.\n"
     )
-
-
-def _spec_output_schema() -> dict[str, object]:
-    return {
-        "type": "object",
-        "additionalProperties": False,
-        "properties": {
-            "decision": {
-                "type": "string",
-                "enum": ["CLARIFIED", "BLOCKED", "SPLIT_REQUIRED"],
-            },
-            "summary": {
-                "type": "string",
-            },
-            "details": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "properties": {
-                        "key": {"type": "string"},
-                        "value": {"type": "string"},
-                    },
-                    "required": ["key", "value"],
-                },
-            },
-        },
-        "required": ["decision", "summary", "details"],
-    }
-
-
-def _parse_spec_details(details_value: object) -> dict[str, str]:
-    """Parse and validate the details list from a Codex spec outcome.
-
-    Raises:
-        ValueError: if the structure deviates from the expected schema.
-    """
-    if not isinstance(details_value, list):
-        raise ValueError(f"Expected details to be a list of key/value objects, got {type(details_value).__name__}")
-    outcome_details: dict[str, str] = {}
-    for index, item in enumerate(details_value):
-        if not isinstance(item, dict):
-            raise ValueError(f"Expected details[{index}] to be a dict, got {type(item).__name__}")
-        key = item.get("key")
-        value = item.get("value")
-        if not isinstance(key, str):
-            raise ValueError(f"Expected details[{index}]['key'] to be a str, got {type(key).__name__}")
-        if not isinstance(value, str):
-            raise ValueError(f"Expected details[{index}]['value'] to be a str, got {type(value).__name__}")
-        outcome_details[key] = value
-    return outcome_details
