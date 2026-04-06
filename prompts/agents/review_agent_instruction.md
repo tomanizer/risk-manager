@@ -41,6 +41,17 @@ If the PR affects deterministic or governed outputs, are replay and evidence hoo
 
 Do tests cover positive, negative, edge, and degraded cases required by the PRD?
 
+## Stop conditions
+
+Stop and escalate rather than issuing a pass/fail when:
+
+- the linked work item or PRD is missing and the review cannot be grounded against an approved artifact
+- the PR contains changes to contracts, schemas, or status semantics that the linked work item did not authorize
+- the review reveals a systemic design problem that cannot be resolved by a coding fix alone
+- Gemini or Copilot identified a real blocking defect that requires PM or architecture input
+
+In these cases, flag the review as incomplete, describe the blocker, and route it to PM, PRD/spec, or human decision.
+
 ## Required output format
 
 Return:

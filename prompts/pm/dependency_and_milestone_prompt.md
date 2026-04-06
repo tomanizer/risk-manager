@@ -1,15 +1,6 @@
 # PM / Coordination Prompt
 
-For a supplied backlog, provide:
-1. dependency graph
-2. parallelizable work groups
-3. blocking issues
-4. recommended execution order
-5. risks to milestone integrity
-6. suggested next actions
+This file is superseded. The canonical sources are:
 
-Rules:
-- do not redesign architecture
-- do not widen scope
-- do not mark work complete without acceptance criteria and review satisfaction
-- block downstream issues when upstream contracts are unstable
+- Standing instruction: `prompts/agents/pm_agent_instruction.md`
+- Invocation template: `prompts/agents/invocation_templates/pm_invocation.md`

@@ -2,12 +2,12 @@
 
 ## Purpose
 
-This runbook explains how to operate the repository's agent governance model in practice.
+This runbook explains how to operate the repository's agent governance model in practice. For a comprehensive overview of the agent framework — what the agents are, how they work, and how to set them up across different tools — see `docs/guides/agent_framework.md`.
 
 It is designed to stop one coding surface from doing all jobs at once. The goal is a gated relay:
 
 1. PM agent decides the next bounded slice
-2. issue planner agent splits work only if needed
+2. PRD / spec author or issue planner refines scope when needed
 3. coding agent implements one slice
 4. review agent reviews the PR and any bot feedback
 5. human decides whether to merge
@@ -202,75 +202,18 @@ The loop should stop and escalate to a human if:
 - Gemini or Copilot identifies a real blocking defect
 - the branch diverges materially from the intended slice
 
-## Practical prompts
+## Invocation templates
 
-### PM agent prompt
+Use the invocation templates in `prompts/agents/invocation_templates/` for the expected prompt shape for each role:
 
-Use a prompt of this shape:
+- `prompts/agents/invocation_templates/pm_invocation.md`
+- `prompts/agents/invocation_templates/prd_spec_invocation.md`
+- `prompts/agents/invocation_templates/issue_planner_invocation.md`
+- `prompts/agents/invocation_templates/coding_invocation.md`
+- `prompts/agents/invocation_templates/review_invocation.md`
+- `prompts/agents/invocation_templates/drift_monitor_invocation.md`
 
-```text
-You are the PM agent for this repository.
-
-Read:
-- work_items/READY_CRITERIA.md
-- <WORK_ITEM>
-- <LINKED_PRD>
-- <LINKED_ADRS>
-
-Decide:
-1. Is this item actually ready?
-2. What exact files or areas should the coding agent touch?
-3. What must the coding agent not do?
-4. What would block implementation?
-
-Return:
-- ready or blocked
-- dependencies
-- target area
-- a one-paragraph implementation brief
-```
-
-### Coding agent prompt
-
-```text
-Implement exactly one bounded slice.
-
-Read:
-- <WORK_ITEM>
-- <LINKED_PRD>
-- <LINKED_ADRS>
-- local target files only
-
-Rules:
-- do not widen scope
-- preserve contract fidelity
-- add tests
-- stop if a blocking ambiguity requires an ADR or PRD change
-
-Return:
-- code changes
-- tests
-- short assumptions note
-```
-
-### Review agent prompt
-
-```text
-Review this PR against:
-- <WORK_ITEM>
-- <LINKED_PRD>
-- <LINKED_ADRS>
-- changed files
-- tests
-- Gemini and Copilot review comments
-
-Return:
-1. pass or fail
-2. material findings
-3. missing tests
-4. which external review comments are valid
-5. required changes before merge
-```
+Copy the relevant template, fill in the placeholders, and paste as the prompt to your agent.
 
 ## Tool-specific operation
 
