@@ -12,6 +12,7 @@ from .drift_suite import (
 from .instruction_surfaces import InstructionSurfaceReport, build_instruction_surface_report
 from .reference_integrity import ReferenceScanReport, build_reference_scan_report
 from .registry_alignment import RegistryAlignmentReport, build_registry_alignment_report
+from .surface_liveness import SurfaceLivenessReport, build_surface_liveness_report
 
 __all__ = [
     "ArchitectureBoundaryReport",
@@ -21,6 +22,7 @@ __all__ = [
     "InstructionSurfaceReport",
     "ReferenceScanReport",
     "RegistryAlignmentReport",
+    "SurfaceLivenessReport",
     "build_architecture_boundary_report",
     "build_canon_lineage_report",
     "build_dependency_hygiene_report",
@@ -28,6 +30,7 @@ __all__ = [
     "build_instruction_surface_report",
     "build_reference_scan_report",
     "build_registry_alignment_report",
+    "build_surface_liveness_report",
     "render_drift_suite_issue_body",
     "render_drift_suite_markdown_summary",
 ]
