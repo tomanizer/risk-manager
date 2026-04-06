@@ -70,3 +70,9 @@ A good methodology-aware spec should:
 - state caveats and degraded states
 - name model-choice assumptions such as weighting, filtering, stress windows, and repricing fidelity
 - identify what later implementation slices will depend on
+
+## Handoff output
+
+This is a legacy instruction file. Its handoff responsibilities are now covered by the PRD / Spec Author instruction (`prompts/agents/prd_spec_agent_instruction.md`).
+
+When this agent completes a methodology specification, follow the handoff rules in `prd_spec_agent_instruction.md` — either route to Issue Planner (new PRD needs decomposition) or back to PM (gap in an existing WI is now resolved).

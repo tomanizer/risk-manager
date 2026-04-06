@@ -146,7 +146,7 @@ Paste this into a FRESH Issue Planner Agent session (new chat / new Codex sessio
 
 ### If the PRD fills a gap in an existing WI (blocking WI now unblocked)
 
-Fill `prompts/agents/invocation_templates/pm_invocation.md`. Set context to: which WI was blocked, which PRD gap was just resolved, and the task "Reassess whether [WI-ID] is now coding-ready." Print one block:
+Fill `prompts/agents/invocation_templates/pm_invocation.md`. Set context to: which WI was blocked, which PRD gap was just resolved, and the task "Reassess whether <WI_ID> is now coding-ready." Print one block:
 
 ```text
 Paste this into a FRESH PM Agent session (new chat / new Codex session):
