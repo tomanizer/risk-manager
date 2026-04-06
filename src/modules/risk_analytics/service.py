@@ -615,7 +615,7 @@ def get_risk_change_profile(
     measure_type: MeasureType,
     as_of_date: date,
     compare_to_date: date | None = None,
-    lookback_window: int = 60,
+    lookback_window: int = _BASELINE_WINDOW,
     require_complete: bool = False,
     snapshot_id: str | None = None,
     fixture_index: FixtureIndex | None = None,
@@ -632,8 +632,8 @@ def get_risk_change_profile(
     ServiceError for UNSUPPORTED_MEASURE, MISSING_SNAPSHOT, and MISSING_NODE outcomes.
     Raises ValueError for request validation failures.
     """
-    if lookback_window != 60:
-        raise ValueError("lookback_window must be 60 in v1; any other value is unsupported")
+    if lookback_window != _BASELINE_WINDOW:
+        raise ValueError(f"lookback_window must be {_BASELINE_WINDOW} in v1; any other value is unsupported")
     if snapshot_id is not None and not snapshot_id.strip():
         raise ValueError("snapshot_id must be non-empty when provided")
     if compare_to_date is not None and compare_to_date > as_of_date:

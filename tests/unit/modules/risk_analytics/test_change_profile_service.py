@@ -347,14 +347,17 @@ class ChangeProfileVolatilityRegimeBandTestCase(unittest.TestCase):
         self.assertEqual(result.volatility_regime, VolatilityRegime.HIGH)
 
     def test_regime_threshold_boundary_low_normal(self) -> None:
-        # Verify ratio just below 0.05 → LOW; just at 0.05 → NORMAL.
-        # Use std ≈ 4.9 with ref=100: ratio=0.049 → LOW.
-        # [98, 102] gives ratio ≈ 0.020 → already LOW; use wider spread.
-        # [99.5, 100.5]×11 → std≈0.5118, ref=max(100.5,100)=100.5, ratio≈0.0051 → LOW.
-        values_low = [99.5, 100.5] * 11
-        result = _call_synth(values_low)
-        assert isinstance(result, RiskChangeProfile)
-        self.assertEqual(result.volatility_regime, VolatilityRegime.LOW)
+        # Alternating [100±d]×11: sample stdev / ref crosses 0.05 near d≈5.14
+        # (ref = |current| = 100+d). d=5.13 → ratio < 0.05 → LOW; d=5.14 → NORMAL.
+        values_just_below = [100.0 - 5.13, 100.0 + 5.13] * 11
+        result_low = _call_synth(values_just_below)
+        assert isinstance(result_low, RiskChangeProfile)
+        self.assertEqual(result_low.volatility_regime, VolatilityRegime.LOW)
+
+        values_at_boundary = [100.0 - 5.14, 100.0 + 5.14] * 11
+        result_normal = _call_synth(values_at_boundary)
+        assert isinstance(result_normal, RiskChangeProfile)
+        self.assertEqual(result_normal.volatility_regime, VolatilityRegime.NORMAL)
 
     def test_history_points_used_matches_valid_count(self) -> None:
         result = _call_synth(_NORMAL_VALUES)
