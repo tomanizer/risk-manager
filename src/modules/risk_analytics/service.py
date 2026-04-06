@@ -9,7 +9,18 @@ from functools import lru_cache
 
 from src.shared import ServiceError
 
-from .contracts import MeasureType, NodeRef, RiskDelta, RiskHistoryPoint, RiskHistorySeries, RiskSummary, SummaryStatus
+from .contracts import (
+    MeasureType,
+    NodeRef,
+    RiskChangeProfile,
+    RiskDelta,
+    RiskHistoryPoint,
+    RiskHistorySeries,
+    RiskSummary,
+    SummaryStatus,
+    VolatilityChangeFlag,
+    VolatilityRegime,
+)
 from .fixtures import FixtureIndex, FixtureRow, FixtureSnapshot, build_fixture_index
 from .time import BusinessDayResolutionError, resolve_compare_to_date
 
@@ -534,4 +545,254 @@ def get_risk_history(
         status=status,
         status_reasons=tuple(status_reasons),
         service_version=pack.service_version,
+    )
+
+
+# Volatility policy constants — VOLATILITY_RULES_V1.
+# Any change to these values requires a service_version bump.
+_BASELINE_WINDOW = 60
+_SHORT_WINDOW = 10
+_REGIME_MIN_BASELINE_POINTS = 20
+_CHANGE_FLAG_MIN_SHORT_POINTS = 5
+_CHANGE_FLAG_MIN_BASELINE_POINTS = 20
+
+
+def _classify_volatility_regime(
+    current_value: float,
+    rolling_mean: float,
+    rolling_std: float,
+    n_valid: int,
+) -> VolatilityRegime:
+    """Derive volatility_regime per VOLATILITY_RULES_V1 regime calculation."""
+    if n_valid < _REGIME_MIN_BASELINE_POINTS:
+        return VolatilityRegime.INSUFFICIENT_HISTORY
+
+    reference_level = max(abs(current_value), abs(rolling_mean))
+    if reference_level == 0.0:
+        return VolatilityRegime.LOW if rolling_std == 0.0 else VolatilityRegime.HIGH
+
+    volatility_ratio = rolling_std / reference_level
+    if volatility_ratio < 0.05:
+        return VolatilityRegime.LOW
+    if volatility_ratio < 0.15:
+        return VolatilityRegime.NORMAL
+    if volatility_ratio < 0.30:
+        return VolatilityRegime.ELEVATED
+    return VolatilityRegime.HIGH
+
+
+def _classify_volatility_change_flag(
+    short_std: float | None,
+    baseline_std: float | None,
+    n_short_valid: int,
+    n_baseline_valid: int,
+) -> VolatilityChangeFlag:
+    """Derive volatility_change_flag per VOLATILITY_RULES_V1 change-flag calculation."""
+    if n_short_valid < _CHANGE_FLAG_MIN_SHORT_POINTS or n_baseline_valid < _CHANGE_FLAG_MIN_BASELINE_POINTS:
+        return VolatilityChangeFlag.INSUFFICIENT_HISTORY
+
+    # Both stds are defined when their respective valid-point counts are >= 2.
+    # With n_short_valid >= 5 and n_baseline_valid >= 20, both stds are well-defined.
+    # Treat None as 0.0 defensively (not reachable under normal conditions).
+    s_short = short_std if short_std is not None else 0.0
+    s_baseline = baseline_std if baseline_std is not None else 0.0
+
+    if s_baseline == 0.0:
+        # Defensive: mathematically unreachable from normal data (short ⊆ baseline)
+        # if baseline_std==0 then short_std must also be 0, but handled defensively.
+        return VolatilityChangeFlag.STABLE if s_short == 0.0 else VolatilityChangeFlag.RISING
+
+    dispersion_change_ratio = s_short / s_baseline
+    if dispersion_change_ratio <= 0.80:
+        return VolatilityChangeFlag.FALLING
+    if dispersion_change_ratio < 1.20:
+        return VolatilityChangeFlag.STABLE
+    return VolatilityChangeFlag.RISING
+
+
+def get_risk_change_profile(
+    node_ref: NodeRef,
+    measure_type: MeasureType,
+    as_of_date: date,
+    compare_to_date: date | None = None,
+    lookback_window: int = _BASELINE_WINDOW,
+    require_complete: bool = False,
+    snapshot_id: str | None = None,
+    fixture_index: FixtureIndex | None = None,
+) -> RiskChangeProfile | ServiceError:
+    """Return first-order delta plus second-order volatility context for a node and measure.
+
+    Mirrors get_risk_summary for all first-order retrieval semantics: compare-date
+    handling, delta construction, rolling stats, and status precedence. Adds
+    volatility_regime and volatility_change_flag derived from the governed
+    VOLATILITY_RULES_V1 policy (baseline_window=60, short_window=10, business-day
+    basis, inclusive anchor on as_of_date).
+
+    Returns a RiskChangeProfile when a current scoped point exists. Returns a typed
+    ServiceError for UNSUPPORTED_MEASURE, MISSING_SNAPSHOT, and MISSING_NODE outcomes.
+    Raises ValueError for request validation failures.
+    """
+    if lookback_window != _BASELINE_WINDOW:
+        raise ValueError(f"lookback_window must be {_BASELINE_WINDOW} in v1; any other value is unsupported")
+    if snapshot_id is not None and not snapshot_id.strip():
+        raise ValueError("snapshot_id must be non-empty when provided")
+    if compare_to_date is not None and compare_to_date > as_of_date:
+        raise ValueError("compare_to_date must be on or before as_of_date")
+
+    index = _resolve_fixture_index(fixture_index)
+    pack = index.pack
+
+    if _resolve_measure_status(measure_type, index) is not None:
+        return ServiceError(
+            operation="get_risk_change_profile",
+            status_code="UNSUPPORTED_MEASURE",
+            status_reasons=("UNSUPPORTED_MEASURE_IN_FIXTURE_PACK",),
+        )
+
+    current_snapshot_or_error = _resolve_current_snapshot(as_of_date, snapshot_id, index, operation="get_risk_change_profile")
+    if isinstance(current_snapshot_or_error, ServiceError):
+        return current_snapshot_or_error
+    current_snapshot = current_snapshot_or_error
+
+    current_row = index.get_row(current_snapshot.snapshot_id, node_ref, measure_type)
+    if current_row is None:
+        return ServiceError(
+            operation="get_risk_change_profile",
+            status_code="MISSING_NODE",
+            status_reasons=("CURRENT_NODE_MEASURE_NOT_FOUND_IN_SNAPSHOT",),
+        )
+
+    resolved_compare_date, compare_snapshot, compare_reasons = _resolve_compare_context(
+        as_of_date=as_of_date,
+        compare_to_date=compare_to_date,
+        calendar=pack.calendar,
+        index=index,
+    )
+
+    # Baseline window (60 business days inclusive of as_of_date).
+    baseline_start = _resolve_lookback_window_start(as_of_date, _BASELINE_WINDOW, pack.calendar)
+    baseline_dates = _expected_dates(baseline_start, as_of_date, pack.calendar)
+
+    valid_values: list[float] = []
+    missing_dates: list[date] = []
+    degraded_dates: list[date] = []
+
+    for hist_date in baseline_dates:
+        hist_snapshot = index.get_snapshot_by_date(hist_date)
+        if hist_snapshot is None:
+            missing_dates.append(hist_date)
+            continue
+        hist_row = index.get_row(hist_snapshot.snapshot_id, node_ref, measure_type)
+        if hist_row is None:
+            missing_dates.append(hist_date)
+            continue
+        if hist_snapshot.is_degraded or hist_row.status == SummaryStatus.DEGRADED:
+            degraded_dates.append(hist_date)
+        else:
+            valid_values.append(hist_row.value)
+
+    n_valid = len(valid_values)
+    rolling_mean = statistics.mean(valid_values) if n_valid >= 1 else None
+    rolling_std = statistics.stdev(valid_values) if n_valid >= 2 else None
+    rolling_min = min(valid_values) if n_valid >= 1 else None
+    rolling_max = max(valid_values) if n_valid >= 1 else None
+
+    # Short window (10 business days inclusive of as_of_date, per VOLATILITY_RULES_V1).
+    short_start = _resolve_lookback_window_start(as_of_date, _SHORT_WINDOW, pack.calendar)
+    short_dates = _expected_dates(short_start, as_of_date, pack.calendar)
+
+    short_valid_values: list[float] = []
+    for hist_date in short_dates:
+        hist_snapshot = index.get_snapshot_by_date(hist_date)
+        if hist_snapshot is None:
+            continue
+        hist_row = index.get_row(hist_snapshot.snapshot_id, node_ref, measure_type)
+        if hist_row is None:
+            continue
+        if not (hist_snapshot.is_degraded or hist_row.status == SummaryStatus.DEGRADED):
+            short_valid_values.append(hist_row.value)
+
+    n_short_valid = len(short_valid_values)
+    short_std = statistics.stdev(short_valid_values) if n_short_valid >= 2 else None
+
+    volatility_regime = _classify_volatility_regime(
+        current_value=current_row.value,
+        rolling_mean=rolling_mean if rolling_mean is not None else 0.0,
+        rolling_std=rolling_std if rolling_std is not None else 0.0,
+        n_valid=n_valid,
+    )
+    volatility_change_flag = _classify_volatility_change_flag(
+        short_std=short_std,
+        baseline_std=rolling_std,
+        n_short_valid=n_short_valid,
+        n_baseline_valid=n_valid,
+    )
+
+    status_reasons: list[str] = []
+
+    current_is_degraded = current_snapshot.is_degraded or current_row.status == SummaryStatus.DEGRADED
+    if current_is_degraded:
+        status_reasons.append(f"CURRENT_POINT_DEGRADED:{as_of_date.isoformat()}")
+
+    previous_row: FixtureRow | None = None
+    compare_is_degraded = False
+
+    if compare_snapshot is None:
+        status_reasons.extend(compare_reasons)
+    else:
+        previous_row = index.get_row(compare_snapshot.snapshot_id, node_ref, measure_type)
+        compare_is_degraded = compare_snapshot.is_degraded or (previous_row is not None and previous_row.status == SummaryStatus.DEGRADED)
+        if compare_is_degraded:
+            status_reasons.append(f"COMPARE_POINT_DEGRADED:{compare_snapshot.as_of_date.isoformat()}")
+        if previous_row is None:
+            status_reasons.append(f"COMPARE_NODE_MEASURE_NOT_FOUND:{compare_snapshot.as_of_date.isoformat()}")
+
+    if degraded_dates:
+        status_reasons.append(_encode_dates_reason("DEGRADED_HISTORY_DATES", degraded_dates))
+
+    if missing_dates:
+        if require_complete:
+            status_reasons.append(_encode_dates_reason("REQUIRE_COMPLETE_MISSING_DATES", missing_dates))
+        else:
+            status_reasons.append(_encode_dates_reason("MISSING_HISTORY_DATES", missing_dates))
+
+    # Status precedence: DEGRADED > MISSING_COMPARE > MISSING_HISTORY > OK.
+    history_is_degraded = bool(degraded_dates) or bool(missing_dates)
+    no_history = not baseline_dates or (n_valid == 0 and not degraded_dates and not missing_dates)
+
+    status: SummaryStatus
+    if current_is_degraded or compare_is_degraded or history_is_degraded:
+        status = SummaryStatus.DEGRADED
+    elif compare_snapshot is None or previous_row is None:
+        status = SummaryStatus.MISSING_COMPARE
+    elif no_history:
+        status = SummaryStatus.MISSING_HISTORY
+    else:
+        status = SummaryStatus.OK
+
+    return RiskChangeProfile(
+        node_ref=node_ref,
+        node_level=node_ref.node_level,
+        hierarchy_scope=node_ref.hierarchy_scope,
+        legal_entity_id=node_ref.legal_entity_id,
+        measure_type=measure_type,
+        as_of_date=as_of_date,
+        compare_to_date=resolved_compare_date,
+        current_value=current_row.value,
+        previous_value=None if previous_row is None else previous_row.value,
+        delta_abs=None,
+        delta_pct=None,
+        rolling_mean=rolling_mean,
+        rolling_std=rolling_std,
+        rolling_min=rolling_min,
+        rolling_max=rolling_max,
+        volatility_regime=volatility_regime,
+        volatility_change_flag=volatility_change_flag,
+        history_points_used=n_valid,
+        status=status,
+        status_reasons=tuple(status_reasons),
+        snapshot_id=current_snapshot.snapshot_id,
+        data_version=pack.data_version,
+        service_version=pack.service_version,
+        generated_at=_deterministic_generated_at(current_snapshot.as_of_date),
     )
