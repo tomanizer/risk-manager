@@ -173,7 +173,7 @@ def _build_codex_pm_prompt(prompt: str) -> str:
         f"{prompt}\n\n"
         "Return only a JSON object that matches the provided schema.\n"
         "Allowed decisions are READY, BLOCKED, or SPLIT_REQUIRED.\n"
-        "Represent details as a list of {\"key\": ..., \"value\": ...} objects with string values.\n"
+        'Represent details as a list of {"key": ..., "value": ...} objects with string values.\n'
         "Do not write code.\n"
         "Stay in PM mode only.\n"
     )
