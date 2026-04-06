@@ -258,6 +258,7 @@ Core suite:
 
 Current scanners:
 
+- `agent_runtime/drift/architecture_boundaries.py`
 - `agent_runtime/drift/dependency_hygiene.py`
 - `agent_runtime/drift/canon_lineage.py`
 - `agent_runtime/drift/instruction_surfaces.py`

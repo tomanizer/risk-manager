@@ -41,6 +41,39 @@ This gives the drift monitor a stable input surface and reduces hallucinated or 
 
 ## Current scanner inventory
 
+### Architecture boundaries
+
+Entry point:
+
+- `scripts/drift/check_architecture_boundaries.py`
+
+Implementation:
+
+- `agent_runtime/drift/architecture_boundaries.py`
+
+Checks:
+
+- deterministic import-boundary violations between `src/modules/`, `src/walkers/`, `src/orchestrators/`, UI surfaces, and `agent_runtime/`
+- module code importing walker, orchestrator, or runtime surfaces
+- walker code importing orchestrator or runtime surfaces
+- orchestrator code importing runtime surfaces
+- UI code importing walker, orchestrator, or runtime surfaces
+- runtime code importing module, walker, or orchestrator surfaces
+
+Primary drift class:
+
+- implementation drift
+
+Typical owner:
+
+- coding
+
+Does not check:
+
+- semantic architecture quality beyond explicit import edges
+- runtime wiring that stays within allowed imports but still has poor responsibilities
+- non-Python coupling such as shell scripts, config wiring, or documentation-only boundary drift
+
 ### Canon lineage
 
 Entry point:
@@ -218,6 +251,7 @@ python scripts/drift/run_all.py --root . --artifact-dir artifacts/drift --output
 
 Per-scanner JSON artifacts:
 
+- `artifacts/drift/architecture_boundaries.json`
 - `artifacts/drift/canon_lineage.json`
 - `artifacts/drift/dependency_hygiene.json`
 - `artifacts/drift/instruction_surfaces.json`
