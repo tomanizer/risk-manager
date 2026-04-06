@@ -52,6 +52,65 @@ Stop and escalate rather than issuing a pass/fail when:
 
 In these cases, flag the review as incomplete, describe the blocker, and route it to PM, PRD/spec, or human decision.
 
+## GitHub actions required during review
+
+Before issuing a pass/fail, the review agent must complete all of these steps using the `gh` CLI and GitHub API:
+
+### 1. Post review findings to the PR
+
+Do not only print findings locally. Submit them to GitHub so they are recorded against the PR:
+
+```bash
+# Post an overall review (APPROVE, REQUEST_CHANGES, or COMMENT)
+gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews \
+  -X POST \
+  -f body="[your review summary]" \
+  -f event="REQUEST_CHANGES"   # or APPROVE or COMMENT
+```
+
+Use `APPROVE` for PASS, `REQUEST_CHANGES` for CHANGES_REQUESTED, `COMMENT` for partial findings or BLOCKED.
+
+### 2. Triage and respond to all existing bot and human review comments
+
+Read all open review threads on the PR:
+
+```bash
+gh api repos/{owner}/{repo}/pulls/{pr_number}/comments
+gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews
+```
+
+For each comment thread:
+- **Valid** (agrees with your own finding or raises a real issue): reply confirming it and include it in your required changes list.
+- **Partial** (raises a real point but overstates or misidentifies scope): reply with a precise correction.
+- **Not applicable** (bot hallucination, style preference outside scope, or already fixed): reply explaining why and resolve the thread.
+
+Resolve threads you have triaged as not applicable or already addressed:
+
+```bash
+gh api graphql -f query='mutation {
+  resolveReviewThread(input: {threadId: "<thread_node_id>"}) {
+    thread { id isResolved }
+  }
+}'
+```
+
+### 3. Check CI and handle failures
+
+Check the current status of all CI checks on the PR:
+
+```bash
+gh pr checks {pr_number}
+```
+
+If any check is failing:
+
+- **Lint or type errors caused by the PR changes**: these are coding-agent fixes. Include them in your required changes and route back to coding via the CHANGES_REQUESTED handoff.
+- **Test failures caused by the PR changes**: same — route to coding.
+- **Failures unrelated to the PR** (flaky tests, infra issues, pre-existing failures on main): reply to the PR noting the failure is pre-existing and not attributable to this change. Do not block merge on unrelated failures — flag for human judgment.
+- **CI still running**: wait and re-check before issuing your final verdict.
+
+Do not issue PASS if CI is failing on checks attributable to the PR changes.
+
 ## Required output format
 
 Return:
@@ -61,6 +120,8 @@ Return:
 3. missing tests
 4. scope creep detected
 5. required changes before merge
+6. bot comment triage (valid / partial / not applicable) with resolution status
+7. CI status summary
 
 ## Handoff output
 
