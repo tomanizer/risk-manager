@@ -85,7 +85,7 @@ def test_classify_loop_payload_stops_after_max_retries() -> None:
 
     control = classify_loop_payload(payload, 300, max_retries=2)
 
-    assert control == LoopControl(continue_polling=True, sleep_seconds=0, exit_code=0)
+    assert control == LoopControl(continue_polling=False, sleep_seconds=None, exit_code=1)
 
 
 def test_classify_loop_payload_stops_after_retries_exhausted() -> None:
