@@ -1,5 +1,6 @@
 """Deterministic drift scanners used by repo-health audits."""
 
+from .architecture_boundaries import ArchitectureBoundaryReport, build_architecture_boundary_report
 from .canon_lineage import CanonLineageReport, build_canon_lineage_report
 from .dependency_hygiene import DependencyHygieneReport, build_dependency_hygiene_report
 from .drift_suite import (
@@ -13,12 +14,14 @@ from .reference_integrity import ReferenceScanReport, build_reference_scan_repor
 from .registry_alignment import RegistryAlignmentReport, build_registry_alignment_report
 
 __all__ = [
+    "ArchitectureBoundaryReport",
     "CanonLineageReport",
     "DependencyHygieneReport",
     "DriftSuiteReport",
     "InstructionSurfaceReport",
     "ReferenceScanReport",
     "RegistryAlignmentReport",
+    "build_architecture_boundary_report",
     "build_canon_lineage_report",
     "build_dependency_hygiene_report",
     "build_drift_suite_report",

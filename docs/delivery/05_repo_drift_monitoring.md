@@ -63,6 +63,23 @@ Do not treat it as a mandatory gate on every ordinary PR unless the repository l
 
 ## Scanner inventory
 
+### Architecture boundaries
+
+**Implementation:** `agent_runtime/drift/architecture_boundaries.py`
+**CLI:** `scripts/drift/check_architecture_boundaries.py`
+**Drift class:** implementation drift
+**Typical owner:** coding
+
+Checks:
+- Import-boundary violations between `src/modules/`, `src/walkers/`, `src/orchestrators/`, UI surfaces, and `agent_runtime/`
+- Module code importing walker, orchestrator, or runtime surfaces
+- Walker code importing orchestrator or runtime surfaces
+- Orchestrator code importing runtime surfaces
+- UI code importing walker, orchestrator, or runtime surfaces
+- Runtime code importing module, walker, or orchestrator surfaces
+
+Does not check semantic architecture quality beyond explicit import edges, runtime wiring within allowed imports, or non-Python coupling.
+
 ### Canon lineage
 
 **Implementation:** `agent_runtime/drift/canon_lineage.py`
@@ -144,6 +161,7 @@ Does not check architectural correctness inside modules or whether implementatio
 ## Artifacts
 
 Per-scanner JSON:
+- `artifacts/drift/architecture_boundaries.json`
 - `artifacts/drift/canon_lineage.json`
 - `artifacts/drift/dependency_hygiene.json`
 - `artifacts/drift/instruction_surfaces.json`
