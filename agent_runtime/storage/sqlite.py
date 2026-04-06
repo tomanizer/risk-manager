@@ -733,18 +733,22 @@ def _row_to_workflow_run(row: sqlite3.Row | None) -> WorkflowRunRecord | None:
 def mark_workflow_run_running(db_path: Path, work_item_id: str, retry_count: int = 0) -> None:
     """Write runner_status='running' immediately before blocking dispatch.
 
-    This allows a crashed or restarted supervisor to detect orphaned in-flight
-    runs by looking for rows where runner_status='running' and updated_at is stale.
+    Creates the row if it does not yet exist (first-ever run for this work item)
+    so that a crashed supervisor can always detect orphaned in-flight runs by
+    looking for rows where runner_status='running' and updated_at is stale.
     """
     initialize_database(db_path)
     with sqlite3.connect(db_path) as connection:
         connection.execute(
             """
-            UPDATE workflow_runs
-            SET runner_status = 'running', retry_count = ?, updated_at = CURRENT_TIMESTAMP
-            WHERE work_item_id = ?
+            INSERT INTO workflow_runs (work_item_id, status, runner_status, retry_count, updated_at)
+            VALUES (?, 'ready', 'running', ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(work_item_id) DO UPDATE SET
+                runner_status = 'running',
+                retry_count = excluded.retry_count,
+                updated_at = CURRENT_TIMESTAMP
             """,
-            (retry_count, work_item_id),
+            (work_item_id, retry_count),
         )
         connection.commit()
 

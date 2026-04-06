@@ -57,8 +57,8 @@ _SECTION_RE = re.compile(r"^##\s+(.+)$", re.MULTILINE)
 def find_work_item_file(work_item_id: str) -> Optional[Path]:
     """Search all subdirectories of work_items/ for a file matching the WI id."""
     pattern = f"*{work_item_id}*"
-    matches = list(WORK_ITEMS_DIR.rglob(pattern))
-    # Prefer non-archived/done matches when multiple exist
+    matches = sorted(WORK_ITEMS_DIR.rglob(pattern))
+    # Prefer non-archived/done matches when multiple exist; sort for determinism
     priority = []
     rest = []
     for m in matches:
@@ -85,9 +85,9 @@ def _split_sections(text: str) -> dict[str, str]:
     """Return a dict mapping lowercased section heading → section body text."""
     headings = [(m.start(), m.group(1).strip()) for m in _SECTION_RE.finditer(text)]
     sections: dict[str, str] = {}
-        body_start = (text.find("\n", start) + 1) or len(text)
+    for i, (start, heading) in enumerate(headings):
         end = headings[i + 1][0] if i + 1 < len(headings) else len(text)
-        # body is everything after the heading line; find() avoids ValueError on trailing headings
+        # find() avoids ValueError when the heading is the last line of the file
         nl = text.find("\n", start)
         body_start = nl + 1 if nl != -1 else len(text)
         sections[heading.lower()] = text[body_start:end].strip()
@@ -112,17 +112,32 @@ def _extract_section(sections: dict[str, str], *keys: str) -> str:
 
 
 def _find_prd(prd_ref: str) -> Optional[Path]:
-    """Resolve a PRD reference like 'PRD-1.1-v2' to a file path."""
+    """Resolve a PRD reference like 'PRD-1.1-v2' to a file path.
+
+    Handles both compact refs (PRD-1.1-v2) and descriptive filenames
+    (PRD-1.1-risk-summary-service-v2.md) by trying progressively broader patterns.
+    """
     if not prd_ref:
         return None
-    # Try glob search under docs/
-    candidates = list(DOCS_DIR.rglob(f"*{prd_ref}*.md"))
+    # Try verbatim substring match first (fastest, works for exact filenames)
+    candidates = sorted(DOCS_DIR.rglob(f"*{prd_ref}*.md"))
     if candidates:
         return candidates[0]
-    # Fuzzy: strip version suffix and try again
-    base = re.sub(r"-v\d+$", "", prd_ref, flags=re.IGNORECASE)
-    candidates = list(DOCS_DIR.rglob(f"*{base}*.md"))
-    return candidates[0] if candidates else None
+    # For refs like 'PRD-X.Y-vN', the actual filename may include a descriptive slug
+    # between the base number and version (e.g. PRD-1.1-risk-summary-service-v2.md).
+    m = re.match(r"^(PRD-[\d.]+)(?:-.+?)?(?:-v(\d+))?$", prd_ref, re.IGNORECASE)
+    if m:
+        base_part = m.group(1)  # e.g. "PRD-1.1"
+        ver_part = m.group(2)  # e.g. "2"
+        if ver_part:
+            candidates = sorted(DOCS_DIR.rglob(f"*{base_part}*-v{ver_part}*.md"))
+            if candidates:
+                return candidates[0]
+        # Final fallback: match by base number only (picks latest on sorted order)
+        candidates = sorted(DOCS_DIR.rglob(f"*{base_part}*.md"))
+        if candidates:
+            return candidates[0]
+    return None
 
 
 def _find_adr(adr_ref: str) -> Optional[Path]:

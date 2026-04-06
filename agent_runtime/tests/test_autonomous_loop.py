@@ -128,7 +128,9 @@ def test_dispatch_with_timeout_returns_timed_out_on_timeout() -> None:
     defaults = _defaults(runner_timeout_seconds_default=1)
 
     def slow_dispatch(_exec: RunnerExecution) -> RunnerResult:
-        time.sleep(10)
+        # Sleep longer than the 1s timeout but short enough that the background
+        # thread clears before the test suite exits (shutdown(wait=False) abandons it).
+        time.sleep(3)
         raise AssertionError("should not reach here")
 
     with patch("agent_runtime.orchestrator.graph.dispatch_runner_execution", side_effect=slow_dispatch):
