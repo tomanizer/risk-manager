@@ -4,6 +4,7 @@ This directory is reserved for generated repo-health artifacts.
 
 Recommended local output paths:
 - `artifacts/drift/dependency_hygiene.json`
+- `artifacts/drift/instruction_surfaces.json`
 - `artifacts/drift/issue_body.md`
 - `artifacts/drift/latest_report.json`
 - `artifacts/drift/reference_integrity.json`

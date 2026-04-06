@@ -8,6 +8,11 @@ The purpose of this control is to detect coherence decay across canon, prompts, 
 
 This role is not a replacement for PM, coding, or review. It is a periodic governance control that helps keep the repository internally coherent over time.
 
+Implementation reference and operator guidance live in:
+
+- `docs/guides/drift_detection_feature_reference.md`
+- `docs/guides/drift_detection_operations_guide.md`
+
 ## Mission
 
 Detect repo-wide drift early and route it to the right owner with evidence.
@@ -235,6 +240,7 @@ The repo-health loop should prefer deterministic prechecks before LLM synthesis 
 Initial deterministic scanners:
 
 - `scripts/drift/check_dependency_hygiene.py`
+- `scripts/drift/check_instruction_surfaces.py`
 - `scripts/drift/check_references.py`
 - `scripts/drift/check_registry_alignment.py`
 - `scripts/drift/run_all.py`
@@ -248,6 +254,7 @@ python scripts/drift/run_all.py --root . --artifact-dir artifacts/drift --output
 These scanners check:
 
 - `pyproject.toml` dependencies and optional extras against actual Python imports, workflow tool usage, and stale dependency-instruction surfaces
+- governed instruction surfaces for missing role pairs, stale README inventories, broken `AGENTS.md` linkage, freshness-rule drift, and drift-monitor entrypoint drift
 - tracked text files for broken internal file references
 - the current-state registry for mismatches between declared implementation status and the repository's actual module roots and registered implementation paths
 

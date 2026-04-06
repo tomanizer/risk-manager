@@ -129,6 +129,7 @@ jobs:
           name: drift-reports
           path: |
             artifacts/drift/dependency_hygiene.json
+            artifacts/drift/instruction_surfaces.json
             artifacts/drift/issue_body.md
             artifacts/drift/latest_report.json
             artifacts/drift/reference_integrity.json
