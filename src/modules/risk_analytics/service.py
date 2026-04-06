@@ -106,9 +106,7 @@ def _resolve_compare_context(
         )
     except BusinessDayResolutionError:
         if compare_to_date is not None:
-            raise ValueError(
-                f"compare_to_date {compare_to_date.isoformat()} is not a business day in the supplied calendar"
-            )
+            raise ValueError(f"compare_to_date {compare_to_date.isoformat()} is not a business day in the supplied calendar")
         return None, None, (f"NO_PRIOR_BUSINESS_DAY:{as_of_date.isoformat()}",)
 
     compare_snapshot = index.get_snapshot_by_date(resolved)
@@ -179,15 +177,11 @@ def get_risk_delta(
         status_reasons.extend(compare_reasons)
     else:
         previous_row = index.get_row(compare_snapshot.snapshot_id, node_ref, measure_type)
-        compare_is_degraded = compare_snapshot.is_degraded or (
-            previous_row is not None and previous_row.status == SummaryStatus.DEGRADED
-        )
+        compare_is_degraded = compare_snapshot.is_degraded or (previous_row is not None and previous_row.status == SummaryStatus.DEGRADED)
         if compare_is_degraded:
             status_reasons.append(f"COMPARE_POINT_DEGRADED:{compare_snapshot.as_of_date.isoformat()}")
         if previous_row is None:
-            status_reasons.append(
-                f"COMPARE_NODE_MEASURE_NOT_FOUND:{compare_snapshot.as_of_date.isoformat()}"
-            )
+            status_reasons.append(f"COMPARE_NODE_MEASURE_NOT_FOUND:{compare_snapshot.as_of_date.isoformat()}")
 
     status = SummaryStatus.OK
     if current_is_degraded or compare_is_degraded:
