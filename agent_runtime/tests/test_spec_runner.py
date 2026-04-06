@@ -174,7 +174,10 @@ def test_dispatch_spec_execution_rejects_unknown_backend() -> None:
 # --- PM → Spec escalation transition tests ---
 
 
-def _ready_item(work_item_id: str, **kwargs: object) -> WorkItemSnapshot:
+def _ready_item(
+    work_item_id: str,
+    dependencies: tuple[str, ...] = (),
+) -> WorkItemSnapshot:
     with tempfile.TemporaryDirectory() as temp_dir:
         path = Path(temp_dir) / f"{work_item_id}.md"
         path.write_text("# placeholder", encoding="utf-8")
@@ -183,7 +186,7 @@ def _ready_item(work_item_id: str, **kwargs: object) -> WorkItemSnapshot:
             title=work_item_id,
             path=path,
             stage=WorkItemStage.READY,
-            **kwargs,
+            dependencies=dependencies,
         )
 
 
@@ -192,7 +195,10 @@ def test_pm_blocked_outcome_routes_to_spec() -> None:
         wi_path = Path(temp_dir) / "WI-A.md"
         wi_path.write_text("# placeholder", encoding="utf-8")
         item = WorkItemSnapshot(
-            id="WI-A", title="WI-A", path=wi_path, stage=WorkItemStage.READY,
+            id="WI-A",
+            title="WI-A",
+            path=wi_path,
+            stage=WorkItemStage.READY,
         )
         workflow_run = WorkflowRunRecord(
             work_item_id="WI-A",
@@ -218,7 +224,10 @@ def test_pm_split_required_outcome_routes_to_spec() -> None:
         wi_path = Path(temp_dir) / "WI-B.md"
         wi_path.write_text("# placeholder", encoding="utf-8")
         item = WorkItemSnapshot(
-            id="WI-B", title="WI-B", path=wi_path, stage=WorkItemStage.READY,
+            id="WI-B",
+            title="WI-B",
+            path=wi_path,
+            stage=WorkItemStage.READY,
         )
         workflow_run = WorkflowRunRecord(
             work_item_id="WI-B",
@@ -242,7 +251,10 @@ def test_completed_spec_clarified_routes_to_human_update_repo() -> None:
         wi_path = Path(temp_dir) / "WI-C.md"
         wi_path.write_text("# placeholder", encoding="utf-8")
         item = WorkItemSnapshot(
-            id="WI-C", title="WI-C", path=wi_path, stage=WorkItemStage.READY,
+            id="WI-C",
+            title="WI-C",
+            path=wi_path,
+            stage=WorkItemStage.READY,
         )
         workflow_run = WorkflowRunRecord(
             work_item_id="WI-C",
@@ -267,7 +279,10 @@ def test_completed_spec_outcome_is_ignored_after_work_item_changes() -> None:
         wi_path = Path(temp_dir) / "WI-D.md"
         wi_path.write_text("# placeholder", encoding="utf-8")
         item = WorkItemSnapshot(
-            id="WI-D", title="WI-D", path=wi_path, stage=WorkItemStage.READY,
+            id="WI-D",
+            title="WI-D",
+            path=wi_path,
+            stage=WorkItemStage.READY,
         )
         workflow_run = WorkflowRunRecord(
             work_item_id="WI-D",
@@ -294,10 +309,16 @@ def test_decide_all_actions_includes_spec_escalation() -> None:
         wi_b_path.write_text("# placeholder", encoding="utf-8")
 
         item_a = WorkItemSnapshot(
-            id="WI-A", title="WI-A", path=wi_a_path, stage=WorkItemStage.READY,
+            id="WI-A",
+            title="WI-A",
+            path=wi_a_path,
+            stage=WorkItemStage.READY,
         )
         item_b = WorkItemSnapshot(
-            id="WI-B", title="WI-B", path=wi_b_path, stage=WorkItemStage.READY,
+            id="WI-B",
+            title="WI-B",
+            path=wi_b_path,
+            stage=WorkItemStage.READY,
         )
         workflow_run = WorkflowRunRecord(
             work_item_id="WI-A",
@@ -327,7 +348,10 @@ def test_latest_workflow_run_is_selected_when_multiple_exist() -> None:
         wi_path.write_text("# placeholder", encoding="utf-8")
 
         item = WorkItemSnapshot(
-            id="WI-E", title="WI-E", path=wi_path, stage=WorkItemStage.READY,
+            id="WI-E",
+            title="WI-E",
+            path=wi_path,
+            stage=WorkItemStage.READY,
         )
         old_run = WorkflowRunRecord(
             work_item_id="WI-E",

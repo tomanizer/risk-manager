@@ -144,13 +144,14 @@ def dispatch_codex_spec_execution(execution: RunnerExecution) -> RunnerResult:
             prompt=execution.prompt,
             details=dict(execution.metadata),
         )
-    outcome_details = _parse_spec_details(details_value)
-    if outcome_details is None:
+    try:
+        outcome_details = _parse_spec_details(details_value)
+    except ValueError as exc:
         return RunnerResult(
             runner_name=execution.runner_name,
             work_item_id=execution.work_item_id,
             status=RunnerDispatchStatus.FAILED,
-            summary="Spec backend returned details in an invalid format.",
+            summary=f"Spec backend returned details in an invalid format: {exc}",
             prompt=execution.prompt,
             details=dict(execution.metadata),
         )
@@ -210,16 +211,23 @@ def _spec_output_schema() -> dict[str, object]:
     }
 
 
-def _parse_spec_details(details_value: object) -> dict[str, str] | None:
+def _parse_spec_details(details_value: object) -> dict[str, str]:
+    """Parse and validate the details list from a Codex spec outcome.
+
+    Raises:
+        ValueError: if the structure deviates from the expected schema.
+    """
     if not isinstance(details_value, list):
-        return None
+        raise ValueError(f"Expected details to be a list of key/value objects, got {type(details_value).__name__}")
     outcome_details: dict[str, str] = {}
-    for item in details_value:
+    for index, item in enumerate(details_value):
         if not isinstance(item, dict):
-            return None
+            raise ValueError(f"Expected details[{index}] to be a dict, got {type(item).__name__}")
         key = item.get("key")
         value = item.get("value")
-        if not isinstance(key, str) or not isinstance(value, str):
-            return None
+        if not isinstance(key, str):
+            raise ValueError(f"Expected details[{index}]['key'] to be a str, got {type(key).__name__}")
+        if not isinstance(value, str):
+            raise ValueError(f"Expected details[{index}]['value'] to be a str, got {type(value).__name__}")
         outcome_details[key] = value
     return outcome_details
