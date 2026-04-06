@@ -2,279 +2,323 @@
 
 ## Purpose
 
-This document defines the repository's repo-wide drift-monitoring control.
+Detect coherence decay across canon, prompts, work items, registry state, implementation, tests, dependencies, and developer tooling before that drift turns into incorrect PM routing, weak PRDs, bad implementation assumptions, or contradictory review standards.
 
-The purpose of this control is to detect coherence decay across canon, prompts, work items, registry state, implementation, tests, dependencies, and developer tooling before that drift turns into incorrect PM routing, weak PRDs, bad implementation assumptions, or contradictory review standards.
-
-This role is not a replacement for PM, coding, or review. It is a periodic governance control that helps keep the repository internally coherent over time.
-
-Implementation reference and operator guidance live in:
-
-- `docs/guides/drift_detection_feature_reference.md`
-- `docs/guides/drift_detection_operations_guide.md`
+This is a periodic governance control, not a replacement for PM, coding, or review.
 
 ## Mission
 
 Detect repo-wide drift early and route it to the right owner with evidence.
 
-The drift monitor should act like an architecture and governance auditor for the whole repository, not like a second coding agent and not like a PR reviewer looking only at one slice.
+The drift monitor acts like an architecture and governance auditor for the whole repository, not like a second coding agent and not like a PR reviewer looking only at one slice.
+
+## System architecture
+
+The system has two layers:
+
+1. **Deterministic scanners** -- machine-checkable evidence about specific drift indicators
+2. **Audit synthesis layer** -- an LLM drift-monitor pass that uses scanner output as its first evidence surface
+
+The deterministic suite is coordinated by `agent_runtime/drift/drift_suite.py` and run via `scripts/drift/run_all.py`.
+
+## Running the suite
+
+### Locally
+
+```bash
+python scripts/drift/run_all.py \
+  --root . \
+  --artifact-dir artifacts/drift \
+  --output artifacts/drift/latest_report.json \
+  --summary-output artifacts/drift/summary.md
+```
+
+Always run against current `main`:
+
+```bash
+git fetch origin && git switch main && git pull --ff-only origin main
+```
+
+Add `--fail-on-findings` to exit non-zero when net-new findings remain after baseline filtering.
+
+### CI
+
+`.github/workflows/drift-monitor.yml` runs on push to `main` (for relevant paths), on schedule (weekday mornings), and on manual dispatch. It:
+
+1. Runs the deterministic suite
+2. Writes the markdown summary into the GitHub Actions job summary
+3. Renders an issue body from `latest_report.json`
+4. Creates or updates a stable "Repo Health Drift Report" issue when net-new findings exist (identified by title + `<!-- drift-monitor-issue -->` marker)
+5. Closes that issue automatically when the suite returns to zero net-new findings
+6. Uploads all drift artifacts
+
+### Recommended cadence
+
+- On current `main`
+- Before major planning resets
+- After substantial canon or prompt-pack changes
+- On a regular periodic cadence (weekly or nightly depending on repo activity)
+
+Do not treat it as a mandatory gate on every ordinary PR unless the repository later proves that such a gate is worth the noise.
+
+## Scanner inventory
+
+### Architecture boundaries
+
+**Implementation:** `agent_runtime/drift/architecture_boundaries.py`
+**CLI:** `scripts/drift/check_architecture_boundaries.py`
+**Drift class:** implementation drift
+**Typical owner:** coding
+
+Checks:
+- Import-boundary violations between `src/modules/`, `src/walkers/`, `src/orchestrators/`, UI surfaces, and `agent_runtime/`
+- Module code importing walker, orchestrator, or runtime surfaces
+- Walker code importing orchestrator or runtime surfaces
+- Orchestrator code importing runtime surfaces
+- UI code importing walker, orchestrator, or runtime surfaces
+- Runtime code importing module, walker, or orchestrator surfaces
+
+Does not check semantic architecture quality beyond explicit import edges, runtime wiring within allowed imports, or non-Python coupling.
+
+### Canon lineage
+
+**Implementation:** `agent_runtime/drift/canon_lineage.py`
+**CLI:** `scripts/drift/check_canon_lineage.py`
+**Drift class:** canon drift
+**Typical owner:** PRD author, PM, repository maintenance
+
+Checks:
+- Multiple live versioned canon documents in the same lineage group
+- Active versioned canon documents missing `Supersedes` metadata for archived predecessors
+- Mismatched `Supersedes` references
+- Active execution surfaces still pointing at archived PRDs
+
+Does not check whether a successor is substantively better, whether non-versioned documents are semantically duplicative, or whether archived references in narrative docs are legitimate.
+
+### Dependency hygiene
+
+**Implementation:** `agent_runtime/drift/dependency_hygiene.py`
+**CLI:** `scripts/drift/check_dependency_hygiene.py`
+**Drift class:** tooling drift, operational-instruction drift
+**Typical owner:** repository maintenance
+
+Checks:
+- Runtime imports not declared in `pyproject.toml`
+- Runtime dependencies declared only in optional extras instead of base
+- Test/tooling imports not declared in dependency metadata
+- Workflow tools (`pytest`, `ruff`, `mypy`) missing from the `dev` extra
+- Legacy `requirements.txt` instruction drift
+
+Does not check whether a dependency is the right choice, whether version pins are optimal, or extra splitting.
+
+### Instruction surfaces
+
+**Implementation:** `agent_runtime/drift/instruction_surfaces.py`
+**CLI:** `scripts/drift/check_instruction_surfaces.py`
+**Drift class:** operational-instruction drift
+**Typical owner:** repository maintenance
+
+Checks:
+- Missing role-surface pairs between `.github/agents/` and `prompts/agents/`
+- Stale README inventories for instruction packs
+- Missing `AGENTS.md` references in external instruction surfaces
+- Incomplete or out-of-order freshness-rule triads
+- Drift-monitor surfaces that stop pointing to `scripts/drift/run_all.py`
+
+Does not check prompt quality, global minimality, or whether semantically aligned overlap should be deduplicated.
+
+### Reference integrity
+
+**Implementation:** `agent_runtime/drift/reference_integrity.py`
+**CLI:** `scripts/drift/check_references.py`
+**Drift class:** canon drift, operational-instruction drift
+**Typical owner:** PM, repository maintenance
+
+Checks:
+- Broken internal file references in tracked text surfaces
+- References that escape the repository root
+- Stale references to deleted or moved paths
+
+Sanctioned generated artifact outputs listed in `artifacts/` READMEs and ignored by `.gitignore` are not reported as broken.
+
+Does not check whether a reference points to the right source of truth.
+
+### Registry alignment
+
+**Implementation:** `agent_runtime/drift/registry_alignment.py`
+**CLI:** `scripts/drift/check_registry_alignment.py`
+**Drift class:** maturity or status drift
+**Typical owner:** PM
+
+Checks:
+- Active registry entries missing expected implementation paths
+- Inactive entries that already have implementations
+- Implemented subcomponents with no declared path
+- Module roots under `src/modules/` not represented in the registry
+
+Does not check architectural correctness inside modules or whether implementation is complete enough for declared semantics.
+
+## Artifacts
+
+Per-scanner JSON:
+- `artifacts/drift/architecture_boundaries.json`
+- `artifacts/drift/canon_lineage.json`
+- `artifacts/drift/dependency_hygiene.json`
+- `artifacts/drift/instruction_surfaces.json`
+- `artifacts/drift/reference_integrity.json`
+- `artifacts/drift/registry_alignment.json`
+
+Aggregate:
+- `artifacts/drift/latest_report.json`
+- `artifacts/drift/summary.md`
+- `artifacts/drift/issue_body.md` (rendered for issue automation)
+
+Tracked baseline:
+- `artifacts/drift/baseline.json`
+
+Generated JSON reports should usually stay uncommitted unless a human explicitly wants to preserve one as review evidence.
+
+### Aggregate report semantics
+
+`latest_report.json` contains:
+- `scans`: per-scanner rollups
+- `findings`: net-new findings after baseline filtering
+- `waived_findings`: findings still present but covered by baseline
+- `stats.total_findings`: raw total before baseline filtering
+- `stats.new_findings`: active unwaived findings
+- `stats.waived_findings`: accepted-but-still-present findings
+
+Use `new_findings` for alerting, `waived_findings` for known debt tracking, `total_findings` for overall burden awareness.
+
+## Baseline model
+
+### Purpose
+
+The baseline exists for accepted drift that is already understood, intentionally deferred, still worth keeping visible, but not useful to re-alert as net-new every scheduled run.
+
+### File
+
+`artifacts/drift/baseline.json`
+
+### Shape
+
+```json
+{
+  "version": 1,
+  "allowed_findings": [
+    {
+      "scan_name": "...",
+      "signature": "...",
+      "rationale": "...",
+      "issue": "#123",
+      "expires_on": "2025-06-01"
+    }
+  ]
+}
+```
+
+Each scanner has a deterministic finding signature derived from stable fields (kind + scanner-specific identity fields). This lets the suite distinguish the same known drift recurring from a genuinely new finding.
+
+### When to baseline
+
+Baseline a finding only when:
+- It is understood
+- It has a clear owner
+- It has a known remediation path
+- Repeated re-alerting would add little value
+
+Always include a rationale, and strongly prefer linking an issue and setting an expiry date.
+
+### Bad patterns
+
+- Bulk-baselining a whole scanner
+- Vague rationales like "known" or "later"
+- Baselining before anyone agrees the finding is real
+- Baselining active policy conflicts
 
 ## What the drift monitor audits
 
 ### Canon coherence
-
-Check whether repository canon stays internally consistent across:
-
-- `docs/`
-- ADRs
-- PRDs
-- prompt instructions
-- work-item conventions
+Whether canon stays internally consistent across `docs/`, ADRs, PRDs, prompt instructions, and work-item conventions.
 
 ### Duplication and source-of-truth clarity
-
-Check whether the same concept appears in multiple places and whether that duplication is:
-
-- sanctioned and clearly labeled
-- accidental and now diverging
-- contradictory
-- so repetitive that it weakens focus
+Whether duplication is sanctioned (labeled summary, index, exemplar, or local adaptation) versus accidental, diverging, contradictory, or so repetitive it weakens focus.
 
 ### Delivery-framework coherence
-
-Check whether:
-
-- prompt instructions still match governed delivery canon
-- work-item standards still match PM and review expectations
-- role boundaries remain explicit
-- the agent relay is being preserved rather than collapsed
+Whether prompt instructions match governed delivery canon, work-item standards match PM and review expectations, role boundaries remain explicit, and the agent relay is preserved.
 
 ### Registry and catalog coherence
-
-Check whether catalogs, registries, README files, and status markers still reflect the repository's actual state well enough to guide future work safely.
+Whether catalogs, registries, README files, and status markers still reflect actual state well enough to guide future work safely.
 
 ### Tooling and operational hygiene
-
-Check whether the repository's operational scaffolding still matches the real implementation state, for example:
-
-- project packaging and metadata
-- dependency declarations versus actual imports and runtime use
-- lint, format, type-check, and test controls
-- CI checks versus local standards
-- local test harness workarounds that exist only because packaging or config is missing
+Whether packaging, dependency declarations, lint/format/type-check/test controls, and CI checks match real implementation state.
 
 ### Architecture and implementation drift
-
-Check for signs that implementation is eroding the intended boundaries:
-
-- deterministic services owning interpretation instead of canonical facts
-- walkers owning canonical logic
-- orchestrators becoming policy engines
-- UI or presentation layers recomputing governed logic
+Whether implementation is eroding intended boundaries (deterministic services owning interpretation, walkers owning canonical logic, orchestrators becoming policy engines, UI layers recomputing governed logic).
 
 ### Repository hygiene and prose quality
-
-Check whether important docs are becoming:
-
-- stale
-- contradictory
-- bloated
-- vague
-- directionless
-- overly fluffy relative to the repository's precision standard
-
-Also check whether the repository is drifting into instruction sprawl, where the same operational rules are restated across too many agent or tool surfaces without a clear primary source.
+Whether important docs are becoming stale, contradictory, bloated, vague, directionless, or drifting into instruction sprawl.
 
 ## What the drift monitor does not own
 
-- merge decisions
-- routine PR review
-- direct implementation of follow-up fixes unless explicitly reassigned
-- canon rewrites without PM or human approval
-- speculative redesign of architecture
-
-## Position in the operating model
-
-The drift monitor is outside the normal implementation handoff chain.
-
-The normal chain remains:
-
-1. PM
-2. issue planner or PRD/spec work when needed
-3. coding
-4. review
-5. human merge decision
-
-The drift monitor runs as a separate periodic control and hands findings to the PM agent or a human for triage.
-
-## Core operating rules
-
-### Evidence first
-
-Do not report drift based on vague discomfort.
-
-Every material finding should name the conflicting artifacts, the exact contradiction or duplication pattern, and why that matters operationally.
-
-Where a deterministic scanner exists, run it before free-form repo reading and use its structured output as the first evidence surface.
-
-### Distinguish sanctioned duplication from unhealthy duplication
-
-Some duplication is legitimate when one artifact is clearly a short-form summary, index, exemplar, or local adaptation of a broader canon document.
-
-Duplication becomes a real drift finding when:
-
-- there is no declared primary artifact
-- the duplicate copy has started to diverge materially
-- the local version contradicts the broader contract without saying so
-- the repetition is creating ambiguity about what later agents should trust
-
-The same rule applies to operational instructions, such as repeated freshness rules, role boundaries, or workflow constraints spread across several agent surfaces.
-
-### Prefer routing over rewriting
-
-The drift monitor should normally recommend where work should go next rather than trying to fix everything directly.
-
-### Stay repo-wide
-
-This role should look for patterns that cross files, folders, or operating layers. It should not devolve into line-level nitpicking better handled by review.
-
-### Preserve bounded ownership
-
-A finding is only useful if it identifies the right owner or execution route:
-
-- PM
-- PRD author
-- methodology/spec
-- coding
-- review
-- repository maintenance
-- human decision
-
-The drift monitor should also state whether the problem is:
-
-- canon drift
-- implementation drift
-- tooling drift
-- operational-instruction drift
-- maturity or status drift
+- Merge decisions
+- Routine PR review
+- Direct implementation of fixes (unless explicitly reassigned)
+- Canon rewrites without PM or human approval
+- Speculative redesign of architecture
 
 ## Severity model
 
-### Critical
+**Critical** -- drift could cause the repository to make or approve wrong work: contradictory canonical semantics, conflicting boundary rules, duplicate source-of-truth claims, stale instructions driving incorrect behavior, CI/dependency declarations that misrepresent what the repo requires, registry markers that materially contradict reality.
 
-Use when drift could cause the repository to make or approve wrong work, for example:
+**Major** -- drift is materially raising future execution risk: duplicated concepts with partial divergence, untrustworthy registry state, prompt instructions lagging canon, sprawling documentation, tooling gaps forcing local hacks, phantom dependencies.
 
-- contradictory canonical semantics
-- boundary rules that conflict across governance sources
-- duplicate source-of-truth claims
-- stale instructions that could drive incorrect implementation behavior
-- CI or dependency declarations that materially misrepresent what the repository requires or verifies
-- registry or maturity markers that materially contradict implemented, tested reality
-
-### Major
-
-Use when drift is materially raising future execution risk, for example:
-
-- duplicated concepts with partial divergence
-- registry or catalog state that is no longer trustworthy enough for planning
-- prompt instructions lagging canon in a way that could misroute work
-- sprawling documentation that obscures the real contract
-- tooling configuration gaps that force local hacks or weaken development discipline
-- dependencies that are declared as foundational but are not actually used yet
-
-### Minor
-
-Use when the problem is real but not yet likely to cause incorrect implementation, for example:
-
-- naming inconsistency
-- light duplication with no semantic divergence yet
-- bloated prose or weak information architecture
-- README or index drift that hurts navigation more than correctness
-- low-risk instruction overlap that is still semantically aligned
+**Minor** -- the problem is real but not yet likely to cause incorrect implementation: naming inconsistency, light duplication with no semantic divergence, bloated prose, README drift affecting navigation not correctness, low-risk instruction overlap that is still semantically aligned.
 
 ## Routing rules
 
-### Route to PM
+| Route to | When |
+|---|---|
+| PM | Affects readiness, sequencing, review triage, ownership, or work-item discipline |
+| PRD author | Implementation contract is duplicated, unclear, or drifting relative to canon |
+| Methodology/spec | Market-risk concepts, terminology, caveats, or methodological distinctions are unclear or conflicting |
+| Coding | Canonical answer is clear, problem is implementation drift or boundary violation |
+| Repository maintenance | Primarily packaging, dependency, CI, lint, format, or type-check hygiene |
+| Review | Finding indicates a review checklist or review prompt gap |
+| Human | Two plausible source-of-truth candidates conflict, a policy choice is needed, or fixing would redesign the operating model |
 
-Use when the finding affects readiness, sequencing, review triage, ownership, or work-item discipline.
-
-### Route to PRD author
-
-Use when the implementation contract is duplicated, unclear, or drifting relative to canon.
-
-### Route to methodology/spec
-
-Use when market-risk concepts, terminology, caveats, or methodological distinctions are unclear or conflicting.
-
-### Route to coding
-
-Use when the canonical answer is already clear and the problem is an implementation drift or boundary violation that can be corrected without reopening canon.
-
-### Route to repository maintenance
-
-Use this label in the report when the problem is primarily packaging, dependency, CI, lint, format, or type-check hygiene. PM should usually turn this into a bounded work item rather than asking a spec agent to resolve it.
-
-### Route to review
-
-Use when the finding indicates a review checklist or review prompt gap rather than a missing contract.
-
-### Route to human
-
-Escalate when two plausible source-of-truth candidates conflict, when a policy choice is needed, or when fixing the drift would redesign the operating model.
-
-## Recommended cadence
-
-Run the drift monitor:
-
-- on current `main`
-- before major planning resets
-- after substantial canon or prompt-pack changes
-- on a regular periodic cadence such as weekly or nightly, depending on repo activity
-
-Do not treat it as a mandatory gate on every ordinary PR unless the repository later proves that such a gate is worth the noise.
-
-## Deterministic prechecks
-
-The repo-health loop should prefer deterministic prechecks before LLM synthesis where possible.
-
-Initial deterministic scanners:
-
-- `scripts/drift/check_architecture_boundaries.py`
-- `scripts/drift/check_canon_lineage.py`
-- `scripts/drift/check_dependency_hygiene.py`
-- `scripts/drift/check_instruction_surfaces.py`
-- `scripts/drift/check_references.py`
-- `scripts/drift/check_registry_alignment.py`
-- `scripts/drift/run_all.py`
-
-Recommended usage:
-
-```bash
-python scripts/drift/run_all.py --root . --artifact-dir artifacts/drift --output artifacts/drift/latest_report.json --summary-output artifacts/drift/summary.md
-```
-
-These scanners check:
-
-- `pyproject.toml` dependencies and optional extras against actual Python imports, workflow tool usage, and stale dependency-instruction surfaces
-- governed instruction surfaces for missing role pairs, stale README inventories, broken `AGENTS.md` linkage, freshness-rule drift, and drift-monitor entrypoint drift
-- tracked text files for broken internal file references
-- the current-state registry for mismatches between declared implementation status and the repository's actual module roots and registered implementation paths
-
-They let the drift monitor start from machine-generated evidence about dependency/tooling drift, stale paths, deleted files, missing targets, and maturity/status drift in the registry.
-
-Use `artifacts/drift/baseline.json` for explicitly accepted findings that should stay visible in the reports but not count as net-new drift. Keep the baseline narrow and route each accepted finding to a tracked issue when possible.
-
-The scheduled GitHub workflow should use the aggregate report to create or update one stable repo-health issue when net-new findings exist, and close that issue automatically when the suite returns to zero net-new findings.
+Every finding should also state its drift class: canon, implementation, tooling, operational-instruction, or maturity/status drift.
 
 ## Required output shape
 
 Every drift-monitor pass should return:
+1. Overall repo health status: `HEALTHY`, `WATCH`, or `DRIFTING`
+2. Findings by severity
+3. Evidence for each material finding
+4. Drift class for each material finding
+5. Why each finding matters
+6. Owner and routing recommendation
+7. Whether any duplication is sanctioned and acceptable
+8. The smallest sensible next action for each major or critical item
 
-1. overall repo health status: `HEALTHY`, `WATCH`, or `DRIFTING`
-2. findings by severity
-3. evidence for each material finding
-4. drift class for each material finding
-5. why each finding matters
-6. owner and routing recommendation
-7. whether any duplication is sanctioned and acceptable
-8. the smallest sensible next action for each major or critical item
+## Extending the system
+
+When adding a new deterministic scanner:
+
+1. Implementation module under `agent_runtime/drift/`
+2. CLI entrypoint under `scripts/drift/`
+3. Stable finding shapes and signatures
+4. Focused unit tests in `tests/unit/agent_runtime/`
+5. Wire into `drift_suite.py` (`_SCANNERS` and `_SIGNATURE_FIELDS`)
+6. Add artifact path to `artifacts/drift/README.md`
+7. Update workflow artifact upload if a new per-scanner JSON is produced
+
+Good deterministic scanners should operate on clearly defined repo surfaces, emit evidence-rich findings, avoid fuzzy heuristics that create noise, and degrade explicitly when required files are missing or malformed.
+
+## Debugging
+
+**Scanner suddenly reports many findings:** Check whether a shared path moved, a README inventory is stale, a baseline signature stopped matching (finding shape changed), or the repo was run from stale local state.
+
+**Suite reports findings but the issue did not update:** Check workflow permissions, `actions/github-script` execution, whether the issue marker changed, issue lookup pagination, or whether the job failed before the upsert step.
+
+**Suite reports no findings when expected:** Check whether the finding is currently baselined, the scanner is wired into `drift_suite.py`, the target file surface is in the scanned path, or a generated path is intentionally sanctioned.

@@ -21,8 +21,3 @@ These documents exist to make the delivery governance model more than a generic 
 PM work should use this pack alongside `work_items/READY_CRITERIA.md`, the linked work item, the linked PRD, and the linked ADRs.
 
 Drift-monitor work should use `05_repo_drift_monitoring.md` together with `docs/guides/repo_health_audit_checklist.md`.
-
-For implementation details of the deterministic drift suite, also use:
-
-- `docs/guides/drift_detection_feature_reference.md`
-- `docs/guides/drift_detection_operations_guide.md`
