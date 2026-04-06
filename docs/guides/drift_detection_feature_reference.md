@@ -237,6 +237,38 @@ Does not check:
 - deeper architectural correctness inside the module
 - whether a module implementation is complete enough for its declared semantics
 
+### Surface liveness
+
+Entry point:
+
+- `scripts/drift/check_surface_liveness.py`
+
+Implementation:
+
+- `agent_runtime/drift/surface_liveness.py`
+
+Checks:
+
+- active execution or operator surfaces that invoke repo-owned Python module entrypoints which no longer exist
+- active code importing repo-local package surfaces marked as `archive`, `archived`, `deprecated`, or `legacy`
+- discovered module roots under `src/modules/` that have no registry entry, no active canon or execution-surface reference, and no test signal
+
+Primary drift class:
+
+- implementation drift
+- operational-instruction drift
+
+Typical owner:
+
+- coding
+- repository maintenance
+
+Does not check:
+
+- whether an untested but still governed module root is high quality
+- whether a module should be deleted if it is still referenced from active canon
+- non-Python stale surfaces outside repo-owned module invocations and package imports
+
 ## Aggregate suite behavior
 
 ### Entry point
@@ -257,6 +289,7 @@ Per-scanner JSON artifacts:
 - `artifacts/drift/instruction_surfaces.json`
 - `artifacts/drift/reference_integrity.json`
 - `artifacts/drift/registry_alignment.json`
+- `artifacts/drift/surface_liveness.json`
 
 Aggregate outputs:
 

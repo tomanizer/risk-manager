@@ -264,6 +264,7 @@ Current scanners:
 - `agent_runtime/drift/instruction_surfaces.py`
 - `agent_runtime/drift/reference_integrity.py`
 - `agent_runtime/drift/registry_alignment.py`
+- `agent_runtime/drift/surface_liveness.py`
 
 Issue rendering:
 

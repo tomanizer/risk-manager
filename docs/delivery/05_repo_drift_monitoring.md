@@ -245,6 +245,7 @@ Initial deterministic scanners:
 - `scripts/drift/check_instruction_surfaces.py`
 - `scripts/drift/check_references.py`
 - `scripts/drift/check_registry_alignment.py`
+- `scripts/drift/check_surface_liveness.py`
 - `scripts/drift/run_all.py`
 
 Recommended usage:
@@ -259,6 +260,7 @@ These scanners check:
 - governed instruction surfaces for missing role pairs, stale README inventories, broken `AGENTS.md` linkage, freshness-rule drift, and drift-monitor entrypoint drift
 - tracked text files for broken internal file references
 - the current-state registry for mismatches between declared implementation status and the repository's actual module roots and registered implementation paths
+- repo-owned runtime entrypoints, legacy-marked import surfaces, and orphaned module roots with no registry, active canon, or test signal
 
 They let the drift monitor start from machine-generated evidence about dependency/tooling drift, stale paths, deleted files, missing targets, and maturity/status drift in the registry.
 
