@@ -91,7 +91,7 @@ def build_reference_scan_report(root: Path) -> ReferenceScanReport:
         files_scanned += 1
         try:
             lines = source_file.read_text(encoding="utf-8").splitlines()
-        except UnicodeDecodeError:
+        except (FileNotFoundError, UnicodeDecodeError):
             continue
         for line_number, line in enumerate(lines, start=1):
             for raw_reference in _extract_references(line):

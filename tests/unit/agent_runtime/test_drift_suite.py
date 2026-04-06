@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-from agent_runtime.drift.drift_suite import build_drift_suite_report, render_drift_suite_issue_body
+from agent_runtime.drift.drift_suite import DriftSuiteReport, build_drift_suite_report, render_drift_suite_issue_body
 
 
 def test_drift_suite_waives_findings_present_in_baseline(tmp_path: Path) -> None:
@@ -185,6 +185,24 @@ def test_render_drift_suite_issue_body_includes_marker_and_findings(tmp_path: Pa
     assert "## Net-New Findings" in body
     assert "reference_integrity: missing_reference" in body
     assert "README.md:1 `docs/missing.md`" in body
+
+
+def test_drift_suite_report_round_trips_through_dict(tmp_path: Path) -> None:
+    _write_minimal_repo(tmp_path)
+    original = build_drift_suite_report(tmp_path)
+
+    restored = DriftSuiteReport.from_dict(original.to_dict())
+
+    assert restored.scan_name == original.scan_name
+    assert restored.stats == original.stats
+    assert len(restored.scans) == len(original.scans)
+    assert len(restored.findings) == len(original.findings)
+    for orig_finding, rest_finding in zip(original.findings, restored.findings):
+        assert rest_finding.scan_name == orig_finding.scan_name
+        assert rest_finding.signature == orig_finding.signature
+        assert rest_finding.kind == orig_finding.kind
+    issue_body = render_drift_suite_issue_body(restored)
+    assert "<!-- drift-monitor-issue -->" in issue_body
 
 
 def test_repo_drift_suite_has_no_new_findings() -> None:

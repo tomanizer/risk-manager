@@ -44,6 +44,22 @@ class DriftSuiteFinding:
     issue: str | None = None
     expires_on: str | None = None
 
+    @classmethod
+    def from_dict(cls, data: dict[str, object]) -> DriftSuiteFinding:
+        return cls(
+            scan_name=str(data["scan_name"]),
+            signature=str(data["signature"]),
+            kind=str(data["kind"]),
+            severity=str(data["severity"]),
+            drift_class=str(data["drift_class"]),
+            owner=str(data["owner"]),
+            message=str(data["message"]),
+            raw_finding=dict(data["raw_finding"]),  # type: ignore[arg-type]
+            rationale=_optional_string(data.get("rationale")),
+            issue=_optional_string(data.get("issue")),
+            expires_on=_optional_string(data.get("expires_on")),
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class DriftScanSummary:
@@ -54,6 +70,18 @@ class DriftScanSummary:
     total_findings: int
     new_findings: tuple[DriftSuiteFinding, ...]
     waived_findings: tuple[DriftSuiteFinding, ...]
+
+    @classmethod
+    def from_dict(cls, data: dict[str, object]) -> DriftScanSummary:
+        return cls(
+            scan_name=str(data["scan_name"]),
+            title=str(data["title"]),
+            artifact_path=str(data["artifact_path"]),
+            stats={str(k): v for k, v in data["stats"].items()} if isinstance(data["stats"], dict) else {},  # type: ignore[union-attr]
+            total_findings=int(data["total_findings"]),  # type: ignore[arg-type]
+            new_findings=tuple(DriftSuiteFinding.from_dict(f) for f in data["new_findings"]),  # type: ignore[union-attr]
+            waived_findings=tuple(DriftSuiteFinding.from_dict(f) for f in data["waived_findings"]),  # type: ignore[union-attr]
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,6 +114,27 @@ class DriftSuiteReport:
             "waived_findings": [asdict(finding) for finding in self.waived_findings],
             "stats": asdict(self.stats),
         }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, object]) -> DriftSuiteReport:
+        raw_stats = data["stats"]
+        if not isinstance(raw_stats, dict):
+            raise ValueError("DriftSuiteReport payload `stats` must be an object.")
+        return cls(
+            scan_name=str(data["scan_name"]),
+            root=str(data["root"]),
+            generated_at=str(data["generated_at"]),
+            baseline_path=str(data["baseline_path"]),
+            scans=tuple(DriftScanSummary.from_dict(s) for s in data["scans"]),  # type: ignore[union-attr]
+            findings=tuple(DriftSuiteFinding.from_dict(f) for f in data["findings"]),  # type: ignore[union-attr]
+            waived_findings=tuple(DriftSuiteFinding.from_dict(f) for f in data["waived_findings"]),  # type: ignore[union-attr]
+            stats=DriftSuiteStats(
+                scans_run=int(raw_stats["scans_run"]),  # type: ignore[arg-type]
+                total_findings=int(raw_stats["total_findings"]),  # type: ignore[arg-type]
+                new_findings=int(raw_stats["new_findings"]),  # type: ignore[arg-type]
+                waived_findings=int(raw_stats["waived_findings"]),  # type: ignore[arg-type]
+            ),
+        )
 
 
 @dataclass(frozen=True, slots=True)
