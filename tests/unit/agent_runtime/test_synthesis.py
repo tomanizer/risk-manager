@@ -140,10 +140,39 @@ def test_missing_context_surfaces_noted_not_raised(tmp_path: Path) -> None:
     """Missing optional surfaces are noted in the assembled prompt rather than raising exceptions."""
     module = _load_module()
 
-    # tmp_path has no AGENTS.md, registry, etc. — all surfaces are absent
+    # tmp_path has no AGENTS.md, registry, delivery_canon, etc. — all surfaces are absent
     surfaces = module._load_all_surfaces(tmp_path)  # type: ignore[attr-defined]
     user_message = module._assemble_user_message(surfaces)  # type: ignore[attr-defined]
 
     assert "Missing context surfaces" in user_message
     assert "not available" in user_message
+    # All six surfaces are absent — all should be listed
+    assert "Project overview (TOM)" in user_message
+    assert "Drift monitoring delivery canon" in user_message
+
+
+def test_findings_truncated_at_limit(tmp_path: Path) -> None:
+    """Report findings are capped at _MAX_FINDINGS_IN_PROMPT to protect context limits."""
+    module = _load_module()
+
+    max_limit: int = module._MAX_FINDINGS_IN_PROMPT  # type: ignore[attr-defined]
+    report = _make_report(new_findings=max_limit + 5)
+    truncated_json = module._truncate_report_for_prompt(report)  # type: ignore[attr-defined]
+    parsed = json.loads(truncated_json)
+
+    assert len(parsed["findings"]) == max_limit
+    assert "_truncated" in parsed
+
+
+def test_findings_not_truncated_below_limit(tmp_path: Path) -> None:
+    """Report findings are not truncated when count is within _MAX_FINDINGS_IN_PROMPT."""
+    module = _load_module()
+
+    max_limit: int = module._MAX_FINDINGS_IN_PROMPT  # type: ignore[attr-defined]
+    report = _make_report(new_findings=max_limit - 1)
+    truncated_json = module._truncate_report_for_prompt(report)  # type: ignore[attr-defined]
+    parsed = json.loads(truncated_json)
+
+    assert len(parsed["findings"]) == max_limit - 1
+    assert "_truncated" not in parsed
 

@@ -4,7 +4,7 @@ import argparse
 import json
 import os
 import sys
-from datetime import date
+from datetime import timezone, datetime
 from pathlib import Path
 
 
@@ -23,13 +23,17 @@ _CONTEXT_SURFACES: list[tuple[str, str]] = [
 
 _SYSTEM_PROMPT_PATH = "prompts/agents/drift_monitor_agent_instruction.md"
 
+# Cap the number of findings serialised into the prompt to avoid exceeding
+# model context limits and driving up token costs on noisy weeks.
+_MAX_FINDINGS_IN_PROMPT = 50
+
 
 def _load_surface(repo_root: Path, rel_path: str) -> tuple[str, str | None]:
-    """Return (rel_path, content_or_None). Missing files return None."""
+    """Return (rel_path, content_or_None). Unavailable or undecodable files return None."""
     abs_path = repo_root / rel_path
     try:
         return rel_path, abs_path.read_text(encoding="utf-8")
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return rel_path, None
 
 
@@ -44,7 +48,7 @@ def _load_all_surfaces(repo_root: Path) -> dict[str, str | None]:
 def _load_report(report_path: Path) -> dict | None:  # type: ignore[type-arg]
     try:
         return json.loads(report_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError):
         return None
 
 
@@ -56,6 +60,17 @@ def _load_system_prompt(repo_root: Path) -> str:
 # ---------------------------------------------------------------------------
 # Prompt assembly
 # ---------------------------------------------------------------------------
+
+def _truncate_report_for_prompt(report: dict) -> str:  # type: ignore[type-arg]
+    """Serialise the report, capping findings at _MAX_FINDINGS_IN_PROMPT."""
+    findings = report.get("findings", [])
+    if len(findings) <= _MAX_FINDINGS_IN_PROMPT:
+        return json.dumps(report, indent=2)
+    truncated = dict(report)
+    truncated["findings"] = findings[:_MAX_FINDINGS_IN_PROMPT]
+    truncated["_truncated"] = f"findings list truncated to {_MAX_FINDINGS_IN_PROMPT} of {len(findings)} for prompt brevity"
+    return json.dumps(truncated, indent=2)
+
 
 def _assemble_user_message(surfaces: dict[str, str | None]) -> str:
     missing_notes: list[str] = []
@@ -74,6 +89,8 @@ def _assemble_user_message(surfaces: dict[str, str | None]) -> str:
         _section("Full finding list (JSON)", "deterministic_report"),
         _section("Registry snapshot", "registry"),
         _section("AGENTS.md", "agents_md"),
+        _section("Project overview (TOM)", "tom_overview"),
+        _section("Drift monitoring delivery canon", "delivery_canon"),
     ]
 
     if missing_notes:
@@ -101,7 +118,7 @@ def _assemble_user_message(surfaces: dict[str, str | None]) -> str:
 # ---------------------------------------------------------------------------
 
 def _render_output(llm_content: str, model: str, new_findings: int, waived_findings: int) -> str:
-    today = date.today().isoformat()
+    today = datetime.now(timezone.utc).date().isoformat()
     return (
         f"<!-- drift-synthesis -->\n"
         f"## Drift Synthesis — {today}\n\n"
@@ -178,8 +195,8 @@ def main() -> int:
 
     # --- Load context surfaces ---
     surfaces = _load_all_surfaces(repo_root)
-    # Override deterministic_report with pretty-printed JSON from the already-parsed payload
-    surfaces["deterministic_report"] = json.dumps(report, indent=2)
+    # Override deterministic_report with pretty-printed JSON (capped) from the already-parsed payload
+    surfaces["deterministic_report"] = _truncate_report_for_prompt(report)
 
     # --- Build prompts ---
     system_prompt = _load_system_prompt(repo_root)

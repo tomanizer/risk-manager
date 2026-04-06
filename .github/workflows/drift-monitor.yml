@@ -273,6 +273,7 @@ jobs:
     needs: drift-suite
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       issues: write
       actions: read
 
@@ -301,11 +302,22 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
+          set +e
           python scripts/drift/run_synthesis.py \
             --report artifacts/drift/latest_report.json \
             --repo-root . \
             --output artifacts/drift/synthesis.md
-          echo "synthesis_ready=true" >> "$GITHUB_OUTPUT"
+          synthesis_exit_code=$?
+          set -e
+
+          if [ "$synthesis_exit_code" -eq 0 ]; then
+            echo "synthesis_ready=true" >> "$GITHUB_OUTPUT"
+          elif [ "$synthesis_exit_code" -eq 2 ]; then
+            echo "synthesis_ready=false" >> "$GITHUB_OUTPUT"
+            echo "Synthesis skipped: no net-new findings to summarize."
+          else
+            exit "$synthesis_exit_code"
+          fi
         continue-on-error: true
 
       - name: Append synthesis comment to drift issue
