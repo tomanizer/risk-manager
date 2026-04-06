@@ -175,6 +175,27 @@ implements the requested slice directly there, and persists `completed`,
 `blocked`, or `needs_pm` automatically through the existing workflow outcome
 path.
 
+You can also opt in to automatic draft-PR publication after a completed coding
+run with no existing PR:
+
+```bash
+export AGENT_RUNTIME_CODING_PR_BACKEND=gh_draft
+```
+
+Optional draft-PR title prefix:
+
+```bash
+export AGENT_RUNTIME_CODING_PR_TITLE_PREFIX='[codex]'
+```
+
+When enabled, the runtime:
+
+- checks that the coding branch is ahead of its base ref
+- pushes the branch to `origin`
+- reuses an existing open PR for that branch if one already exists
+- otherwise opens a new draft PR through `gh`
+- persists the PR number and URL back into workflow state
+
 ## Record the real manual outcome
 
 ```bash
@@ -209,6 +230,10 @@ PR exists yet:
   inspected and published
 - `blocked` or `needs_pm` can stop at the same human gate instead of rerunning
   coding immediately on the same unchanged work item
+
+When draft-PR publication is enabled, a completed coding run can publish its own
+branch and attach the new PR to workflow state immediately, allowing the next
+runtime cycle to move straight into PR-aware routing.
 
 ## Release a completed runner worktree
 

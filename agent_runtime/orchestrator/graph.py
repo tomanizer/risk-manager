@@ -10,6 +10,7 @@ from pathlib import Path
 
 from agent_runtime.config.defaults import RuntimeDefaults, build_defaults
 from agent_runtime.orchestrator.execution import build_runner_execution
+from agent_runtime.orchestrator.pr_publication import maybe_publish_completed_coding_run
 from agent_runtime.orchestrator.supervisor import (
     classify_loop_payload,
     record_supervisor_heartbeat,
@@ -68,6 +69,27 @@ def run_runtime_step(
         worktree_lease = allocate_worktree(defaults, defaults.state_db_path, execution)
         execution = bind_worktree_to_execution(execution, worktree_lease)
     runner_result = dispatch_runner_execution(execution) if should_dispatch and execution is not None else None
+    pr_publication = maybe_publish_completed_coding_run(defaults.repo_root, execution, runner_result)
+    if runner_result is not None and pr_publication is not None:
+        publication_details = {
+            **runner_result.details,
+            "pr_publication_status": pr_publication.status,
+        }
+        publication_outcome_details = {
+            **runner_result.outcome_details,
+            **pr_publication.details,
+        }
+        if pr_publication.pr_number is not None:
+            publication_details["pr_number"] = str(pr_publication.pr_number)
+            publication_outcome_details["pr_number"] = str(pr_publication.pr_number)
+        if pr_publication.pr_url is not None:
+            publication_details["pr_url"] = pr_publication.pr_url
+            publication_outcome_details["pr_url"] = pr_publication.pr_url
+        runner_result = replace(
+            runner_result,
+            details=publication_details,
+            outcome_details=publication_outcome_details,
+        )
 
     if should_build_execution and decision.work_item_id is not None:
         pr_number = None
@@ -77,6 +99,10 @@ def run_runtime_step(
                 pr_number = pull_request.number
                 branch_name = pull_request.head_ref_name
                 break
+        if pr_publication is not None and pr_publication.pr_number is not None:
+            pr_number = pr_publication.pr_number
+        if pr_publication is not None and execution is not None and execution.metadata.get("branch_name") is not None:
+            branch_name = execution.metadata["branch_name"]
         existing_run = load_workflow_run(defaults.state_db_path, decision.work_item_id)
         upsert_workflow_run(
             defaults.state_db_path,
@@ -183,6 +209,17 @@ def run_runtime_step(
         ),
         "state_db_path": str(defaults.state_db_path) if should_build_execution else None,
         "pull_request_count": len(snapshot.pull_requests),
+        "pr_publication": (
+            {
+                "status": pr_publication.status,
+                "summary": pr_publication.summary,
+                "pr_number": pr_publication.pr_number,
+                "pr_url": pr_publication.pr_url,
+                "details": pr_publication.details,
+            }
+            if pr_publication is not None
+            else None
+        ),
         "work_item_count": len(snapshot.work_items),
         "warnings": list(snapshot.warnings),
     }
