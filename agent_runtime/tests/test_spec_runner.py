@@ -219,7 +219,7 @@ def test_pm_blocked_outcome_routes_to_spec() -> None:
         assert "blocked" in decision.metadata.get("pm_outcome_status", "")
 
 
-def test_pm_split_required_outcome_routes_to_spec() -> None:
+def test_pm_split_required_outcome_routes_to_issue_planner() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         wi_path = Path(temp_dir) / "WI-B.md"
         wi_path.write_text("# placeholder", encoding="utf-8")
@@ -243,7 +243,7 @@ def test_pm_split_required_outcome_routes_to_spec() -> None:
             workflow_runs=(workflow_run,),
         )
         decision = decide_next_action(snapshot)
-        assert decision.action is NextActionType.RUN_SPEC
+        assert decision.action is NextActionType.RUN_ISSUE_PLANNER
 
 
 def test_completed_spec_clarified_routes_to_human_update_repo() -> None:

@@ -21,6 +21,7 @@ class SpecRunnerInput:
     work_item_id: str
     blocked_reason: str
     work_item_path: str
+    linked_prd: str | None = None
 
 
 def build_spec_prompt(input_data: SpecRunnerInput) -> str:

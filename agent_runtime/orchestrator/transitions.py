@@ -19,7 +19,8 @@ _PENDING_CI_STATES = {"EXPECTED", "PENDING", "QUEUED", "IN_PROGRESS"}
 _FAILING_CI_STATES = {"ACTION_REQUIRED", "CANCELLED", "ERROR", "FAILURE", "STALE", "STARTUP_FAILURE", "TIMED_OUT"}
 _READY_MERGE_STATES = {"CLEAN", "HAS_HOOKS", "UNSTABLE"}
 _PM_READY_OUTCOMES = {"ready"}
-_PM_SPEC_OUTCOMES = {"blocked", "split_required"}
+_PM_SPEC_OUTCOMES = {"blocked", "spec_required"}
+_PM_ISSUE_PLANNER_OUTCOMES = {"split_required"}
 _CODING_REPO_UPDATE_OUTCOMES = {"blocked", "completed", "needs_pm"}
 _REVIEW_CODING_OUTCOMES = {"changes_requested"}
 _REVIEW_REPO_UPDATE_OUTCOMES = {"blocked", "pass"}
@@ -126,7 +127,15 @@ def _decision_from_completed_pm_outcome(
         return TransitionDecision(
             action=NextActionType.RUN_SPEC,
             work_item_id=work_item.id,
-            reason=workflow_run.outcome_summary or "latest PM assessment requires spec clarification before another agent run",
+            reason=workflow_run.outcome_summary or "latest PM assessment requires a spec or PRD update before coding can proceed",
+            target_path=work_item.path,
+            metadata=metadata,
+        )
+    if workflow_run.outcome_status in _PM_ISSUE_PLANNER_OUTCOMES:
+        return TransitionDecision(
+            action=NextActionType.RUN_ISSUE_PLANNER,
+            work_item_id=work_item.id,
+            reason=workflow_run.outcome_summary or "latest PM assessment requires the work item to be split before coding can proceed",
             target_path=work_item.path,
             metadata=metadata,
         )

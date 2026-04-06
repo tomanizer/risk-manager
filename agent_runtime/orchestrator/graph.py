@@ -33,7 +33,7 @@ from agent_runtime.storage.sqlite import (
 )
 
 from .github_sync import fetch_pull_requests
-from .state import NextActionType, RuntimeSnapshot
+from .state import NextActionType, RuntimeSnapshot, TransitionDecision
 from .simulations import build_simulation_snapshot, simulation_names
 from .transitions import decide_next_action
 from .work_item_registry import load_work_items
@@ -87,6 +87,36 @@ def find_repo_root(start_path: Path) -> Path:
         if (candidate / "AGENTS.md").exists() and (candidate / "work_items").is_dir():
             return candidate
     raise RuntimeError("could not determine repository root from runtime location")
+
+
+def build_governance_decision(repo_root: Path) -> TransitionDecision | None:
+    """Run the drift suite; return a RUN_DRIFT_CHECK decision if net-new findings exist."""
+    import subprocess
+    import sys
+
+    script_path = repo_root / "scripts" / "drift" / "run_all.py"
+    if not script_path.exists():
+        return None
+    try:
+        result = subprocess.run(
+            [sys.executable, str(script_path), "--fail-on-findings"],
+            capture_output=True,
+            text=True,
+            check=False,
+            cwd=str(repo_root),
+            timeout=300,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode == 0:
+        return None
+    return TransitionDecision(
+        action=NextActionType.RUN_DRIFT_CHECK,
+        work_item_id=None,
+        reason="drift suite found net-new findings; repo should be cleaned before the next relay step",
+        target_path=repo_root,
+        metadata={"repo_root": str(repo_root), "governance_already_run": "true"},
+    )
 
 
 def build_runtime_snapshot(repo_root: Path, state_db_path: Path) -> RuntimeSnapshot:
@@ -424,14 +454,14 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Maximum iterations for --poll before exiting.",
     )
     parser.add_argument(
-        "--parallel",
+        "--governance",
         action="store_true",
-        help="Dispatch all eligible work items concurrently when used with --poll (Iter 3).",
+        help="Run the drift suite as a pre-step; emit a drift-check handoff if net-new findings are present.",
     )
     parser.add_argument(
         "--digest",
         action="store_true",
-        help="Post a morning activity digest to Slack and exit (Iter 2).",
+        help="Post a morning activity digest to Slack and exit.",
     )
     return parser
 
@@ -518,6 +548,52 @@ def main() -> int:
             while True:
                 iteration += 1
                 record_started_at = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
+
+                if getattr(args, "governance", False) and args.simulate is None:
+                    governance_decision = build_governance_decision(repo_root)
+                    if governance_decision is not None:
+                        from .execution import build_runner_execution as _bre
+                        from .state import RuntimeSnapshot as _RS
+
+                        _empty = _RS(work_items=(), pull_requests=(), workflow_runs=(), warnings=())
+                        _exec = _bre(_empty, governance_decision)
+                        _result = dispatch_runner_execution(_exec) if _exec is not None else None
+                        payload: dict[str, object] = {
+                            "action": governance_decision.action.value,
+                            "reason": governance_decision.reason,
+                            "governance": True,
+                            "dispatch": True,
+                            "execute": True,
+                            "simulation": args.simulate,
+                            "mode": mode,
+                            "runner": (
+                                {"name": _exec.runner_name.value, "prompt": _exec.prompt, "metadata": _exec.metadata} if _exec is not None else None
+                            ),
+                            "runner_result": (
+                                {
+                                    "name": _result.runner_name.value,
+                                    "status": _result.status.value,
+                                    "summary": _result.summary,
+                                    "outcome_status": _result.outcome_status,
+                                    "outcome_summary": _result.outcome_summary,
+                                }
+                                if _result is not None
+                                else None
+                            ),
+                        }
+                        loop_control = classify_loop_payload(payload, defaults.poll_interval_seconds)
+                        supervisor_status = "stopped"
+                        record_supervisor_heartbeat(
+                            defaults,
+                            status=supervisor_status,
+                            lock_owner=lock_owner,
+                            mode=mode,
+                            payload=payload,
+                            started_at=record_started_at,
+                        )
+                        print(json.dumps(payload, indent=2, sort_keys=True))
+                        return loop_control.exit_code
+
                 try:
                     snapshot = (
                         build_simulation_snapshot(args.simulate)
@@ -574,6 +650,42 @@ def main() -> int:
                     return loop_control.exit_code
                 sleep_for_poll_interval(loop_control.sleep_seconds or 0)
 
+    if args.governance and args.simulate is None:
+        governance_decision = build_governance_decision(repo_root)
+        if governance_decision is not None:
+            from .execution import build_runner_execution
+            from .state import RuntimeSnapshot as _RS
+
+            empty_snapshot = _RS(work_items=(), pull_requests=(), workflow_runs=(), warnings=())
+            execution = build_runner_execution(empty_snapshot, governance_decision)
+            runner_result = dispatch_runner_execution(execution) if args.dispatch and execution is not None else None
+            governance_payload: dict[str, object] = {
+                "action": governance_decision.action.value,
+                "reason": governance_decision.reason,
+                "governance": True,
+                "dispatch": args.dispatch,
+                "execute": args.execute or args.dispatch,
+                "simulation": None,
+                "runner": (
+                    {"name": execution.runner_name.value, "prompt": execution.prompt, "metadata": execution.metadata}
+                    if execution is not None
+                    else None
+                ),
+                "runner_result": (
+                    {
+                        "name": runner_result.runner_name.value,
+                        "status": runner_result.status.value,
+                        "summary": runner_result.summary,
+                        "outcome_status": runner_result.outcome_status,
+                        "outcome_summary": runner_result.outcome_summary,
+                    }
+                    if runner_result is not None
+                    else None
+                ),
+            }
+            print(json.dumps(governance_payload, indent=2, sort_keys=True))
+            return 0
+
     snapshot = build_simulation_snapshot(args.simulate) if args.simulate is not None else build_runtime_snapshot(repo_root, defaults.state_db_path)
     payload = run_runtime_step(
         defaults,
@@ -584,5 +696,6 @@ def main() -> int:
     payload["dispatch"] = args.dispatch
     payload["execute"] = args.execute or args.dispatch
     payload["simulation"] = args.simulate
+    payload["governance"] = getattr(args, "governance", False)
     print(json.dumps(payload, indent=2, sort_keys=True))
     return 0
