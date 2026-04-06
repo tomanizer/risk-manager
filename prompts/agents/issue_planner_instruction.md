@@ -55,22 +55,23 @@ In these cases, route the blocker to PM, PRD/spec, or human decision.
 
 ## Handoff output
 
-After producing the new work items, print a handoff for the PM agent so it can immediately assess readiness without manual template filling.
+After producing the new work items, print a single copy-paste-ready block for the PM agent. The block must contain the header line and the complete filled prompt together — do not split them into separate blocks.
 
-Fill `prompts/agents/invocation_templates/pm_invocation.md` and print:
+Fill `prompts/agents/invocation_templates/pm_invocation.md`. Set context to: which WIs were just created, what triggered the planning pass (blocker, split request, or new PRD), and which existing WIs in `done/` or `ready/` are now relevant dependencies. Print one block:
 
 ```text
 Paste this into a FRESH PM Agent session (new chat / new Codex session):
-```
 
-Followed by the filled prompt. Set context to: which WIs were just created, what triggered the planning pass (blocker, split request, or new PRD), and which existing WIs in `done/` or `ready/` are now relevant dependencies.
+[complete filled pm_invocation.md content with all placeholders replaced]
+```
 
 ### If you hit a stop condition
 
-Print:
+Print one block:
 
 ```text
 BLOCKED — action required before decomposition:
-```
 
-Followed by the exact blocker (missing ADR, ambiguous PRD, unapproved cross-boundary work) and the owner (PM / PRD/spec / human).
+Blocker: [missing ADR / ambiguous PRD / unapproved cross-boundary work]
+Owner: [PM / PRD/spec / human]
+```

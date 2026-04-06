@@ -132,34 +132,37 @@ A well-formed PRD or specification should contain:
 
 ## Handoff output
 
-After completing the PRD or specification, produce a handoff prompt so the operator can move immediately to the next relay step.
+After completing the PRD or specification, print a single copy-paste-ready block for the operator. The block must contain the header line and the complete filled prompt together — do not split them into separate blocks.
 
 ### If the PRD is new and needs decomposition into work items
 
-Fill `prompts/agents/invocation_templates/issue_planner_invocation.md` and print:
+Fill `prompts/agents/invocation_templates/issue_planner_invocation.md`. Set context to: the PRD just written, what capability it covers, and any sequencing constraints from the issue decomposition guidance section. Print one block:
 
 ```text
 Paste this into a FRESH Issue Planner Agent session (new chat / new Codex session):
-```
 
-Followed by the filled prompt. Set context to: the PRD just written, what capability it covers, and any sequencing constraints already visible from the issue decomposition guidance section.
+[complete filled issue_planner_invocation.md content with all placeholders replaced]
+```
 
 ### If the PRD fills a gap in an existing WI (blocking WI now unblocked)
 
-Fill `prompts/agents/invocation_templates/pm_invocation.md` and print:
+Fill `prompts/agents/invocation_templates/pm_invocation.md`. Set context to: which WI was blocked, which PRD gap was just resolved, and the task "Reassess whether [WI-ID] is now coding-ready." Print one block:
 
 ```text
 Paste this into a FRESH PM Agent session (new chat / new Codex session):
-```
 
-Followed by the filled prompt. Set context to: which WI was blocked, which PRD gap was just resolved, and the task "Reassess whether [WI-ID] is now coding-ready."
+[complete filled pm_invocation.md content with all placeholders replaced]
+```
 
 ### If open questions remain that require human or architecture input
 
-Print:
+Print one block:
 
 ```text
 BLOCKED — open questions require resolution before coding:
-```
 
-Followed by each open question, its owner (human / PM / ADR), and the impact on downstream work items if left unresolved.
+[For each open question:]
+Question: [question]
+Owner: [human / PM / ADR]
+Impact if unresolved: [which downstream WIs are blocked and why]
+```

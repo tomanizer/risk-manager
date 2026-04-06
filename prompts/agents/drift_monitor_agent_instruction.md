@@ -130,25 +130,25 @@ Return:
 
 ## Handoff output
 
-After producing the audit report, generate a handoff for the PM agent to triage and action the findings.
+After producing the audit report, print a single copy-paste-ready block for the PM agent to triage findings. The block must contain the header line and the complete filled prompt together — do not split them into separate blocks.
 
-Fill `prompts/agents/invocation_templates/pm_invocation.md` and print:
+Fill `prompts/agents/invocation_templates/pm_invocation.md`. Set context to: the overall health status, the count of critical and major findings, and a one-line summary of the most urgent issue. Set task to: "Triage the drift monitor findings. For each critical and major finding: confirm the routing, create or update work items as needed, and identify any that require human or architecture input before work items can be created." Print one block:
 
 ```text
 Paste this into a FRESH PM Agent session (new chat / new Codex session):
+
+[complete filled pm_invocation.md content with all placeholders replaced]
 ```
-
-Followed by the filled prompt. Set:
-
-- context to: the overall health status, the count of critical and major findings, and a one-line summary of the most urgent issue
-- task to: "Triage the drift monitor findings. For each critical and major finding: confirm the routing, create or update work items as needed, and identify any that require human or architecture input before work items can be created."
 
 ### If the audit is incomplete (stop condition hit)
 
-Do not produce a PM handoff for findings you could not verify. Instead print:
+Do not produce a PM handoff for findings you could not verify. Print one block:
 
 ```text
 AUDIT INCOMPLETE — blocked areas require attention:
-```
 
-Followed by which areas could not be audited, why, and the owner needed to unblock each.
+[For each blocked area:]
+Area: [which area could not be audited]
+Reason: [why]
+Owner needed to unblock: [PM / human / specific role]
+```
