@@ -522,7 +522,7 @@ def _partition_findings(
     raw_findings: list[object],
     baseline_entries: dict[tuple[str, str], DriftBaselineEntry],
 ) -> tuple[list[DriftSuiteFinding], list[DriftSuiteFinding]]:
-    today = date.today()
+    today = datetime.now(UTC).date()
     new_findings: list[DriftSuiteFinding] = []
     waived_findings: list[DriftSuiteFinding] = []
 

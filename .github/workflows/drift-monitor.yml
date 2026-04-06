@@ -200,6 +200,27 @@ jobs:
               return;
             }
 
+            const today = new Date().toISOString().slice(0, 10);
+            const workItemPath = `work_items/ready/drift-fix-${today}.md`;
+            const { owner, repo } = context.repo;
+
+            // Check if the work item already exists on the remote branch to avoid duplicate commits
+            let existingFileSha = null;
+            try {
+              const { data } = await github.rest.repos.getContent({ owner, repo, path: workItemPath, ref: "main" });
+              existingFileSha = data.sha;
+            } catch (err) {
+              if (err.status !== 404) {
+                core.warning(`Unexpected error checking for existing work item: ${err.message}`);
+                return;
+              }
+            }
+
+            if (existingFileSha !== null) {
+              core.notice(`Drift-fix work item already exists on main for ${today}. Skipping.`);
+              return;
+            }
+
             try {
               execSync(
                 `python scripts/drift/create_fix_workitem.py --report artifacts/drift/latest_report.json`,
@@ -210,17 +231,12 @@ jobs:
               return;
             }
 
-            const today = new Date().toISOString().slice(0, 10);
-            const workItemPath = `work_items/ready/drift-fix-${today}.md`;
             if (!fs.existsSync(workItemPath)) {
-              core.notice("No new work item file produced (may already exist).");
+              core.notice("Script did not produce a work item file (may have skipped for another reason).");
               return;
             }
 
             const content = fs.readFileSync(workItemPath, "utf8");
-            const { owner, repo } = context.repo;
-            const ref = (await github.rest.repos.getBranch({ owner, repo, branch: "main" })).data.commit.sha;
-
             await github.rest.repos.createOrUpdateFileContents({
               owner,
               repo,
@@ -249,13 +265,14 @@ jobs:
           if-no-files-found: error
 
   drift-synthesis:
-    # Weekly LLM synthesis pass — runs every Monday at 03:00 UTC after the nightly scan.
-    # Phase 2: appends a thematic summary comment to the open drift issue.
-    # Requires OPENAI_API_KEY (or equivalent) to be configured as a repository secret.
+    # LLM synthesis pass — Phase 2, not yet implemented.
+    # Runs after each successful scheduled scan (daily at 02:00 UTC).
+    # When implemented, this job will call the drift-monitor agent with
+    # latest_report.json as context and append a synthesis comment to the
+    # open drift issue. Requires OPENAI_API_KEY as a repository secret.
     if: >
       github.event_name == 'schedule' &&
-      needs.drift-suite.result == 'success' &&
-      github.event_name != 'pull_request'
+      needs.drift-suite.result == 'success'
     needs: drift-suite
     runs-on: ubuntu-latest
     permissions:

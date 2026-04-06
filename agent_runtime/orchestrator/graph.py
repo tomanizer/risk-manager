@@ -65,7 +65,11 @@ def _load_drift_state(repo_root: Path) -> tuple[int, str | None]:
         return 0, None
     try:
         payload = json.loads(report_path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            return 0, None
         findings = payload.get("findings", [])
+        if not isinstance(findings, list):
+            return 0, None
         critical_count = sum(1 for f in findings if isinstance(f, dict) and f.get("severity") == "critical")
     except (OSError, ValueError):
         return 0, None

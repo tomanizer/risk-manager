@@ -70,7 +70,14 @@ def main() -> int:
         return 1
 
     payload = json.loads(report_path.read_text(encoding="utf-8"))
-    all_findings: list[dict[str, object]] = payload.get("findings", [])
+    if not isinstance(payload, dict):
+        print(f"ERROR: Report at `{report_path}` is not a JSON object.", file=sys.stderr)
+        return 1
+    all_findings_raw = payload.get("findings", [])
+    if not isinstance(all_findings_raw, list):
+        print("ERROR: Report `findings` field is not a list.", file=sys.stderr)
+        return 1
+    all_findings: list[dict[str, object]] = [f for f in all_findings_raw if isinstance(f, dict)]
 
     remediable = [f for f in all_findings if f.get("kind") in AUTO_REMEDIABLE_KINDS]
     if not remediable:

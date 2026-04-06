@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+from datetime import date
 import json
 from pathlib import Path
 import subprocess
 import sys
 
-from agent_runtime.drift.drift_suite import DriftSuiteReport, build_drift_suite_report, render_drift_suite_issue_body, _is_baseline_expired, DriftBaselineEntry
-from datetime import date
+from agent_runtime.drift.drift_suite import (
+    DriftBaselineEntry,
+    DriftSuiteReport,
+    _is_baseline_expired,
+    build_drift_suite_report,
+    render_drift_suite_issue_body,
+)
 
 
 def test_drift_suite_waives_findings_present_in_baseline(tmp_path: Path) -> None:
