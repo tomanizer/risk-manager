@@ -305,7 +305,7 @@ def render_drift_suite_issue_body(report: DriftSuiteReport) -> str:
             [
                 "## Baselined Findings",
                 "",
-                "These findings are still present but currently covered by `artifacts/drift/baseline.json`.",
+                f"These findings are still present but currently covered by `{report.baseline_path}`.",
                 "",
             ]
         )
