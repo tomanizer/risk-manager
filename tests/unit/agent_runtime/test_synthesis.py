@@ -175,4 +175,3 @@ def test_findings_not_truncated_below_limit(tmp_path: Path) -> None:
 
     assert len(parsed["findings"]) == max_limit - 1
     assert "_truncated" not in parsed
-

@@ -61,6 +61,7 @@ def _load_system_prompt(repo_root: Path) -> str:
 # Prompt assembly
 # ---------------------------------------------------------------------------
 
+
 def _truncate_report_for_prompt(report: dict) -> str:  # type: ignore[type-arg]
     """Serialise the report, capping findings at _MAX_FINDINGS_IN_PROMPT."""
     findings = report.get("findings", [])
@@ -117,6 +118,7 @@ def _assemble_user_message(surfaces: dict[str, str | None]) -> str:
 # Output rendering
 # ---------------------------------------------------------------------------
 
+
 def _render_output(llm_content: str, model: str, new_findings: int, waived_findings: int) -> str:
     today = datetime.now(timezone.utc).date().isoformat()
     return (
@@ -132,6 +134,7 @@ def _render_output(llm_content: str, model: str, new_findings: int, waived_findi
 # ---------------------------------------------------------------------------
 # LLM call
 # ---------------------------------------------------------------------------
+
 
 def _call_openai(system_prompt: str, user_message: str, model: str) -> str:
     try:
@@ -157,6 +160,7 @@ def _call_openai(system_prompt: str, user_message: str, model: str) -> str:
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run LLM drift synthesis against the latest deterministic report.")
