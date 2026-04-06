@@ -20,6 +20,28 @@ Before doing anything else, print this exact line so the user knows the skill is
 [deliver-wi] Skill active. Finding next work item and building agent prompt...
 ```
 
+## Step 0 — Handle a just-merged PR (short-circuit)
+
+If the user says something like "PR #X is merged", "PR for WI-X.Y.Z was merged", or "just merged PR #X":
+
+1. Identify the WI from what the user said or by checking recent PRs with `gh pr list --state merged --limit 5`.
+2. Confirm the WI file exists at `work_items/ready/<WI-ID>-*.md`.
+3. Promote it:
+
+```bash
+git fetch origin && git switch main && git pull --ff-only origin main
+git checkout -b chore/promote-<WI-ID>-done
+git mv work_items/ready/<WI-ID>-*.md work_items/done/
+git add work_items/
+git commit -m "chore: promote <WI-ID> to done"
+git push -u origin chore/promote-<WI-ID>-done
+gh pr create --title "chore: promote <WI-ID> to done" --body "WI completed and merged in PR #[PR number]. Moving from ready/ to done/."
+```
+
+4. Tell the user the promotion PR was opened, then continue to Step 1 to find the next work item.
+
+Do not skip the promotion PR — branch protection requires it.
+
 ## Step 1 — Identify the work item
 
 If the user named a specific WI, use it. Otherwise:
