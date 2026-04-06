@@ -3,27 +3,17 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 import subprocess
 import tempfile
 
 from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 
-CODING_BACKEND_ENV = "AGENT_RUNTIME_CODING_BACKEND"
-CODING_CODEX_BIN_ENV = "AGENT_RUNTIME_CODING_CODEX_BIN"
-CODING_CODEX_MODEL_ENV = "AGENT_RUNTIME_CODING_CODEX_MODEL"
-CODING_BACKEND_PREPARED = "prepared"
-CODING_BACKEND_CODEX_EXEC = "codex_exec"
-_ALLOWED_CODING_DECISIONS = {
+ALLOWED_CODING_DECISIONS = {
     "COMPLETED": "completed",
     "BLOCKED": "blocked",
     "NEEDS_PM": "needs_pm",
 }
-
-
-def get_coding_backend_name() -> str:
-    return os.getenv(CODING_BACKEND_ENV, CODING_BACKEND_CODEX_EXEC).strip().lower() or CODING_BACKEND_CODEX_EXEC
 
 
 def dispatch_prepared_coding_execution(execution: RunnerExecution) -> RunnerResult:
@@ -37,7 +27,12 @@ def dispatch_prepared_coding_execution(execution: RunnerExecution) -> RunnerResu
     )
 
 
-def dispatch_codex_coding_execution(execution: RunnerExecution) -> RunnerResult:
+def dispatch_codex_coding_execution(
+    execution: RunnerExecution,
+    *,
+    codex_bin: str = "codex",
+    model: str | None = None,
+) -> RunnerResult:
     if execution.runner_name is not RunnerName.CODING:
         raise RuntimeError("Codex coding backend received a non-coding runner execution")
 
@@ -52,8 +47,6 @@ def dispatch_codex_coding_execution(execution: RunnerExecution) -> RunnerResult:
             details=dict(execution.metadata),
         )
 
-    codex_bin = os.getenv(CODING_CODEX_BIN_ENV, "codex")
-    model = os.getenv(CODING_CODEX_MODEL_ENV)
     backend_prompt = _build_codex_coding_prompt(execution.prompt)
 
     with tempfile.TemporaryDirectory(prefix="agent-runtime-coding-") as temp_dir:
@@ -134,7 +127,7 @@ def dispatch_codex_coding_execution(execution: RunnerExecution) -> RunnerResult:
             prompt=execution.prompt,
             details=dict(execution.metadata),
         )
-    normalized_decision = _ALLOWED_CODING_DECISIONS.get(decision_value.upper())
+    normalized_decision = ALLOWED_CODING_DECISIONS.get(decision_value.upper())
     if normalized_decision is None:
         return RunnerResult(
             runner_name=execution.runner_name,
@@ -165,7 +158,7 @@ def dispatch_codex_coding_execution(execution: RunnerExecution) -> RunnerResult:
         prompt=execution.prompt,
         details={
             **execution.metadata,
-            "coding_backend": CODING_BACKEND_CODEX_EXEC,
+            "coding_backend": "codex_exec",
         },
         outcome_status=normalized_decision,
         outcome_summary=summary_value,

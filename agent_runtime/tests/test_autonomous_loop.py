@@ -4,7 +4,7 @@ Covers:
 - _runner_timeout_seconds helper
 - _dispatch_with_timeout (timeout path)
 - exception safety in the dispatch wrapper
-- codex_exec as default backend for all 4 runners
+- config-driven backend selection for all 4 runner roles
 """
 
 from __future__ import annotations
@@ -14,17 +14,15 @@ from pathlib import Path
 from unittest.mock import patch
 
 from agent_runtime.config.defaults import RuntimeDefaults
+from agent_runtime.config.settings import AgentRuntimeConfig, get_settings
 from agent_runtime.orchestrator.graph import _dispatch_with_timeout, _runner_timeout_seconds
 from agent_runtime.runners.contracts import (
+    BackendType,
     RunnerDispatchStatus,
     RunnerExecution,
     RunnerName,
     RunnerResult,
 )
-from agent_runtime.runners.coding_backend import CODING_BACKEND_CODEX_EXEC, get_coding_backend_name
-from agent_runtime.runners.pm_backend import PM_BACKEND_CODEX_EXEC, get_pm_backend_name
-from agent_runtime.runners.review_backend import REVIEW_BACKEND_CODEX_EXEC, get_review_backend_name
-from agent_runtime.runners.spec_backend import SPEC_BACKEND_CODEX_EXEC, get_spec_backend_name
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -41,32 +39,38 @@ def _defaults(**overrides: object) -> RuntimeDefaults:
     return RuntimeDefaults(**kwargs)  # type: ignore[arg-type]
 
 
-# --- Default backend tests ---
+# --- Default backend tests (via pydantic config) ---
 
 
-def test_coding_backend_defaults_to_codex_exec() -> None:
-    with patch.dict("os.environ", {}, clear=True):
-        assert get_coding_backend_name() == CODING_BACKEND_CODEX_EXEC
+def test_all_roles_default_to_prepared() -> None:
+    cfg = AgentRuntimeConfig()
+    for role in ("pm", "review", "coding", "spec"):
+        assert cfg.get_role_backend(role) == BackendType.PREPARED
 
 
-def test_pm_backend_defaults_to_codex_exec() -> None:
-    with patch.dict("os.environ", {}, clear=True):
-        assert get_pm_backend_name() == PM_BACKEND_CODEX_EXEC
+def test_backend_override_via_env_var() -> None:
+    with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "codex_exec"}, clear=False):
+        get_settings.cache_clear()
+        try:
+            cfg = get_settings().agent_runtime
+            assert cfg.get_role_backend("coding") == BackendType.CODEX_EXEC
+        finally:
+            get_settings.cache_clear()
 
 
-def test_review_backend_defaults_to_codex_exec() -> None:
-    with patch.dict("os.environ", {}, clear=True):
-        assert get_review_backend_name() == REVIEW_BACKEND_CODEX_EXEC
+def test_get_role_model_returns_correct_model_per_backend() -> None:
+    cfg = AgentRuntimeConfig()
+    assert cfg.get_role_model("pm", BackendType.CODEX_EXEC) == "gpt-5"
+    assert cfg.get_role_model("pm", BackendType.OPENAI_API) == "gpt-4o"
+    assert cfg.get_role_model("pm", BackendType.ANTHROPIC_API) == "claude-sonnet-4-20250514"
+    assert cfg.get_role_model("pm", BackendType.CURSOR_API) == "cursor-fast"
+    assert cfg.get_role_model("pm", BackendType.PREPARED) == ""
 
 
-def test_spec_backend_defaults_to_codex_exec() -> None:
-    with patch.dict("os.environ", {}, clear=True):
-        assert get_spec_backend_name() == SPEC_BACKEND_CODEX_EXEC
-
-
-def test_prepared_override_via_env_var() -> None:
-    with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "prepared"}, clear=False):
-        assert get_coding_backend_name() == "prepared"
+def test_auto_merge_defaults_to_false() -> None:
+    cfg = AgentRuntimeConfig()
+    assert cfg.auto_merge is False
+    assert cfg.auto_promote_wi is False
 
 
 # --- _runner_timeout_seconds tests ---

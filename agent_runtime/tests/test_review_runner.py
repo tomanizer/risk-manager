@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 from unittest.mock import patch
 
+from agent_runtime.config.settings import get_settings
 from agent_runtime.runners.contracts import RunnerDispatchStatus, RunnerExecution, RunnerName
 from agent_runtime.runners.review_runner import dispatch_review_execution
 
@@ -20,7 +21,11 @@ def test_dispatch_review_execution_prepared_backend_when_explicitly_set() -> Non
     )
 
     with patch.dict("os.environ", {"AGENT_RUNTIME_REVIEW_BACKEND": "prepared"}, clear=False):
-        result = dispatch_review_execution(execution)
+        get_settings.cache_clear()
+        try:
+            result = dispatch_review_execution(execution)
+        finally:
+            get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.PREPARED
     assert result.outcome_status is None
@@ -63,8 +68,12 @@ def test_dispatch_review_execution_codex_backend_returns_completed_outcome() -> 
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
     with patch.dict("os.environ", {"AGENT_RUNTIME_REVIEW_BACKEND": "codex_exec"}, clear=False):
-        with patch("agent_runtime.runners.review_backend.subprocess.run", side_effect=fake_run):
-            result = dispatch_review_execution(execution)
+        get_settings.cache_clear()
+        try:
+            with patch("agent_runtime.runners.review_backend.subprocess.run", side_effect=fake_run):
+                result = dispatch_review_execution(execution)
+        finally:
+            get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.COMPLETED
     assert result.outcome_status == "changes_requested"
@@ -105,8 +114,12 @@ def test_dispatch_review_execution_codex_backend_rejects_non_string_details() ->
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
     with patch.dict("os.environ", {"AGENT_RUNTIME_REVIEW_BACKEND": "codex_exec"}, clear=False):
-        with patch("agent_runtime.runners.review_backend.subprocess.run", side_effect=fake_run):
-            result = dispatch_review_execution(execution)
+        get_settings.cache_clear()
+        try:
+            with patch("agent_runtime.runners.review_backend.subprocess.run", side_effect=fake_run):
+                result = dispatch_review_execution(execution)
+        finally:
+            get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.FAILED
     assert result.outcome_status is None
@@ -136,8 +149,12 @@ def test_dispatch_review_execution_codex_backend_rejects_non_object_payload() ->
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
     with patch.dict("os.environ", {"AGENT_RUNTIME_REVIEW_BACKEND": "codex_exec"}, clear=False):
-        with patch("agent_runtime.runners.review_backend.subprocess.run", side_effect=fake_run):
-            result = dispatch_review_execution(execution)
+        get_settings.cache_clear()
+        try:
+            with patch("agent_runtime.runners.review_backend.subprocess.run", side_effect=fake_run):
+                result = dispatch_review_execution(execution)
+        finally:
+            get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.FAILED
     assert result.outcome_status is None
@@ -145,15 +162,15 @@ def test_dispatch_review_execution_codex_backend_rejects_non_object_payload() ->
 
 
 def test_dispatch_review_execution_rejects_unknown_backend() -> None:
-    execution = RunnerExecution(
-        runner_name=RunnerName.REVIEW,
-        work_item_id="WI-1.1.4-risk-summary-core-service",
-        prompt="Act only as the review agent.",
-        metadata={"pr_number": "71"},
-    )
+    """Pydantic validation rejects unknown BackendType values at config time."""
+    from pydantic import ValidationError
+    from agent_runtime.config.settings import AgentRuntimeConfig
 
     with patch.dict("os.environ", {"AGENT_RUNTIME_REVIEW_BACKEND": "unknown"}, clear=False):
-        result = dispatch_review_execution(execution)
-
-    assert result.status is RunnerDispatchStatus.FAILED
-    assert "Unsupported review backend configured" in result.summary
+        raised = False
+        try:
+            AgentRuntimeConfig()
+        except ValidationError as exc:
+            raised = True
+            assert "review_backend" in str(exc)
+        assert raised, "Expected ValidationError for unknown BackendType"

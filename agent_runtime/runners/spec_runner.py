@@ -5,15 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
+from agent_runtime.config.settings import get_settings
+
+from .contracts import BackendType, RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 from .prompt_loader import load_system_prompt
-from .spec_backend import (
-    SPEC_BACKEND_CODEX_EXEC,
-    SPEC_BACKEND_PREPARED,
-    dispatch_codex_spec_execution,
-    dispatch_prepared_spec_execution,
-    get_spec_backend_name,
-)
+from .spec_backend import dispatch_codex_spec_execution, dispatch_prepared_spec_execution
 
 
 @dataclass(frozen=True)
@@ -66,16 +62,21 @@ def dispatch_spec_execution(execution: RunnerExecution) -> RunnerResult:
     """Dispatch through the configured spec backend."""
     if execution.runner_name is not RunnerName.SPEC:
         raise RuntimeError("Spec dispatch received a non-spec runner execution")
-    backend_name = get_spec_backend_name()
-    if backend_name == SPEC_BACKEND_PREPARED:
+    cfg = get_settings().agent_runtime
+    backend = cfg.get_role_backend("spec")
+    if backend == BackendType.PREPARED:
         return dispatch_prepared_spec_execution(execution)
-    if backend_name == SPEC_BACKEND_CODEX_EXEC:
-        return dispatch_codex_spec_execution(execution)
+    if backend == BackendType.CODEX_EXEC:
+        return dispatch_codex_spec_execution(
+            execution,
+            codex_bin=cfg.get_role_codex_bin("spec"),
+            model=cfg.get_role_model("spec", backend),
+        )
     return RunnerResult(
         runner_name=execution.runner_name,
         work_item_id=execution.work_item_id,
         status=RunnerDispatchStatus.FAILED,
-        summary=f"Unsupported spec backend configured: {backend_name}",
+        summary=f"Unsupported spec backend configured: {backend.value}",
         prompt=execution.prompt,
         details=dict(execution.metadata),
     )

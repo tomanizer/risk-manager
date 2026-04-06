@@ -3,28 +3,18 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 import subprocess
 import tempfile
 
 from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 
-PM_BACKEND_ENV = "AGENT_RUNTIME_PM_BACKEND"
-PM_CODEX_BIN_ENV = "AGENT_RUNTIME_PM_CODEX_BIN"
-PM_CODEX_MODEL_ENV = "AGENT_RUNTIME_PM_CODEX_MODEL"
-PM_BACKEND_PREPARED = "prepared"
-PM_BACKEND_CODEX_EXEC = "codex_exec"
-_ALLOWED_PM_DECISIONS = {
+ALLOWED_PM_DECISIONS = {
     "READY": "ready",
     "BLOCKED": "blocked",
     "SPLIT_REQUIRED": "split_required",
     "SPEC_REQUIRED": "spec_required",
 }
-
-
-def get_pm_backend_name() -> str:
-    return os.getenv(PM_BACKEND_ENV, PM_BACKEND_CODEX_EXEC).strip().lower() or PM_BACKEND_CODEX_EXEC
 
 
 def dispatch_prepared_pm_execution(execution: RunnerExecution) -> RunnerResult:
@@ -38,7 +28,12 @@ def dispatch_prepared_pm_execution(execution: RunnerExecution) -> RunnerResult:
     )
 
 
-def dispatch_codex_pm_execution(execution: RunnerExecution) -> RunnerResult:
+def dispatch_codex_pm_execution(
+    execution: RunnerExecution,
+    *,
+    codex_bin: str = "codex",
+    model: str | None = None,
+) -> RunnerResult:
     if execution.runner_name is not RunnerName.PM:
         raise RuntimeError("Codex PM backend received a non-PM runner execution")
 
@@ -53,8 +48,6 @@ def dispatch_codex_pm_execution(execution: RunnerExecution) -> RunnerResult:
             details=dict(execution.metadata),
         )
 
-    codex_bin = os.getenv(PM_CODEX_BIN_ENV, "codex")
-    model = os.getenv(PM_CODEX_MODEL_ENV)
     backend_prompt = _build_codex_pm_prompt(execution.prompt)
 
     with tempfile.TemporaryDirectory(prefix="agent-runtime-pm-") as temp_dir:
@@ -132,7 +125,7 @@ def dispatch_codex_pm_execution(execution: RunnerExecution) -> RunnerResult:
             prompt=execution.prompt,
             details=dict(execution.metadata),
         )
-    normalized_decision = _ALLOWED_PM_DECISIONS.get(decision_value.upper())
+    normalized_decision = ALLOWED_PM_DECISIONS.get(decision_value.upper())
     if normalized_decision is None:
         return RunnerResult(
             runner_name=execution.runner_name,
@@ -182,7 +175,7 @@ def dispatch_codex_pm_execution(execution: RunnerExecution) -> RunnerResult:
         prompt=execution.prompt,
         details={
             **execution.metadata,
-            "pm_backend": PM_BACKEND_CODEX_EXEC,
+            "pm_backend": "codex_exec",
         },
         outcome_status=normalized_decision,
         outcome_summary=summary_value,

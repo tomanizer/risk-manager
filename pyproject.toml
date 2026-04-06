@@ -25,6 +25,10 @@ telemetry = [
     "opentelemetry-exporter-prometheus>=0.61b0,<1",
     "structlog>=25,<26",
 ]
+sdk = [
+    "openai>=1.0,<2.0",
+    "anthropic>=0.40,<1.0",
+]
 compute = [
     "numpy==2.4.4",
     "scipy==1.17.1",
@@ -59,7 +63,7 @@ warn_required_dynamic_aliases = true
 # All imports are guarded by try/except ImportError so runtime behaviour is
 # unaffected when these packages are absent.
 [[tool.mypy.overrides]]
-module = ["opentelemetry.*", "structlog", "langgraph.*", "langchain_core.*"]
+module = ["opentelemetry.*", "structlog", "langgraph.*", "langchain_core.*", "openai.*", "anthropic.*"]
 ignore_missing_imports = true
 
 [tool.setuptools.packages.find]

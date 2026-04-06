@@ -21,6 +21,10 @@ from pathlib import Path
 from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from agent_runtime.backend_type import BackendType
+
+__all__ = ["BackendType"]
+
 # Resolve the .env file relative to this file's location so the config works
 # regardless of the current working directory when the runtime is invoked.
 _REPO_ROOT = Path(__file__).parent.parent.parent
@@ -179,6 +183,11 @@ class AgentRuntimeConfig(BaseSettings):
 
     These mirror the ``AGENT_RUNTIME_*`` env vars documented in
     ``agent_runtime/README.md``.
+
+    Each role (pm, review, coding, spec) has its own backend selector
+    and per-provider model overrides.  Env vars follow the flat pattern
+    ``AGENT_RUNTIME_{ROLE}_{FIELD}`` so that existing ``.env`` files
+    continue to work without nesting.
     """
 
     model_config = SettingsConfigDict(
@@ -188,20 +197,66 @@ class AgentRuntimeConfig(BaseSettings):
         extra="ignore",
     )
 
-    pm_backend: str = "prepared"
+    # -- PM --
+    pm_backend: BackendType = BackendType.PREPARED
     pm_codex_bin: str = "codex"
     pm_codex_model: str = "gpt-5"
+    pm_openai_model: str = "gpt-4o"
+    pm_anthropic_model: str = "claude-sonnet-4-20250514"
+    pm_cursor_model: str = "cursor-fast"
 
-    review_backend: str = "prepared"
+    # -- Review --
+    review_backend: BackendType = BackendType.PREPARED
     review_codex_bin: str = "codex"
     review_codex_model: str = "gpt-5"
+    review_openai_model: str = "gpt-4o"
+    review_anthropic_model: str = "claude-sonnet-4-20250514"
+    review_cursor_model: str = "cursor-fast"
 
-    coding_backend: str = "prepared"
+    # -- Coding --
+    coding_backend: BackendType = BackendType.PREPARED
     coding_codex_bin: str = "codex"
     coding_codex_model: str = "gpt-5"
+    coding_openai_model: str = "gpt-4o"
+    coding_anthropic_model: str = "claude-sonnet-4-20250514"
+    coding_cursor_model: str = "cursor-fast"
+    coding_tool_max_iterations: int = 50
 
+    # -- Spec --
+    spec_backend: BackendType = BackendType.PREPARED
+    spec_codex_bin: str = "codex"
+    spec_codex_model: str = "gpt-5"
+    spec_openai_model: str = "gpt-4o"
+    spec_anthropic_model: str = "claude-sonnet-4-20250514"
+    spec_cursor_model: str = "cursor-fast"
+
+    # -- PR publication --
     coding_pr_backend: str | None = None
     coding_pr_title_prefix: str = "[codex]"
+
+    # -- Autonomy gates --
+    auto_merge: bool = False
+    auto_promote_wi: bool = False
+
+    def get_role_backend(self, role: str) -> BackendType:
+        """Return the BackendType for a given role name (pm, review, coding, spec)."""
+        return getattr(self, f"{role}_backend")  # type: ignore[no-any-return]
+
+    def get_role_model(self, role: str, backend: BackendType) -> str:
+        """Return the model string for a role+backend combination."""
+        if backend == BackendType.CODEX_EXEC:
+            return getattr(self, f"{role}_codex_model")  # type: ignore[no-any-return]
+        if backend == BackendType.OPENAI_API:
+            return getattr(self, f"{role}_openai_model")  # type: ignore[no-any-return]
+        if backend == BackendType.ANTHROPIC_API:
+            return getattr(self, f"{role}_anthropic_model")  # type: ignore[no-any-return]
+        if backend == BackendType.CURSOR_API:
+            return getattr(self, f"{role}_cursor_model")  # type: ignore[no-any-return]
+        return ""
+
+    def get_role_codex_bin(self, role: str) -> str:
+        """Return the codex binary path for a given role."""
+        return getattr(self, f"{role}_codex_bin")  # type: ignore[no-any-return]
 
 
 # ---------------------------------------------------------------------------

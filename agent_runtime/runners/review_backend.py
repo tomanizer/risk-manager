@@ -3,27 +3,17 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 import subprocess
 import tempfile
 
 from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 
-REVIEW_BACKEND_ENV = "AGENT_RUNTIME_REVIEW_BACKEND"
-REVIEW_CODEX_BIN_ENV = "AGENT_RUNTIME_REVIEW_CODEX_BIN"
-REVIEW_CODEX_MODEL_ENV = "AGENT_RUNTIME_REVIEW_CODEX_MODEL"
-REVIEW_BACKEND_PREPARED = "prepared"
-REVIEW_BACKEND_CODEX_EXEC = "codex_exec"
-_ALLOWED_REVIEW_DECISIONS = {
+ALLOWED_REVIEW_DECISIONS = {
     "PASS": "pass",
     "CHANGES_REQUESTED": "changes_requested",
     "BLOCKED": "blocked",
 }
-
-
-def get_review_backend_name() -> str:
-    return os.getenv(REVIEW_BACKEND_ENV, REVIEW_BACKEND_CODEX_EXEC).strip().lower() or REVIEW_BACKEND_CODEX_EXEC
 
 
 def dispatch_prepared_review_execution(execution: RunnerExecution) -> RunnerResult:
@@ -37,7 +27,12 @@ def dispatch_prepared_review_execution(execution: RunnerExecution) -> RunnerResu
     )
 
 
-def dispatch_codex_review_execution(execution: RunnerExecution) -> RunnerResult:
+def dispatch_codex_review_execution(
+    execution: RunnerExecution,
+    *,
+    codex_bin: str = "codex",
+    model: str | None = None,
+) -> RunnerResult:
     if execution.runner_name is not RunnerName.REVIEW:
         raise RuntimeError("Codex review backend received a non-review runner execution")
 
@@ -52,8 +47,6 @@ def dispatch_codex_review_execution(execution: RunnerExecution) -> RunnerResult:
             details=dict(execution.metadata),
         )
 
-    codex_bin = os.getenv(REVIEW_CODEX_BIN_ENV, "codex")
-    model = os.getenv(REVIEW_CODEX_MODEL_ENV)
     backend_prompt = _build_codex_review_prompt(execution.prompt)
 
     with tempfile.TemporaryDirectory(prefix="agent-runtime-review-") as temp_dir:
@@ -133,7 +126,7 @@ def dispatch_codex_review_execution(execution: RunnerExecution) -> RunnerResult:
             prompt=execution.prompt,
             details=dict(execution.metadata),
         )
-    normalized_decision = _ALLOWED_REVIEW_DECISIONS.get(decision_value.upper())
+    normalized_decision = ALLOWED_REVIEW_DECISIONS.get(decision_value.upper())
     if normalized_decision is None:
         return RunnerResult(
             runner_name=execution.runner_name,
@@ -183,7 +176,7 @@ def dispatch_codex_review_execution(execution: RunnerExecution) -> RunnerResult:
         prompt=execution.prompt,
         details={
             **execution.metadata,
-            "review_backend": REVIEW_BACKEND_CODEX_EXEC,
+            "review_backend": "codex_exec",
         },
         outcome_status=normalized_decision,
         outcome_summary=summary_value,

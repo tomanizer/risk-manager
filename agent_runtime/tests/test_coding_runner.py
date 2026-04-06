@@ -7,6 +7,7 @@ from pathlib import Path
 import subprocess
 from unittest.mock import patch
 
+from agent_runtime.config.settings import get_settings
 from agent_runtime.runners.coding_runner import dispatch_coding_execution
 from agent_runtime.runners.contracts import RunnerDispatchStatus, RunnerExecution, RunnerName
 
@@ -20,7 +21,11 @@ def test_dispatch_coding_execution_prepared_backend_when_explicitly_set() -> Non
     )
 
     with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "prepared"}, clear=False):
-        result = dispatch_coding_execution(execution)
+        get_settings.cache_clear()
+        try:
+            result = dispatch_coding_execution(execution)
+        finally:
+            get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.PREPARED
     assert result.outcome_status is None
@@ -65,8 +70,12 @@ def test_dispatch_coding_execution_codex_backend_returns_completed_outcome() -> 
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
     with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "codex_exec"}, clear=False):
-        with patch("agent_runtime.runners.coding_backend.subprocess.run", side_effect=fake_run):
-            result = dispatch_coding_execution(execution)
+        get_settings.cache_clear()
+        try:
+            with patch("agent_runtime.runners.coding_backend.subprocess.run", side_effect=fake_run):
+                result = dispatch_coding_execution(execution)
+        finally:
+            get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.COMPLETED
     assert result.outcome_status == "completed"
@@ -107,8 +116,12 @@ def test_dispatch_coding_execution_codex_backend_rejects_non_string_details() ->
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
     with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "codex_exec"}, clear=False):
-        with patch("agent_runtime.runners.coding_backend.subprocess.run", side_effect=fake_run):
-            result = dispatch_coding_execution(execution)
+        get_settings.cache_clear()
+        try:
+            with patch("agent_runtime.runners.coding_backend.subprocess.run", side_effect=fake_run):
+                result = dispatch_coding_execution(execution)
+        finally:
+            get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.FAILED
     assert result.outcome_status is None
@@ -138,24 +151,28 @@ def test_dispatch_coding_execution_codex_backend_rejects_non_object_payload() ->
         return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
 
     with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "codex_exec"}, clear=False):
-        with patch("agent_runtime.runners.coding_backend.subprocess.run", side_effect=fake_run):
-            result = dispatch_coding_execution(execution)
+        get_settings.cache_clear()
+        try:
+            with patch("agent_runtime.runners.coding_backend.subprocess.run", side_effect=fake_run):
+                result = dispatch_coding_execution(execution)
+        finally:
+            get_settings.cache_clear()
 
     assert result.status is RunnerDispatchStatus.FAILED
     assert result.outcome_status is None
     assert "could not parse Codex output" in result.summary
 
 
-def test_dispatch_coding_execution_rejects_unknown_backend() -> None:
-    execution = RunnerExecution(
-        runner_name=RunnerName.CODING,
-        work_item_id="WI-1.1.4-risk-summary-core-service",
-        prompt="Act only as the coding agent.",
-        metadata={"target_path": "work_items/ready/WI-1.1.4-risk-summary-core-service.md"},
-    )
+def test_unknown_backend_value_rejected_by_config() -> None:
+    """Pydantic validation rejects unknown BackendType values at config time."""
+    from pydantic import ValidationError
+    from agent_runtime.config.settings import AgentRuntimeConfig
 
     with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "unknown"}, clear=False):
-        result = dispatch_coding_execution(execution)
-
-    assert result.status is RunnerDispatchStatus.FAILED
-    assert "Unsupported coding backend configured" in result.summary
+        raised = False
+        try:
+            AgentRuntimeConfig()
+        except ValidationError as exc:
+            raised = True
+            assert "coding_backend" in str(exc)
+        assert raised, "Expected ValidationError for unknown BackendType"
