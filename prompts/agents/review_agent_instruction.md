@@ -125,7 +125,27 @@ Return:
 
 ## Handoff output
 
-After completing your review, print a single copy-paste-ready block for the operator. The block must contain the header line and the complete content together — do not split them into separate blocks.
+### Step 1 — Work summary (print first, plain text, not copy-paste)
+
+Before printing the handoff block, print a plain-text work summary so the operator has a record of the review. This step applies to all output paths — PASS, CHANGES_REQUESTED, and BLOCKED. Use this structure:
+
+```text
+--- Review Work Summary ---
+PR reviewed    : <PR URL>
+WI             : <WI-ID> — <one-line title>
+Verdict        : PASS | CHANGES_REQUESTED | BLOCKED
+PRD fidelity   : <pass / partial / fail — one-line note>
+Scope boundary : <pass / violation — one-line note>
+CI status      : all passing | <list of failing checks>
+Bot comments   : <count resolved / count total>
+Human comments : <count resolved / count total>
+Key findings   : <bullet list — most important issues found or confirmed clean>
+--- end summary ---
+```
+
+### Step 2 — Handoff block (print after the summary)
+
+Print a single copy-paste-ready block for the operator. The block must contain the header line and the complete content together — do not split them into separate blocks.
 
 ### If PASS
 

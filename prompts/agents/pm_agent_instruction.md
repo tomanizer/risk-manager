@@ -123,7 +123,23 @@ In these cases, route the blocker to PRD/spec, ADR, issue planner, or human deci
 
 ## Handoff output
 
-After completing your assessment, print a single copy-paste-ready block for the operator to paste into a fresh agent session. The block must contain the header line and the complete filled prompt together — do not split them into separate blocks.
+### Step 1 — Work summary (print first, plain text, not copy-paste)
+
+Before printing the handoff block, print a plain-text work summary so the operator has a record of what you found. This step applies to all output paths — READY, BLOCKED, and SPLIT_REQUIRED. Use this structure:
+
+```text
+--- PM Work Summary ---
+WI assessed : <WI-ID> — <one-line title>
+Verdict     : READY | BLOCKED | SPLIT_REQUIRED
+Dependencies: <list any upstream WIs or docs consulted>
+Key findings: <bullet list — notable constraints, scope boundaries, sequencing decisions>
+Blockers    : <none, or exact blocker description and owner>
+--- end summary ---
+```
+
+### Step 2 — Handoff block (print after the summary)
+
+Print a single copy-paste-ready block for the operator to paste into a fresh agent session. The block must contain the header line and the complete filled prompt together — do not split them into separate blocks.
 
 ### If the work item is READY
 
