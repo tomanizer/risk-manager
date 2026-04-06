@@ -30,10 +30,25 @@ def test_surface_liveness_report_detects_legacy_import_in_active_code(tmp_path: 
 
     report = build_surface_liveness_report(tmp_path)
 
-    assert report.stats.findings_count == 1
-    finding = report.findings[0]
-    assert finding.kind == "active_code_imports_legacy_surface"
-    assert finding.related_path == "agent_runtime.legacy.dispatch"
+    legacy_findings = [f for f in report.findings if f.kind == "active_code_imports_legacy_surface"]
+    assert len(legacy_findings) >= 1
+    related_paths = {f.related_path for f in legacy_findings}
+    assert "agent_runtime.legacy.dispatch" in related_paths
+
+
+def test_surface_liveness_report_detects_legacy_import_via_from_import(tmp_path: Path) -> None:
+    _write_surface_liveness_repo(tmp_path)
+    pkg_dir = tmp_path / "agent_runtime" / "services"
+    pkg_dir.mkdir(parents=True, exist_ok=True)
+    (tmp_path / "agent_runtime" / "__init__.py").write_text("", encoding="utf-8")
+    (pkg_dir / "__init__.py").write_text("", encoding="utf-8")
+    (pkg_dir / "runner.py").write_text("from agent_runtime import legacy\n", encoding="utf-8")
+
+    report = build_surface_liveness_report(tmp_path)
+
+    legacy_findings = [f for f in report.findings if f.kind == "active_code_imports_legacy_surface"]
+    assert len(legacy_findings) == 1
+    assert legacy_findings[0].related_path == "agent_runtime.legacy"
 
 
 def test_surface_liveness_report_ignores_non_repo_entrypoints(tmp_path: Path) -> None:

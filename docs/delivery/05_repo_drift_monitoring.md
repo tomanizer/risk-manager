@@ -167,7 +167,7 @@ Does not check architectural correctness inside modules or whether implementatio
 
 Checks:
 - Active text surfaces referencing `python -m <module>` entrypoints that don't exist in the repo
-- Active code importing from legacy-marked repo surfaces (paths containing `archive`, `archived`, `deprecated`, or `legacy`)
+- Active code importing from legacy-marked repo surfaces (module path segments named `archive`, `archived`, `deprecated`, or `legacy`)
 
 Does not check whether a module entrypoint is the right design, whether non-legacy imports are architecturally correct, or orphaned module roots (covered by registry alignment).
 

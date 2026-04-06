@@ -231,8 +231,6 @@ def _is_active_text_surface(path: Path) -> bool:
         return False
     if path.parts[0] == "tests":
         return False
-    if path.parts[0] in {"agent_runtime", "src"} and path.name != "README.md":
-        return False
     return True
 
 
@@ -266,9 +264,11 @@ def _import_targets(tree: ast.AST, module_name: str) -> tuple[tuple[int, str], .
             for alias in node.names:
                 import_targets.append((node.lineno, alias.name))
         elif isinstance(node, ast.ImportFrom):
-            resolved = _resolve_import_from(module_name, node)
-            if resolved is not None:
-                import_targets.append((node.lineno, resolved))
+            base_module = _resolve_import_from(module_name, node)
+            if base_module is not None:
+                import_targets.append((node.lineno, base_module))
+                for alias in node.names:
+                    import_targets.append((node.lineno, f"{base_module}.{alias.name}"))
     return tuple(import_targets)
 
 
