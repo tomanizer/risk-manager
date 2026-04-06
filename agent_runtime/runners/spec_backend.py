@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 
-from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
+from .contracts import BackendType, RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 
 ALLOWED_SPEC_DECISIONS = {
     "CLARIFIED": "clarified",
@@ -156,7 +156,7 @@ def dispatch_codex_spec_execution(
         prompt=execution.prompt,
         details={
             **execution.metadata,
-            "spec_backend": "codex_exec",
+            "spec_backend": BackendType.CODEX_EXEC.value,
         },
         outcome_status=normalized_decision,
         outcome_summary=summary_value,

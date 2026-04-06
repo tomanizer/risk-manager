@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 
-from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
+from .contracts import BackendType, RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 
 ALLOWED_PM_DECISIONS = {
     "READY": "ready",
@@ -175,7 +175,7 @@ def dispatch_codex_pm_execution(
         prompt=execution.prompt,
         details={
             **execution.metadata,
-            "pm_backend": "codex_exec",
+            "pm_backend": BackendType.CODEX_EXEC.value,
         },
         outcome_status=normalized_decision,
         outcome_summary=summary_value,

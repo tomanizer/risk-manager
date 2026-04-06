@@ -7,7 +7,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 
-from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
+from .contracts import BackendType, RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 
 ALLOWED_REVIEW_DECISIONS = {
     "PASS": "pass",
@@ -176,7 +176,7 @@ def dispatch_codex_review_execution(
         prompt=execution.prompt,
         details={
             **execution.metadata,
-            "review_backend": "codex_exec",
+            "review_backend": BackendType.CODEX_EXEC.value,
         },
         outcome_status=normalized_decision,
         outcome_summary=summary_value,
