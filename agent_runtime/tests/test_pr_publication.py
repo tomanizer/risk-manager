@@ -113,6 +113,7 @@ def test_maybe_publish_completed_coding_run_reuses_existing_pr() -> None:
     responses = iter(
         [
             subprocess.CompletedProcess(["git"], 0, stdout="0 1\n", stderr=""),
+            subprocess.CompletedProcess(["git"], 0, stdout="", stderr=""),
             subprocess.CompletedProcess(
                 ["gh"],
                 0,

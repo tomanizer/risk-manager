@@ -95,13 +95,11 @@ def maybe_publish_completed_coding_run(
             },
         )
 
-    existing_pr = _find_open_pull_request(repo_root, repository.full_name, branch_name)
-    if existing_pr is not None:
+    push_error = _push_branch(Path(worktree_path), branch_name)
+    if push_error is not None:
         return PullRequestPublicationResult(
-            status="existing",
-            summary=f"Reused existing draft-ready PR #{existing_pr.pr_number} for {execution.work_item_id}.",
-            pr_number=existing_pr.pr_number,
-            pr_url=existing_pr.pr_url,
+            status="failed",
+            summary=f"Coding PR publication failed to push branch {branch_name}: {push_error}",
             details={
                 "pr_publication_backend": backend_name,
                 "branch_name": branch_name,
@@ -109,11 +107,13 @@ def maybe_publish_completed_coding_run(
             },
         )
 
-    push_error = _push_branch(Path(worktree_path), branch_name)
-    if push_error is not None:
+    existing_pr = _find_open_pull_request(repo_root, repository.full_name, branch_name)
+    if existing_pr is not None:
         return PullRequestPublicationResult(
-            status="failed",
-            summary=f"Coding PR publication failed to push branch {branch_name}: {push_error}",
+            status="existing",
+            summary=f"Reused existing draft-ready PR #{existing_pr.pr_number} for {execution.work_item_id}.",
+            pr_number=existing_pr.pr_number,
+            pr_url=existing_pr.pr_url,
             details={
                 "pr_publication_backend": backend_name,
                 "branch_name": branch_name,
