@@ -217,7 +217,7 @@ def main() -> int:
                         "details": dict(runner_result.details),
                         "outcome_status": runner_result.outcome_status,
                         "outcome_summary": runner_result.outcome_summary,
-                        "outcome_details": dict(runner_result.outcome_details),
+                        "outcome_details": runner_result.outcome_details,
                     }
                     if runner_result is not None
                     else existing_run.result

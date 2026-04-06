@@ -159,12 +159,12 @@ def dispatch_codex_pm_execution(execution: RunnerExecution) -> RunnerResult:
         summary=f"Completed PM assessment for {execution.work_item_id}.",
         prompt=execution.prompt,
         details={
-            **dict(execution.metadata),
+            **execution.metadata,
             "pm_backend": PM_BACKEND_CODEX_EXEC,
         },
         outcome_status=normalized_decision,
         outcome_summary=summary_value,
-        outcome_details={str(key): value for key, value in outcome_details.items()},
+        outcome_details=outcome_details,
     )
 
 
