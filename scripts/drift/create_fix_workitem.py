@@ -49,9 +49,7 @@ next coding run to prevent the relay from compounding known drift.
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Create a drift-fix work item when auto-remediable findings are present."
-    )
+    parser = argparse.ArgumentParser(description="Create a drift-fix work item when auto-remediable findings are present.")
     parser.add_argument("--report", required=True, help="Path to latest_report.json.")
     parser.add_argument("--output-dir", help="Directory for the work item. Defaults to `work_items/ready` under the repo root.")
     parser.add_argument("--dry-run", action="store_true", help="Print the work item without writing it.")
@@ -90,9 +88,7 @@ def main() -> int:
 
     findings_lines: list[str] = []
     for finding in remediable:
-        findings_lines.append(
-            f"- **{finding['kind']}** (`{finding['scan_name']}`): {finding['message']}"
-        )
+        findings_lines.append(f"- **{finding['kind']}** (`{finding['scan_name']}`): {finding['message']}")
     findings_section = "\n".join(findings_lines)
 
     content = WORK_ITEM_TEMPLATE.format(
