@@ -4,6 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .pm_backend import (
+    PM_BACKEND_CODEX_EXEC,
+    PM_BACKEND_PREPARED,
+    dispatch_codex_pm_execution,
+    dispatch_prepared_pm_execution,
+    get_pm_backend_name,
+)
 from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 
 
@@ -28,11 +35,16 @@ def build_pm_prompt(input_data: PMRunnerInput) -> str:
 def dispatch_pm_execution(execution: RunnerExecution) -> RunnerResult:
     if execution.runner_name is not RunnerName.PM:
         raise RuntimeError("PM dispatch received a non-PM runner execution")
+    backend_name = get_pm_backend_name()
+    if backend_name == PM_BACKEND_PREPARED:
+        return dispatch_prepared_pm_execution(execution)
+    if backend_name == PM_BACKEND_CODEX_EXEC:
+        return dispatch_codex_pm_execution(execution)
     return RunnerResult(
         runner_name=execution.runner_name,
         work_item_id=execution.work_item_id,
-        status=RunnerDispatchStatus.PREPARED,
-        summary=f"Prepared PM readiness handoff for {execution.work_item_id}.",
+        status=RunnerDispatchStatus.FAILED,
+        summary=f"Unsupported PM backend configured: {backend_name}",
         prompt=execution.prompt,
         details=dict(execution.metadata),
     )

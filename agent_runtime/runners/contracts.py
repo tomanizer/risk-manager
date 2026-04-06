@@ -15,6 +15,8 @@ class RunnerName(str, Enum):
 
 class RunnerDispatchStatus(str, Enum):
     PREPARED = "prepared"
+    COMPLETED = "completed"
+    FAILED = "failed"
 
 
 @dataclass(frozen=True)
@@ -33,3 +35,6 @@ class RunnerResult:
     summary: str
     prompt: str
     details: dict[str, str] = field(default_factory=dict)
+    outcome_status: str | None = None
+    outcome_summary: str | None = None
+    outcome_details: dict[str, str] = field(default_factory=dict)

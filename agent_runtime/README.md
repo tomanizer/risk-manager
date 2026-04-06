@@ -91,6 +91,24 @@ both the execution metadata and the runner result.
 The lease is intentionally kept active after dispatch so a later execution layer
 can continue from the same isolated checkout.
 
+By default the PM runner remains in manual `prepared` mode. You can opt in to
+the first real backend by setting:
+
+```bash
+export AGENT_RUNTIME_PM_BACKEND=codex_exec
+```
+
+Optional PM backend settings:
+
+```bash
+export AGENT_RUNTIME_PM_CODEX_BIN=codex
+export AGENT_RUNTIME_PM_CODEX_MODEL=gpt-5
+```
+
+When enabled, the PM runner uses `codex exec` in the allocated worktree,
+requests a structured PM assessment, and persists `ready`, `blocked`, or
+`split_required` automatically through the existing workflow outcome path.
+
 ## Record the real manual outcome
 
 ```bash

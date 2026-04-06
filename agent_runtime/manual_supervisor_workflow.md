@@ -38,6 +38,10 @@ Before real agent API integration lands, a human still does these steps:
 - inspect the result
 - record the reviewed outcome back into the runtime
 
+The first exception is the optional PM backend. If
+`AGENT_RUNTIME_PM_BACKEND=codex_exec` is set, the PM runner can execute
+automatically and persist its own structured outcome.
+
 ## End-to-end loop
 
 ### 1. Ask the runtime what should happen next

@@ -7,6 +7,7 @@ from pathlib import Path
 import sqlite3
 import tempfile
 from typing import Any
+from unittest.mock import patch
 
 from agent_runtime.orchestrator.github_sync import (
     _extract_pull_request_page,
@@ -669,12 +670,14 @@ def test_dispatch_runner_execution_returns_prepared_result() -> None:
     execution = build_runner_execution(snapshot, decision)
 
     assert execution is not None
-    result = dispatch_runner_execution(execution)
+    with patch.dict(os.environ, {"AGENT_RUNTIME_PM_BACKEND": "prepared"}, clear=False):
+        result = dispatch_runner_execution(execution)
 
     assert result.runner_name is RunnerName.PM
     assert result.status is RunnerDispatchStatus.PREPARED
     assert "Prepared PM readiness handoff" in result.summary
     assert result.details["target_path"].endswith("WI-1.1.4-risk-summary-core-service.md")
+    assert result.outcome_status is None
 
 
 def test_build_pull_request_snapshots_uses_exact_work_item_matching() -> None:
