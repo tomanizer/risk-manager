@@ -113,6 +113,37 @@ def test_dispatch_review_execution_codex_backend_rejects_non_string_details() ->
     assert "non-string detail entries" in result.summary
 
 
+def test_dispatch_review_execution_codex_backend_rejects_non_object_payload() -> None:
+    execution = RunnerExecution(
+        runner_name=RunnerName.REVIEW,
+        work_item_id="WI-1.1.4-risk-summary-core-service",
+        prompt="Act only as the review agent.",
+        metadata={
+            "pr_number": "71",
+            "worktree_path": "/tmp/runtime-review-worktree",
+        },
+    )
+
+    def fake_run(
+        command: list[str],
+        input: str,
+        capture_output: bool,
+        text: bool,
+        check: bool,
+    ) -> subprocess.CompletedProcess[str]:
+        output_path = Path(command[command.index("-o") + 1])
+        output_path.write_text(json.dumps(["not", "an", "object"]), encoding="utf-8")
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    with patch.dict("os.environ", {"AGENT_RUNTIME_REVIEW_BACKEND": "codex_exec"}, clear=False):
+        with patch("agent_runtime.runners.review_backend.subprocess.run", side_effect=fake_run):
+            result = dispatch_review_execution(execution)
+
+    assert result.status is RunnerDispatchStatus.FAILED
+    assert result.outcome_status is None
+    assert "could not parse Codex output" in result.summary
+
+
 def test_dispatch_review_execution_rejects_unknown_backend() -> None:
     execution = RunnerExecution(
         runner_name=RunnerName.REVIEW,

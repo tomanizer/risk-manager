@@ -109,7 +109,9 @@ def dispatch_codex_review_execution(execution: RunnerExecution) -> RunnerResult:
 
         try:
             payload = json.loads(output_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as error:
+            if not isinstance(payload, dict):
+                raise ValueError("Codex output is not a JSON object")
+        except (OSError, json.JSONDecodeError, ValueError) as error:
             return RunnerResult(
                 runner_name=execution.runner_name,
                 work_item_id=execution.work_item_id,

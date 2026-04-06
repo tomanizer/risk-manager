@@ -769,6 +769,46 @@ def test_completed_review_pass_routes_to_human_update_repo_when_pr_is_unchanged(
     assert decision.metadata["review_outcome_status"] == "pass"
 
 
+def test_completed_review_pass_uses_status_specific_fallback_reason() -> None:
+    snapshot = RuntimeSnapshot(
+        work_items=(
+            WorkItemSnapshot(
+                id="WI-1.1.4-risk-summary-core-service",
+                title="WI-1.1.4",
+                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
+                stage=WorkItemStage.READY,
+            ),
+        ),
+        pull_requests=(
+            PullRequestSnapshot(
+                work_item_id="WI-1.1.4-risk-summary-core-service",
+                number=71,
+                is_draft=False,
+                url="https://github.com/tomanizer/risk-manager/pull/71",
+                updated_at="2026-04-06T09:59:00Z",
+            ),
+        ),
+        workflow_runs=(
+            WorkflowRunRecord(
+                work_item_id="WI-1.1.4-risk-summary-core-service",
+                run_id="review-wi-1-1-4-test-run",
+                pr_number=71,
+                status="run_review",
+                last_action="run_review",
+                runner_name="review",
+                runner_status="completed",
+                outcome_status="pass",
+                outcome_summary=None,
+                completed_at="2026-04-06 10:00:00",
+            ),
+        ),
+    )
+
+    decision = decide_next_action(snapshot)
+
+    assert decision.reason == "latest review triage (pass) requires human attention"
+
+
 def test_completed_review_outcome_is_ignored_after_pr_changes() -> None:
     snapshot = RuntimeSnapshot(
         work_items=(
@@ -809,6 +849,46 @@ def test_completed_review_outcome_is_ignored_after_pr_changes() -> None:
     decision = decide_next_action(snapshot)
 
     assert decision.action is NextActionType.RUN_REVIEW
+
+
+def test_completed_review_outcome_accepts_fractional_second_pr_timestamp() -> None:
+    snapshot = RuntimeSnapshot(
+        work_items=(
+            WorkItemSnapshot(
+                id="WI-1.1.4-risk-summary-core-service",
+                title="WI-1.1.4",
+                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
+                stage=WorkItemStage.READY,
+            ),
+        ),
+        pull_requests=(
+            PullRequestSnapshot(
+                work_item_id="WI-1.1.4-risk-summary-core-service",
+                number=71,
+                is_draft=False,
+                url="https://github.com/tomanizer/risk-manager/pull/71",
+                updated_at="2026-04-06T09:59:00.123Z",
+            ),
+        ),
+        workflow_runs=(
+            WorkflowRunRecord(
+                work_item_id="WI-1.1.4-risk-summary-core-service",
+                run_id="review-wi-1-1-4-test-run",
+                pr_number=71,
+                status="run_review",
+                last_action="run_review",
+                runner_name="review",
+                runner_status="completed",
+                outcome_status="pass",
+                outcome_summary="No further code changes are required.",
+                completed_at="2026-04-06 10:00:00",
+            ),
+        ),
+    )
+
+    decision = decide_next_action(snapshot)
+
+    assert decision.action is NextActionType.HUMAN_UPDATE_REPO
 
 
 def test_build_pull_request_snapshots_uses_exact_work_item_matching() -> None:
