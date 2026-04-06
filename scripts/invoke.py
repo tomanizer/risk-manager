@@ -87,18 +87,22 @@ def _split_sections(text: str) -> dict[str, str]:
     sections: dict[str, str] = {}
     for i, (start, heading) in enumerate(headings):
         end = headings[i + 1][0] if i + 1 < len(headings) else len(text)
-        # body is everything after the heading line
-        body_start = text.index("\n", start) + 1
+        # body is everything after the heading line; find() avoids ValueError on trailing headings
+        nl = text.find("\n", start)
+        body_start = nl + 1 if nl != -1 else len(text)
         sections[heading.lower()] = text[body_start:end].strip()
     return sections
 
 
 def _extract_section(sections: dict[str, str], *keys: str) -> str:
-    """Return the first matching section body, or empty string."""
+    """Return the first matching section body, or empty string.
+
+    Uses exact heading lookup so that e.g. 'scope' does not match 'out of scope'.
+    """
     for k in keys:
-        for heading, body in sections.items():
-            if k.lower() in heading:
-                return body
+        body = sections.get(k.lower())
+        if body is not None:
+            return body
     return ""
 
 
@@ -147,8 +151,8 @@ class WorkItemInfo:
         self.raw = path.read_text(encoding="utf-8")
         self._sections = _split_sections(self.raw)
 
-        # Work item ID from the H1 heading
-        m = re.match(r"^#\s+(WI-\S+)", self.raw.strip())
+        # Work item ID from the H1 heading; re.search + MULTILINE handles files with front-matter
+        m = re.search(r"^#\s+(WI-\S+)", self.raw, re.MULTILINE)
         self.wi_id: str = m.group(1) if m else path.stem
 
         self.linked_prd_raw: str = _extract_section(self._sections, "linked prd")

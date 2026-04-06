@@ -37,7 +37,8 @@ def classify_loop_payload(
         return LoopControl(continue_polling=False, exit_code=0)
 
     status = str(runner_result.get("status") or "")
-    retry_count = int(payload.get("retry_count") or 0)
+    raw_retry = payload.get("retry_count")
+    retry_count = int(raw_retry) if isinstance(raw_retry, int) else 0
 
     if status == "completed":
         return LoopControl(continue_polling=True, sleep_seconds=0, exit_code=0)

@@ -107,8 +107,12 @@ def run_runtime_step(
     existing_run_pre = (
         load_workflow_run(defaults.state_db_path, decision.work_item_id) if should_build_execution and decision.work_item_id is not None else None
     )
-    is_retry = existing_run_pre is not None and existing_run_pre.runner_status in ("failed", "timed_out")
-    retry_count = (existing_run_pre.retry_count + 1) if is_retry else (existing_run_pre.retry_count if existing_run_pre is not None else 0)
+    if existing_run_pre is not None and existing_run_pre.runner_status in ("failed", "timed_out"):
+        retry_count = existing_run_pre.retry_count + 1
+    elif existing_run_pre is not None:
+        retry_count = existing_run_pre.retry_count
+    else:
+        retry_count = 0
 
     execution = build_runner_execution(snapshot, decision) if should_build_execution else None
     worktree_lease = None
