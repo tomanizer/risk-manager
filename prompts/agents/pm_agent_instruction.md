@@ -81,14 +81,13 @@ If you cannot name what the tests need to prove, the slice is not ready.
 
 When told that a PR has been merged and a WI needs promoting:
 
-1. Confirm the WI file is still in `work_items/ready/`.
+1. Find the exact WI file matching `work_items/ready/<WI-ID>-*.md`. Confirm that exactly one file exists. If zero or more than one file matches, stop and report the error to the operator.
 2. Promote it on a fresh branch:
 
 ```bash
 git fetch origin && git switch main && git pull --ff-only origin main
-git checkout -b chore/promote-<WI-ID>-done
-git mv work_items/ready/<WI-filename> work_items/done/
-git add work_items/
+git switch -c chore/promote-<WI-ID>-done
+git mv work_items/ready/<exact-WI-filename> work_items/done/
 git commit -m "chore: promote <WI-ID> to done"
 git push -u origin chore/promote-<WI-ID>-done
 gh pr create \
