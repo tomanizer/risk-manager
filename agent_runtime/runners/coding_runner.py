@@ -5,15 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from .coding_backend import (
-    CODING_BACKEND_CODEX_EXEC,
-    CODING_BACKEND_PREPARED,
-    dispatch_codex_coding_execution,
-    dispatch_prepared_coding_execution,
-    get_coding_backend_name,
-)
+from agent_runtime.config import BackendType, get_settings
+
+from .coding_backend import ALLOWED_CODING_DECISIONS, dispatch_codex_coding_execution, dispatch_prepared_coding_execution
 from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 from .prompt_loader import load_system_prompt
+
+_REPO_ROOT = Path(__file__).parent.parent.parent
 
 
 @dataclass(frozen=True)
@@ -69,19 +67,39 @@ class CodingRunner:
 
 
 def dispatch_coding_execution(execution: RunnerExecution) -> RunnerResult:
-    """Backward-compatible dispatch entry point."""
+    """Dispatch the coding execution through the configured backend."""
     if execution.runner_name is not RunnerName.CODING:
         raise RuntimeError("Coding dispatch received a non-coding runner execution")
-    backend_name = get_coding_backend_name()
-    if backend_name == CODING_BACKEND_PREPARED:
+
+    cfg = get_settings().agent_runtime
+    backend = cfg.get_role_backend("coding")
+
+    if backend is BackendType.PREPARED:
         return dispatch_prepared_coding_execution(execution)
-    if backend_name == CODING_BACKEND_CODEX_EXEC:
-        return dispatch_codex_coding_execution(execution)
+
+    if backend is BackendType.CODEX_EXEC:
+        return dispatch_codex_coding_execution(
+            execution,
+            codex_bin=cfg.coding_codex_bin,
+            model=cfg.coding_codex_model,
+        )
+
+    # OPENAI_API and ANTHROPIC_API tool-loop coding backends are implemented in WI-C.
     return RunnerResult(
         runner_name=execution.runner_name,
         work_item_id=execution.work_item_id,
         status=RunnerDispatchStatus.FAILED,
-        summary=f"Unsupported coding backend configured: {backend_name}",
+        summary=f"Unsupported coding backend configured: {backend.value}",
         prompt=execution.prompt,
         details=dict(execution.metadata),
     )
+
+
+# Expose for use by WI-C tool-loop backends.
+__all__ = [
+    "ALLOWED_CODING_DECISIONS",
+    "CodingRunner",
+    "CodingRunnerInput",
+    "build_coding_prompt",
+    "dispatch_coding_execution",
+]

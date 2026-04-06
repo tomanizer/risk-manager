@@ -33,6 +33,10 @@ compute = [
     "statsmodels==0.14.6",
     "pandas==3.0.2",
 ]
+sdk = [
+    "openai>=1.0,<2.0",
+    "anthropic>=0.40,<1.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "agent_runtime/tests"]
@@ -55,11 +59,11 @@ init_forbid_extra = true
 init_typed = true
 warn_required_dynamic_aliases = true
 
-# Optional telemetry and agent extras — not installed in the default dev environment.
-# All imports are guarded by try/except ImportError so runtime behaviour is
-# unaffected when these packages are absent.
+# Optional extras — not installed in the default dev environment.
+# All imports are guarded by try/except ImportError (or inline) so runtime
+# behaviour is unaffected when these packages are absent.
 [[tool.mypy.overrides]]
-module = ["opentelemetry.*", "structlog", "langgraph.*", "langchain_core.*"]
+module = ["opentelemetry.*", "structlog", "langgraph.*", "langchain_core.*", "openai.*", "anthropic.*"]
 ignore_missing_imports = true
 
 [tool.setuptools.packages.find]

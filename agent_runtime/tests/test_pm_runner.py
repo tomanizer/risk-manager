@@ -140,7 +140,7 @@ def test_dispatch_pm_execution_codex_backend_rejects_non_string_details() -> Non
 
     assert result.status is RunnerDispatchStatus.FAILED
     assert result.outcome_status is None
-    assert "non-string detail entries" in result.summary
+    assert "must be a string" in result.summary
 
 
 def test_dispatch_pm_execution_rejects_unknown_backend() -> None:
@@ -151,7 +151,7 @@ def test_dispatch_pm_execution_rejects_unknown_backend() -> None:
         metadata={"target_path": "work_items/ready/WI-1.1.4-risk-summary-core-service.md"},
     )
 
-    with patch.dict("os.environ", {"AGENT_RUNTIME_PM_BACKEND": "unknown"}, clear=False):
+    with patch.dict("os.environ", {"AGENT_RUNTIME_PM_BACKEND": "cursor_api"}, clear=False):
         result = dispatch_pm_execution(execution)
 
     assert result.status is RunnerDispatchStatus.FAILED

@@ -5,15 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-from .pm_backend import (
-    PM_BACKEND_CODEX_EXEC,
-    PM_BACKEND_PREPARED,
-    dispatch_codex_pm_execution,
-    dispatch_prepared_pm_execution,
-    get_pm_backend_name,
-)
+from agent_runtime.config import BackendType, get_settings
+
+from ._outcome_parsing import get_output_schema
 from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
+from .pm_backend import ALLOWED_PM_DECISIONS, dispatch_codex_pm_execution, dispatch_prepared_pm_execution
 from .prompt_loader import load_system_prompt
+
+_REPO_ROOT = Path(__file__).parent.parent.parent
 
 
 @dataclass(frozen=True)
@@ -64,19 +63,52 @@ class PMRunner:
 
 
 def dispatch_pm_execution(execution: RunnerExecution) -> RunnerResult:
-    """Backward-compatible dispatch entry point."""
+    """Dispatch the PM execution through the configured backend."""
     if execution.runner_name is not RunnerName.PM:
         raise RuntimeError("PM dispatch received a non-PM runner execution")
-    backend_name = get_pm_backend_name()
-    if backend_name == PM_BACKEND_PREPARED:
+
+    cfg = get_settings().agent_runtime
+    backend = cfg.get_role_backend("pm")
+
+    if backend is BackendType.PREPARED:
         return dispatch_prepared_pm_execution(execution)
-    if backend_name == PM_BACKEND_CODEX_EXEC:
-        return dispatch_codex_pm_execution(execution)
+
+    if backend is BackendType.CODEX_EXEC:
+        return dispatch_codex_pm_execution(
+            execution,
+            codex_bin=cfg.pm_codex_bin,
+            model=cfg.pm_codex_model,
+        )
+
+    if backend is BackendType.OPENAI_API:
+        from .openai_backend import dispatch_openai_reasoning
+
+        repo_root = Path(execution.metadata.get("repo_root", "")) or _REPO_ROOT
+        return dispatch_openai_reasoning(
+            execution,
+            repo_root=repo_root,
+            model=cfg.pm_openai_model,
+            allowed_decisions=ALLOWED_PM_DECISIONS,
+            output_schema=get_output_schema(RunnerName.PM),
+        )
+
+    if backend is BackendType.ANTHROPIC_API:
+        from .anthropic_backend import dispatch_anthropic_reasoning
+
+        repo_root = Path(execution.metadata.get("repo_root", "")) or _REPO_ROOT
+        return dispatch_anthropic_reasoning(
+            execution,
+            repo_root=repo_root,
+            model=cfg.pm_anthropic_model,
+            allowed_decisions=ALLOWED_PM_DECISIONS,
+            output_schema=get_output_schema(RunnerName.PM),
+        )
+
     return RunnerResult(
         runner_name=execution.runner_name,
         work_item_id=execution.work_item_id,
         status=RunnerDispatchStatus.FAILED,
-        summary=f"Unsupported PM backend configured: {backend_name}",
+        summary=f"Unsupported PM backend configured: {backend.value}",
         prompt=execution.prompt,
         details=dict(execution.metadata),
     )

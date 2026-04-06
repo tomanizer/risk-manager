@@ -3,28 +3,19 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 import subprocess
 import tempfile
 
+from ._outcome_parsing import get_output_schema, parse_structured_outcome
 from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
 
-PM_BACKEND_ENV = "AGENT_RUNTIME_PM_BACKEND"
-PM_CODEX_BIN_ENV = "AGENT_RUNTIME_PM_CODEX_BIN"
-PM_CODEX_MODEL_ENV = "AGENT_RUNTIME_PM_CODEX_MODEL"
-PM_BACKEND_PREPARED = "prepared"
-PM_BACKEND_CODEX_EXEC = "codex_exec"
-_ALLOWED_PM_DECISIONS = {
+ALLOWED_PM_DECISIONS: dict[str, str] = {
     "READY": "ready",
     "BLOCKED": "blocked",
     "SPLIT_REQUIRED": "split_required",
     "SPEC_REQUIRED": "spec_required",
 }
-
-
-def get_pm_backend_name() -> str:
-    return os.getenv(PM_BACKEND_ENV, PM_BACKEND_CODEX_EXEC).strip().lower() or PM_BACKEND_CODEX_EXEC
 
 
 def dispatch_prepared_pm_execution(execution: RunnerExecution) -> RunnerResult:
@@ -38,7 +29,11 @@ def dispatch_prepared_pm_execution(execution: RunnerExecution) -> RunnerResult:
     )
 
 
-def dispatch_codex_pm_execution(execution: RunnerExecution) -> RunnerResult:
+def dispatch_codex_pm_execution(
+    execution: RunnerExecution,
+    codex_bin: str = "codex",
+    model: str | None = None,
+) -> RunnerResult:
     if execution.runner_name is not RunnerName.PM:
         raise RuntimeError("Codex PM backend received a non-PM runner execution")
 
@@ -53,29 +48,18 @@ def dispatch_codex_pm_execution(execution: RunnerExecution) -> RunnerResult:
             details=dict(execution.metadata),
         )
 
-    codex_bin = os.getenv(PM_CODEX_BIN_ENV, "codex")
-    model = os.getenv(PM_CODEX_MODEL_ENV)
     backend_prompt = _build_codex_pm_prompt(execution.prompt)
 
     with tempfile.TemporaryDirectory(prefix="agent-runtime-pm-") as temp_dir:
         temp_path = Path(temp_dir)
         schema_path = temp_path / "pm_outcome_schema.json"
         output_path = temp_path / "pm_outcome.json"
-        schema_path.write_text(json.dumps(_pm_output_schema(), indent=2, sort_keys=True), encoding="utf-8")
+        schema_path.write_text(json.dumps(get_output_schema(RunnerName.PM), indent=2, sort_keys=True), encoding="utf-8")
 
-        command = [
-            codex_bin,
-            "exec",
-            "-C",
-            worktree_path,
-            "--output-schema",
-            str(schema_path),
-            "-o",
-            str(output_path),
-            "-",
-        ]
+        command = [codex_bin, "exec"]
         if model:
-            command[2:2] = ["--model", model]
+            command.extend(["--model", model])
+        command.extend(["-C", worktree_path, "--output-schema", str(schema_path), "-o", str(output_path), "-"])
 
         try:
             completed = subprocess.run(
@@ -110,7 +94,9 @@ def dispatch_codex_pm_execution(execution: RunnerExecution) -> RunnerResult:
 
         try:
             payload = json.loads(output_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as error:
+            if not isinstance(payload, dict):
+                raise ValueError("Codex output is not a JSON object")
+        except (OSError, json.JSONDecodeError, ValueError) as error:
             return RunnerResult(
                 runner_name=execution.runner_name,
                 work_item_id=execution.work_item_id,
@@ -120,74 +106,7 @@ def dispatch_codex_pm_execution(execution: RunnerExecution) -> RunnerResult:
                 details=dict(execution.metadata),
             )
 
-    decision_value = payload.get("decision")
-    summary_value = payload.get("summary")
-    details_value = payload.get("details")
-    if not isinstance(decision_value, str) or not isinstance(summary_value, str):
-        return RunnerResult(
-            runner_name=execution.runner_name,
-            work_item_id=execution.work_item_id,
-            status=RunnerDispatchStatus.FAILED,
-            summary="PM backend returned an invalid structured response.",
-            prompt=execution.prompt,
-            details=dict(execution.metadata),
-        )
-    normalized_decision = _ALLOWED_PM_DECISIONS.get(decision_value.upper())
-    if normalized_decision is None:
-        return RunnerResult(
-            runner_name=execution.runner_name,
-            work_item_id=execution.work_item_id,
-            status=RunnerDispatchStatus.FAILED,
-            summary=f"PM backend returned an unsupported decision: {decision_value}",
-            prompt=execution.prompt,
-            details=dict(execution.metadata),
-        )
-    outcome_details: dict[str, str] = {}
-    if not isinstance(details_value, list):
-        return RunnerResult(
-            runner_name=execution.runner_name,
-            work_item_id=execution.work_item_id,
-            status=RunnerDispatchStatus.FAILED,
-            summary="PM backend returned details in an invalid format.",
-            prompt=execution.prompt,
-            details=dict(execution.metadata),
-        )
-    for item in details_value:
-        if not isinstance(item, dict):
-            return RunnerResult(
-                runner_name=execution.runner_name,
-                work_item_id=execution.work_item_id,
-                status=RunnerDispatchStatus.FAILED,
-                summary="PM backend returned details in an invalid format.",
-                prompt=execution.prompt,
-                details=dict(execution.metadata),
-            )
-        key = item.get("key")
-        value = item.get("value")
-        if not isinstance(key, str) or not isinstance(value, str):
-            return RunnerResult(
-                runner_name=execution.runner_name,
-                work_item_id=execution.work_item_id,
-                status=RunnerDispatchStatus.FAILED,
-                summary="PM backend returned non-string detail entries.",
-                prompt=execution.prompt,
-                details=dict(execution.metadata),
-            )
-        outcome_details[key] = value
-    return RunnerResult(
-        runner_name=execution.runner_name,
-        work_item_id=execution.work_item_id,
-        status=RunnerDispatchStatus.COMPLETED,
-        summary=f"Completed PM assessment for {execution.work_item_id}.",
-        prompt=execution.prompt,
-        details={
-            **execution.metadata,
-            "pm_backend": PM_BACKEND_CODEX_EXEC,
-        },
-        outcome_status=normalized_decision,
-        outcome_summary=summary_value,
-        outcome_details=outcome_details,
-    )
+    return parse_structured_outcome(payload, ALLOWED_PM_DECISIONS, execution, "codex_exec")
 
 
 def _build_codex_pm_prompt(prompt: str) -> str:
@@ -199,32 +118,3 @@ def _build_codex_pm_prompt(prompt: str) -> str:
         "Do not write code.\n"
         "Stay in PM mode only.\n"
     )
-
-
-def _pm_output_schema() -> dict[str, object]:
-    return {
-        "type": "object",
-        "additionalProperties": False,
-        "properties": {
-            "decision": {
-                "type": "string",
-                "enum": ["READY", "BLOCKED", "SPLIT_REQUIRED", "SPEC_REQUIRED"],
-            },
-            "summary": {
-                "type": "string",
-            },
-            "details": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "properties": {
-                        "key": {"type": "string"},
-                        "value": {"type": "string"},
-                    },
-                    "required": ["key", "value"],
-                },
-            },
-        },
-        "required": ["decision", "summary", "details"],
-    }

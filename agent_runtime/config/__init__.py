@@ -4,6 +4,7 @@ from .defaults import RuntimeDefaults, build_defaults
 from .settings import (
     AgentRuntimeConfig,
     AnthropicConfig,
+    BackendType,
     CursorConfig,
     GeminiConfig,
     LangChainConfig,
@@ -16,6 +17,7 @@ from .settings import (
 __all__ = [
     "AgentRuntimeConfig",
     "AnthropicConfig",
+    "BackendType",
     "CursorConfig",
     "GeminiConfig",
     "LangChainConfig",

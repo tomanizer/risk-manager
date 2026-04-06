@@ -154,7 +154,7 @@ def test_dispatch_coding_execution_rejects_unknown_backend() -> None:
         metadata={"target_path": "work_items/ready/WI-1.1.4-risk-summary-core-service.md"},
     )
 
-    with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "unknown"}, clear=False):
+    with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "cursor_api"}, clear=False):
         result = dispatch_coding_execution(execution)
 
     assert result.status is RunnerDispatchStatus.FAILED

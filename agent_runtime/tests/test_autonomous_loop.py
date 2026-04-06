@@ -21,10 +21,7 @@ from agent_runtime.runners.contracts import (
     RunnerName,
     RunnerResult,
 )
-from agent_runtime.runners.coding_backend import CODING_BACKEND_CODEX_EXEC, get_coding_backend_name
-from agent_runtime.runners.pm_backend import PM_BACKEND_CODEX_EXEC, get_pm_backend_name
-from agent_runtime.runners.review_backend import REVIEW_BACKEND_CODEX_EXEC, get_review_backend_name
-from agent_runtime.runners.spec_backend import SPEC_BACKEND_CODEX_EXEC, get_spec_backend_name
+from agent_runtime.config import BackendType, get_settings
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -44,29 +41,25 @@ def _defaults(**overrides: object) -> RuntimeDefaults:
 # --- Default backend tests ---
 
 
-def test_coding_backend_defaults_to_codex_exec() -> None:
-    with patch.dict("os.environ", {}, clear=True):
-        assert get_coding_backend_name() == CODING_BACKEND_CODEX_EXEC
+def test_coding_backend_defaults_to_prepared() -> None:
+    assert get_settings().agent_runtime.get_role_backend("coding") is BackendType.PREPARED
 
 
-def test_pm_backend_defaults_to_codex_exec() -> None:
-    with patch.dict("os.environ", {}, clear=True):
-        assert get_pm_backend_name() == PM_BACKEND_CODEX_EXEC
+def test_pm_backend_defaults_to_prepared() -> None:
+    assert get_settings().agent_runtime.get_role_backend("pm") is BackendType.PREPARED
 
 
-def test_review_backend_defaults_to_codex_exec() -> None:
-    with patch.dict("os.environ", {}, clear=True):
-        assert get_review_backend_name() == REVIEW_BACKEND_CODEX_EXEC
+def test_review_backend_defaults_to_prepared() -> None:
+    assert get_settings().agent_runtime.get_role_backend("review") is BackendType.PREPARED
 
 
-def test_spec_backend_defaults_to_codex_exec() -> None:
-    with patch.dict("os.environ", {}, clear=True):
-        assert get_spec_backend_name() == SPEC_BACKEND_CODEX_EXEC
+def test_spec_backend_defaults_to_prepared() -> None:
+    assert get_settings().agent_runtime.get_role_backend("spec") is BackendType.PREPARED
 
 
-def test_prepared_override_via_env_var() -> None:
-    with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "prepared"}, clear=False):
-        assert get_coding_backend_name() == "prepared"
+def test_codex_exec_override_via_env_var() -> None:
+    with patch.dict("os.environ", {"AGENT_RUNTIME_CODING_BACKEND": "codex_exec"}, clear=False):
+        assert get_settings().agent_runtime.get_role_backend("coding") is BackendType.CODEX_EXEC
 
 
 # --- _runner_timeout_seconds tests ---

@@ -15,11 +15,28 @@ Usage::
 
 from __future__ import annotations
 
+from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 
 from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class BackendType(str, Enum):
+    """Pluggable backend provider for autonomous agent execution.
+
+    ``PREPARED`` (default) emits a handoff result without calling any external
+    agent — safe for manual workflows and CI environments that have no API key
+    or autonomous CLI installed.  Set a role's backend env var to one of the
+    other values to enable autonomous execution for that role.
+    """
+
+    PREPARED = "prepared"
+    CODEX_EXEC = "codex_exec"
+    OPENAI_API = "openai_api"
+    ANTHROPIC_API = "anthropic_api"
+    CURSOR_API = "cursor_api"
 
 # Resolve the .env file relative to this file's location so the config works
 # regardless of the current working directory when the runtime is invoked.
@@ -175,10 +192,12 @@ class LangGraphConfig(BaseSettings):
 
 
 class AgentRuntimeConfig(BaseSettings):
-    """Agent runtime backend and Codex execution settings.
+    """Agent runtime backend and model settings.
 
-    These mirror the ``AGENT_RUNTIME_*`` env vars documented in
-    ``agent_runtime/README.md``.
+    All values are read from ``AGENT_RUNTIME_*`` env vars (see ``.env.example``
+    for the full list).  Defaults to the ``prepared`` backend for every role so
+    that the runtime is safe to instantiate in environments with no API keys or
+    autonomous CLI present.
     """
 
     model_config = SettingsConfigDict(
@@ -188,20 +207,69 @@ class AgentRuntimeConfig(BaseSettings):
         extra="ignore",
     )
 
-    pm_backend: str = "prepared"
+    # -- PM role --
+    pm_backend: BackendType = BackendType.PREPARED
     pm_codex_bin: str = "codex"
     pm_codex_model: str = "gpt-5"
+    pm_openai_model: str = "gpt-4o"
+    pm_anthropic_model: str = "claude-sonnet-4-5"
+    pm_cursor_model: str = "cursor-fast"
 
-    review_backend: str = "prepared"
+    # -- Review role --
+    review_backend: BackendType = BackendType.PREPARED
     review_codex_bin: str = "codex"
     review_codex_model: str = "gpt-5"
+    review_openai_model: str = "gpt-4o"
+    review_anthropic_model: str = "claude-sonnet-4-5"
+    review_cursor_model: str = "cursor-fast"
 
-    coding_backend: str = "prepared"
+    # -- Coding role --
+    coding_backend: BackendType = BackendType.PREPARED
     coding_codex_bin: str = "codex"
     coding_codex_model: str = "gpt-5"
+    coding_openai_model: str = "gpt-4o"
+    coding_anthropic_model: str = "claude-sonnet-4-5"
+    coding_cursor_model: str = "cursor-fast"
+    coding_tool_max_iterations: int = 50
 
+    # -- Spec role --
+    spec_backend: BackendType = BackendType.PREPARED
+    spec_codex_bin: str = "codex"
+    spec_codex_model: str = "gpt-5"
+    spec_openai_model: str = "gpt-4o"
+    spec_anthropic_model: str = "claude-sonnet-4-5"
+    spec_cursor_model: str = "cursor-fast"
+
+    # -- PR publication --
     coding_pr_backend: str | None = None
     coding_pr_title_prefix: str = "[codex]"
+
+    # -- Autonomy gates --
+    auto_merge: bool = False
+    auto_promote_wi: bool = False
+
+    def get_role_backend(self, role: str) -> BackendType:
+        """Return the configured ``BackendType`` for a given role name.
+
+        Args:
+            role: one of ``"pm"``, ``"review"``, ``"coding"``, ``"spec"``
+        """
+        return BackendType(getattr(self, f"{role}_backend"))
+
+    def get_role_model(self, role: str, backend: BackendType) -> str:
+        """Return the model string for a role + backend combination.
+
+        Returns an empty string for ``PREPARED`` (no model needed).
+        """
+        if backend is BackendType.CODEX_EXEC:
+            return str(getattr(self, f"{role}_codex_model"))
+        if backend is BackendType.OPENAI_API:
+            return str(getattr(self, f"{role}_openai_model"))
+        if backend is BackendType.ANTHROPIC_API:
+            return str(getattr(self, f"{role}_anthropic_model"))
+        if backend is BackendType.CURSOR_API:
+            return str(getattr(self, f"{role}_cursor_model"))
+        return ""
 
 
 # ---------------------------------------------------------------------------
