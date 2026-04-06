@@ -239,6 +239,7 @@ The repo-health loop should prefer deterministic prechecks before LLM synthesis 
 
 Initial deterministic scanners:
 
+- `scripts/drift/check_canon_lineage.py`
 - `scripts/drift/check_dependency_hygiene.py`
 - `scripts/drift/check_instruction_surfaces.py`
 - `scripts/drift/check_references.py`
