@@ -16,6 +16,12 @@ class RuntimeDefaults:
     ready_work_items_relative_path: str = "work_items/ready"
     in_progress_work_items_relative_path: str = "work_items/in_progress"
     blocked_work_items_relative_path: str = "work_items/blocked"
+    # Iter 1: autonomous execution
+    runner_timeout_seconds_coding: int = 2700  # 45 min
+    runner_timeout_seconds_default: int = 900  # 15 min
+    runner_max_retries: int = 2
+    # Iter 3: parallel dispatch
+    max_concurrent_runs: int = 3
 
     @property
     def state_db_path(self) -> Path:

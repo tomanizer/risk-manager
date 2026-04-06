@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-import logging
 from functools import lru_cache
 from pathlib import Path
 
+from agent_runtime.telemetry import get_logger
+
 from .contracts import RunnerName
 
-_log = logging.getLogger(__name__)
+_log = get_logger(__name__)
 
 _INSTRUCTION_FILES: dict[RunnerName, str] = {
     RunnerName.PM: "prompts/agents/pm_agent_instruction.md",
@@ -36,11 +37,11 @@ def load_system_prompt(runner_name: RunnerName, repo_root: Path) -> str:
 
     instruction_path = repo_root / relative_path
     if not instruction_path.is_file():
-        _log.warning("Governed prompt file missing: %s", instruction_path)
+        _log.warning("governed_prompt_missing", path=str(instruction_path))
         return f"You are the {runner_name.value} agent."
 
     try:
         return _read_file(instruction_path)
     except (OSError, UnicodeDecodeError) as exc:
-        _log.warning("Could not read governed prompt file %s: %s", instruction_path, exc)
+        _log.warning("governed_prompt_unreadable", path=str(instruction_path), error=str(exc))
         return f"You are the {runner_name.value} agent."

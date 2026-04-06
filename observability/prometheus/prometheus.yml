@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "risk_manager_agent_runtime"
+    # The Python process exposes /metrics on port 9464 via opentelemetry-exporter-prometheus.
+    static_configs:
+      - targets: ["host.docker.internal:9464"]
+    scrape_interval: 15s

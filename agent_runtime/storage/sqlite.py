@@ -10,6 +10,25 @@ from typing import cast
 
 
 SCHEMA = """
+CREATE TABLE IF NOT EXISTS telemetry_events (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    trace_id     TEXT,
+    span_id      TEXT,
+    event_type   TEXT NOT NULL,
+    component    TEXT NOT NULL,
+    run_id       TEXT,
+    work_item_id TEXT,
+    payload_json TEXT NOT NULL DEFAULT '{}',
+    level        TEXT NOT NULL DEFAULT 'INFO',
+    created_at   TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_telemetry_events_run
+    ON telemetry_events(run_id, created_at);
+
+CREATE INDEX IF NOT EXISTS idx_telemetry_events_type
+    ON telemetry_events(event_type, created_at);
+
 CREATE TABLE IF NOT EXISTS workflow_runs (
     work_item_id TEXT PRIMARY KEY,
     run_id TEXT,
@@ -26,6 +45,7 @@ CREATE TABLE IF NOT EXISTS workflow_runs (
     result_json TEXT NOT NULL DEFAULT '{}',
     outcome_details_json TEXT NOT NULL DEFAULT '{}',
     completed_at TEXT,
+    retry_count INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -89,6 +109,7 @@ EXPECTED_WORKFLOW_RUN_COLUMNS = (
     "result_json",
     "outcome_details_json",
     "completed_at",
+    "retry_count",
     "updated_at",
 )
 
@@ -139,6 +160,7 @@ _DEFAULT_COLUMN_DEFINITIONS = {
     "result_json": "TEXT NOT NULL DEFAULT '{}'",
     "outcome_details_json": "TEXT NOT NULL DEFAULT '{}'",
     "completed_at": "TEXT",
+    "retry_count": "INTEGER NOT NULL DEFAULT 0",
     "updated_at": "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
 }
 
@@ -159,6 +181,7 @@ class WorkflowRunRecord:
     details: dict[str, str] | None = None
     result: dict[str, object] = field(default_factory=dict)
     outcome_details: dict[str, object] = field(default_factory=dict)
+    retry_count: int = 0
     completed_at: str | None = None
     updated_at: str | None = None
 
@@ -197,6 +220,20 @@ class WorkflowEventRecord:
     runner_name: str | None = None
     status: str | None = None
     details: dict[str, str] | None = None
+    created_at: str | None = None
+    id: int | None = None
+
+
+@dataclass(frozen=True)
+class TelemetryEventRecord:
+    event_type: str
+    component: str
+    trace_id: str | None = None
+    span_id: str | None = None
+    run_id: str | None = None
+    work_item_id: str | None = None
+    payload: dict[str, object] = field(default_factory=dict)
+    level: str = "INFO"
     created_at: str | None = None
     id: int | None = None
 
@@ -290,9 +327,10 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
                 result_json,
                 outcome_details_json,
                 completed_at,
+                retry_count,
                 updated_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             ON CONFLICT(work_item_id) DO UPDATE SET
                 run_id = excluded.run_id,
                 branch_name = excluded.branch_name,
@@ -308,6 +346,7 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
                 result_json = excluded.result_json,
                 outcome_details_json = excluded.outcome_details_json,
                 completed_at = excluded.completed_at,
+                retry_count = excluded.retry_count,
                 updated_at = CURRENT_TIMESTAMP
             """,
             (
@@ -326,6 +365,7 @@ def upsert_workflow_run(db_path: Path, record: WorkflowRunRecord) -> None:
                 json.dumps(record.result, sort_keys=True),
                 json.dumps(record.outcome_details, sort_keys=True),
                 record.completed_at,
+                record.retry_count,
             ),
         )
         connection.commit()
@@ -353,6 +393,7 @@ def load_workflow_run(db_path: Path, work_item_id: str) -> WorkflowRunRecord | N
                 result_json,
                 outcome_details_json,
                 completed_at,
+                retry_count,
                 updated_at
             FROM workflow_runs
             WHERE work_item_id = ?
@@ -385,6 +426,7 @@ def load_workflow_run_by_run_id(db_path: Path, run_id: str) -> WorkflowRunRecord
                 result_json,
                 outcome_details_json,
                 completed_at,
+                retry_count,
                 updated_at
             FROM workflow_runs
             WHERE run_id = ?
@@ -417,6 +459,7 @@ def load_workflow_runs(db_path: Path) -> tuple[WorkflowRunRecord, ...]:
                 result_json,
                 outcome_details_json,
                 completed_at,
+                retry_count,
                 updated_at
             FROM workflow_runs
             ORDER BY updated_at DESC
@@ -457,6 +500,25 @@ def record_workflow_outcome(
         connection.commit()
 
     return load_workflow_run_by_run_id(db_path, run_id)
+
+
+def mark_workflow_run_running(db_path: Path, work_item_id: str, retry_count: int = 0) -> None:
+    """Write runner_status='running' immediately before a blocking dispatch.
+
+    This allows a restarted supervisor to detect orphaned in-flight runs by
+    looking for rows where runner_status='running' and updated_at is stale.
+    """
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(
+            """
+            UPDATE workflow_runs
+            SET runner_status = 'running', retry_count = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE work_item_id = ?
+            """,
+            (retry_count, work_item_id),
+        )
+        connection.commit()
 
 
 def insert_worktree_lease(db_path: Path, record: WorktreeLeaseRecord) -> None:
@@ -714,6 +776,7 @@ def _row_to_workflow_run(row: sqlite3.Row | None) -> WorkflowRunRecord | None:
         details={str(key): str(value) for key, value in details.items()},
         result=result,
         outcome_details=outcome_details,
+        retry_count=int(row["retry_count"]) if row["retry_count"] is not None else 0,
         completed_at=str(row["completed_at"]) if row["completed_at"] is not None else None,
         updated_at=str(row["updated_at"]) if row["updated_at"] is not None else None,
     )
@@ -802,3 +865,107 @@ def load_workflow_events(
             )
         )
     return tuple(events)
+
+
+def append_telemetry_event(db_path: Path, event: TelemetryEventRecord) -> int:
+    """Append an immutable telemetry event correlated with the active OTel trace.
+
+    Returns the SQLite row id of the inserted record.
+    """
+    initialize_database(db_path)
+    with sqlite3.connect(db_path) as connection:
+        cursor = connection.execute(
+            """
+            INSERT INTO telemetry_events (
+                trace_id,
+                span_id,
+                event_type,
+                component,
+                run_id,
+                work_item_id,
+                payload_json,
+                level,
+                created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))
+            """,
+            (
+                event.trace_id,
+                event.span_id,
+                event.event_type,
+                event.component,
+                event.run_id,
+                event.work_item_id,
+                json.dumps(event.payload, sort_keys=True, default=str),
+                event.level,
+                event.created_at,
+            ),
+        )
+        connection.commit()
+        return cursor.lastrowid or 0
+
+
+def load_telemetry_events(
+    db_path: Path,
+    *,
+    run_id: str | None = None,
+    event_type: str | None = None,
+    limit: int = 200,
+) -> tuple[TelemetryEventRecord, ...]:
+    """Load recent telemetry events, optionally filtered by run_id or event_type."""
+    if limit < 1:
+        raise ValueError(f"limit must be positive, got {limit}")
+    initialize_database(db_path)
+
+    conditions: list[str] = []
+    params: list[object] = []
+    if run_id is not None:
+        conditions.append("run_id = ?")
+        params.append(run_id)
+    if event_type is not None:
+        conditions.append("event_type = ?")
+        params.append(event_type)
+
+    where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    params.append(limit)
+
+    with sqlite3.connect(db_path) as connection:
+        connection.row_factory = sqlite3.Row
+        rows = connection.execute(
+            f"""
+            SELECT
+                id, trace_id, span_id, event_type, component,
+                run_id, work_item_id, payload_json, level, created_at
+            FROM telemetry_events
+            {where_clause}
+            ORDER BY created_at DESC, id DESC
+            LIMIT ?
+            """,
+            params,
+        ).fetchall()
+
+    results: list[TelemetryEventRecord] = []
+    for row in rows:
+        payload: dict[str, object] = {}
+        if row["payload_json"]:
+            try:
+                raw = json.loads(row["payload_json"])
+                if isinstance(raw, dict):
+                    payload = {str(k): v for k, v in raw.items()}
+            except json.JSONDecodeError:
+                pass
+        results.append(
+            TelemetryEventRecord(
+                id=int(row["id"]),
+                trace_id=str(row["trace_id"]) if row["trace_id"] is not None else None,
+                span_id=str(row["span_id"]) if row["span_id"] is not None else None,
+                event_type=str(row["event_type"]),
+                component=str(row["component"]),
+                run_id=str(row["run_id"]) if row["run_id"] is not None else None,
+                work_item_id=str(row["work_item_id"]) if row["work_item_id"] is not None else None,
+                payload=payload,
+                level=str(row["level"]),
+                created_at=str(row["created_at"]) if row["created_at"] is not None else None,
+            )
+        )
+    return tuple(results)

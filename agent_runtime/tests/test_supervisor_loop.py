@@ -50,15 +50,47 @@ def test_classify_loop_payload_continues_after_completed_runner() -> None:
     assert control == LoopControl(continue_polling=True, sleep_seconds=0, exit_code=0)
 
 
-def test_classify_loop_payload_stops_with_failure() -> None:
+def test_classify_loop_payload_retries_on_first_failure() -> None:
+    """First failure with retry_count=0 should continue polling (retry will happen)."""
     payload = {
         "action": "run_coding",
+        "retry_count": 0,
         "runner_result": {
             "status": "failed",
         },
     }
 
-    control = classify_loop_payload(payload, 300)
+    control = classify_loop_payload(payload, 300, max_retries=2)
+
+    assert control == LoopControl(continue_polling=True, sleep_seconds=0, exit_code=0)
+
+
+def test_classify_loop_payload_stops_after_retries_exhausted() -> None:
+    """Failure with retry_count >= max_retries should stop polling."""
+    payload = {
+        "action": "run_coding",
+        "retry_count": 2,
+        "runner_result": {
+            "status": "failed",
+        },
+    }
+
+    control = classify_loop_payload(payload, 300, max_retries=2)
+
+    assert control == LoopControl(continue_polling=False, sleep_seconds=None, exit_code=1)
+
+
+def test_classify_loop_payload_stops_with_failure_zero_retries() -> None:
+    """With max_retries=0 the first failure should stop immediately."""
+    payload = {
+        "action": "run_coding",
+        "retry_count": 0,
+        "runner_result": {
+            "status": "failed",
+        },
+    }
+
+    control = classify_loop_payload(payload, 300, max_retries=0)
 
     assert control == LoopControl(continue_polling=False, sleep_seconds=None, exit_code=1)
 
