@@ -34,6 +34,20 @@
       "rationale": "pytest is declared in [project.optional-dependencies].dev. The agent_runtime/tests/ directory is a test surface co-located with the runtime package; its imports of pytest are expected and intentional.",
       "issue": null,
       "expires_on": null
+    },
+    {
+      "scan_name": "dependency_hygiene",
+      "signature": "dependency_hygiene|kind=\"runtime_dependency_declared_only_in_optional_extra\"|dependency_name=\"anthropic\"|source_path=\"agent_runtime/runners/anthropic_backend.py\"",
+      "rationale": "anthropic is declared in [project.optional-dependencies].sdk. The import is guarded by _ensure_anthropic() which raises ImportError with an install hint when the package is absent. Keeping it optional preserves the zero-dependency core runtime; callers must install risk-manager[sdk] to use the anthropic_api backend.",
+      "issue": null,
+      "expires_on": null
+    },
+    {
+      "scan_name": "dependency_hygiene",
+      "signature": "dependency_hygiene|kind=\"runtime_dependency_declared_only_in_optional_extra\"|dependency_name=\"pytest\"|source_path=\"agent_runtime/tests/test_anthropic_backend.py\"",
+      "rationale": "pytest is declared in [project.optional-dependencies].dev. The agent_runtime/tests/ directory is a test surface co-located with the runtime package; its imports of pytest are expected and intentional.",
+      "issue": null,
+      "expires_on": null
     }
   ],
   "version": 1
