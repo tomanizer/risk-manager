@@ -33,10 +33,35 @@ def _dependencies_satisfied(item: WorkItemSnapshot, snapshot: RuntimeSnapshot) -
     return True
 
 
+def _parse_workflow_run_timestamp(timestamp: str | None) -> float | None:
+    if timestamp is None:
+        return None
+    try:
+        return datetime.fromisoformat(timestamp.replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(timestamp, "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC).timestamp()
+    except ValueError:
+        return None
+
+
+def _workflow_run_recency_key(workflow_run: WorkflowRunRecord) -> tuple[int, float]:
+    updated_timestamp = _parse_workflow_run_timestamp(getattr(workflow_run, "updated_at", None))
+    if updated_timestamp is not None:
+        return (1, updated_timestamp)
+    completed_timestamp = _parse_workflow_run_timestamp(workflow_run.completed_at)
+    if completed_timestamp is not None:
+        return (0, completed_timestamp)
+    return (-1, float("-inf"))
+
+
 def _latest_workflow_runs_by_work_item(snapshot: RuntimeSnapshot) -> dict[str, WorkflowRunRecord]:
     latest_runs: dict[str, WorkflowRunRecord] = {}
     for workflow_run in snapshot.workflow_runs:
-        latest_runs.setdefault(workflow_run.work_item_id, workflow_run)
+        current_latest = latest_runs.get(workflow_run.work_item_id)
+        if current_latest is None or _workflow_run_recency_key(workflow_run) > _workflow_run_recency_key(current_latest):
+            latest_runs[workflow_run.work_item_id] = workflow_run
     return latest_runs
 
 
