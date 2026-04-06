@@ -16,7 +16,7 @@ description: Drives delivery of a risk-manager work item through the PM → Codi
 
 Before doing anything else, print this exact line so the user knows the skill is active:
 
-```
+```text
 [deliver-wi] Skill active. Finding next work item and building agent prompt...
 ```
 
@@ -90,7 +90,7 @@ Read the selected template file. Replace every `<PLACEHOLDER>` with the actual v
 
 Print the filled prompt in a fenced code block with this header above it:
 
-```
+```text
 Paste this into a FRESH [Role] agent session (new chat / new Codex session):
 ```
 
@@ -100,7 +100,7 @@ The user copies this and pastes it into a new chat. You do not act on it.
 
 After the prompt block, always print:
 
-```
+```text
 Before the agent starts:
   git fetch origin && git switch main && git pull --ff-only origin main
 For coding: create a fresh branch from main.
