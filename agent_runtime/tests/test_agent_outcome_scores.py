@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sqlite3
 import tempfile
 from pathlib import Path
 
@@ -14,8 +13,8 @@ from agent_runtime.storage.sqlite import (
 
 
 def _tmp_db() -> Path:
-    tmp = tempfile.mktemp(suffix=".db")
-    return Path(tmp)
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as tmp:
+        return Path(tmp.name)
 
 
 def test_record_and_load_basic_score() -> None:

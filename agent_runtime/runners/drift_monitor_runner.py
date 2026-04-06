@@ -65,6 +65,17 @@ def dispatch_drift_monitor_execution(execution: RunnerExecution) -> RunnerResult
     backend = _get_backend()
 
     if backend == DRIFT_MONITOR_BACKEND_SCRIPT:
+        if execution.metadata.get("governance_already_run") == "true":
+            return RunnerResult(
+                runner_name=execution.runner_name,
+                work_item_id=execution.work_item_id,
+                status=RunnerDispatchStatus.COMPLETED,
+                summary="Drift check already completed by governance pre-step; net-new findings exist.",
+                prompt=execution.prompt,
+                details=dict(execution.metadata),
+                outcome_status="findings",
+                outcome_summary=execution.metadata.get("reason", "Drift findings detected by governance pre-step."),
+            )
         return _dispatch_script(execution)
 
     return RunnerResult(
@@ -89,8 +100,9 @@ def _dispatch_script(execution: RunnerExecution) -> RunnerResult:
             text=True,
             check=False,
             cwd=repo_root,
+            timeout=300,
         )
-    except OSError as error:
+    except (OSError, subprocess.TimeoutExpired) as error:
         return RunnerResult(
             runner_name=execution.runner_name,
             work_item_id=execution.work_item_id,

@@ -58,8 +58,9 @@ def build_governance_decision(repo_root: Path) -> TransitionDecision | None:
             text=True,
             check=False,
             cwd=str(repo_root),
+            timeout=300,
         )
-    except OSError:
+    except (OSError, subprocess.TimeoutExpired):
         return None
     if result.returncode == 0:
         return None
@@ -68,7 +69,7 @@ def build_governance_decision(repo_root: Path) -> TransitionDecision | None:
         work_item_id=None,
         reason="drift suite found net-new findings; repo should be cleaned before the next relay step",
         target_path=repo_root,
-        metadata={"repo_root": str(repo_root)},
+        metadata={"repo_root": str(repo_root), "governance_already_run": "true"},
     )
 
 
@@ -404,6 +405,51 @@ def main() -> int:
             while True:
                 iteration += 1
                 record_started_at = datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")
+
+                if getattr(args, "governance", False) and args.simulate is None:
+                    governance_decision = build_governance_decision(repo_root)
+                    if governance_decision is not None:
+                        from .execution import build_runner_execution as _bre
+                        from .state import RuntimeSnapshot as _RS
+                        _empty = _RS(work_items=(), pull_requests=(), workflow_runs=(), warnings=())
+                        _exec = _bre(_empty, governance_decision)
+                        _result = dispatch_runner_execution(_exec) if _exec is not None else None
+                        payload: dict[str, object] = {
+                            "action": governance_decision.action.value,
+                            "reason": governance_decision.reason,
+                            "governance": True,
+                            "dispatch": True,
+                            "execute": True,
+                            "simulation": args.simulate,
+                            "mode": mode,
+                            "runner": (
+                                {"name": _exec.runner_name.value, "prompt": _exec.prompt, "metadata": _exec.metadata}
+                                if _exec is not None else None
+                            ),
+                            "runner_result": (
+                                {
+                                    "name": _result.runner_name.value,
+                                    "status": _result.status.value,
+                                    "summary": _result.summary,
+                                    "outcome_status": _result.outcome_status,
+                                    "outcome_summary": _result.outcome_summary,
+                                }
+                                if _result is not None else None
+                            ),
+                        }
+                        loop_control = classify_loop_payload(payload, defaults.poll_interval_seconds)
+                        supervisor_status = "stopped"
+                        record_supervisor_heartbeat(
+                            defaults,
+                            status=supervisor_status,
+                            lock_owner=lock_owner,
+                            mode=mode,
+                            payload=payload,
+                            started_at=record_started_at,
+                        )
+                        print(json.dumps(payload, indent=2, sort_keys=True))
+                        return loop_control.exit_code
+
                 snapshot = (
                     build_simulation_snapshot(args.simulate)
                     if args.simulate is not None
@@ -446,7 +492,7 @@ def main() -> int:
         if governance_decision is not None:
             from .execution import build_runner_execution
             from .state import RuntimeSnapshot as _RS
-            empty_snapshot = _RS(work_items=())
+            empty_snapshot = _RS(work_items=(), pull_requests=(), workflow_runs=(), warnings=())
             execution = build_runner_execution(empty_snapshot, governance_decision)
             runner_result = dispatch_runner_execution(execution) if args.dispatch and execution is not None else None
             governance_payload: dict[str, object] = {
