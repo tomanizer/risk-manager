@@ -174,6 +174,16 @@ def _decision_from_completed_coding_outcome(
     return None
 
 
+def _coding_gated_by_drift(snapshot: RuntimeSnapshot, work_item_id: str) -> TransitionDecision | None:
+    if snapshot.drift_critical_findings <= 0:
+        return None
+    return TransitionDecision(
+        action=NextActionType.WAIT_FOR_DRIFT_RESOLUTION,
+        work_item_id=work_item_id,
+        reason=f"relay gated: {snapshot.drift_critical_findings} critical-severity drift finding(s) must be resolved before dispatching a coding run",
+    )
+
+
 def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
     prs_by_work_item = {pull_request.work_item_id: pull_request for pull_request in snapshot.pull_requests}
     workflow_runs_by_work_item = {workflow_run.work_item_id: workflow_run for workflow_run in snapshot.workflow_runs}
@@ -190,13 +200,15 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
                 workflow_runs_by_work_item.get(work_item.id),
             )
             if coding_outcome_decision is not None:
-                return coding_outcome_decision
+                drift_gate = _coding_gated_by_drift(snapshot, work_item.id)
+                return drift_gate if drift_gate is not None else coding_outcome_decision
             pm_outcome_decision = _decision_from_completed_pm_outcome(
                 work_item,
                 workflow_runs_by_work_item.get(work_item.id),
             )
             if pm_outcome_decision is not None:
-                return pm_outcome_decision
+                drift_gate = _coding_gated_by_drift(snapshot, work_item.id)
+                return drift_gate if drift_gate is not None else pm_outcome_decision
             return TransitionDecision(
                 action=NextActionType.RUN_PM,
                 work_item_id=work_item.id,
@@ -210,6 +222,10 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
             workflow_runs_by_work_item.get(work_item.id),
         )
         if review_outcome_decision is not None:
+            if review_outcome_decision.action is NextActionType.RUN_CODING:
+                drift_gate = _coding_gated_by_drift(snapshot, work_item.id)
+                if drift_gate is not None:
+                    return drift_gate
             return review_outcome_decision
         if pull_request.has_new_review_comments or pull_request.unresolved_review_threads > 0:
             return TransitionDecision(
@@ -234,6 +250,9 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
                 },
             )
         if pull_request.ci_status in _FAILING_CI_STATES:
+            drift_gate = _coding_gated_by_drift(snapshot, work_item.id)
+            if drift_gate is not None:
+                return drift_gate
             return TransitionDecision(
                 action=NextActionType.RUN_CODING,
                 work_item_id=work_item.id,
@@ -280,6 +299,9 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
                 },
             )
         if pull_request.merge_state_status not in {None, *_READY_MERGE_STATES}:
+            drift_gate = _coding_gated_by_drift(snapshot, work_item.id)
+            if drift_gate is not None:
+                return drift_gate
             return TransitionDecision(
                 action=NextActionType.RUN_CODING,
                 work_item_id=work_item.id,

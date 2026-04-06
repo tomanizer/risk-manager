@@ -47,12 +47,35 @@ def build_runtime_snapshot(repo_root: Path, state_db_path: Path) -> RuntimeSnaps
     work_items, warnings = load_work_items(repo_root)
     pull_requests, github_warnings = fetch_pull_requests(repo_root, work_items)
     workflow_runs = load_workflow_runs(state_db_path)
+    drift_critical_findings, drift_summary_md = _load_drift_state(repo_root)
     return RuntimeSnapshot(
         work_items=work_items,
         pull_requests=pull_requests,
         workflow_runs=workflow_runs,
         warnings=warnings + github_warnings,
+        drift_critical_findings=drift_critical_findings,
+        drift_summary_md=drift_summary_md,
     )
+
+
+def _load_drift_state(repo_root: Path) -> tuple[int, str | None]:
+    report_path = repo_root / "artifacts" / "drift" / "latest_report.json"
+    summary_path = repo_root / "artifacts" / "drift" / "summary.md"
+    if not report_path.is_file():
+        return 0, None
+    try:
+        payload = json.loads(report_path.read_text(encoding="utf-8"))
+        findings = payload.get("findings", [])
+        critical_count = sum(1 for f in findings if isinstance(f, dict) and f.get("severity") == "critical")
+    except (OSError, ValueError):
+        return 0, None
+    drift_summary = None
+    if summary_path.is_file():
+        try:
+            drift_summary = summary_path.read_text(encoding="utf-8")
+        except OSError:
+            pass
+    return critical_count, drift_summary
 
 
 def run_runtime_step(

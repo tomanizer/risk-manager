@@ -23,6 +23,7 @@ class NextActionType(str, Enum):
     RUN_SPEC = "run_spec"
     RUN_CODING = "run_coding"
     WAIT_FOR_REVIEWS = "wait_for_reviews"
+    WAIT_FOR_DRIFT_RESOLUTION = "wait_for_drift_resolution"
     RUN_REVIEW = "run_review"
     HUMAN_MERGE = "human_merge"
     HUMAN_UPDATE_REPO = "human_update_repo"
@@ -60,6 +61,8 @@ class RuntimeSnapshot:
     pull_requests: tuple[PullRequestSnapshot, ...] = ()
     workflow_runs: tuple[WorkflowRunRecord, ...] = ()
     warnings: tuple[str, ...] = ()
+    drift_critical_findings: int = 0
+    drift_summary_md: str | None = None
 
 
 @dataclass(frozen=True)

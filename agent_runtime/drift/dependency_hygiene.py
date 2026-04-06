@@ -269,7 +269,16 @@ def _append_stale_guidance_findings(findings: list[DependencyHygieneFinding], in
             lines = file_path.read_text(encoding="utf-8").splitlines()
         except UnicodeDecodeError:
             continue
+        in_code_fence = False
         for line_number, line in enumerate(lines, start=1):
+            stripped = line.strip()
+            if stripped.startswith("```") or stripped.startswith("~~~"):
+                in_code_fence = not in_code_fence
+                continue
+            if in_code_fence:
+                continue
+            if "<!-- drift-ignore -->" in line:
+                continue
             if not stale_pattern.search(line):
                 continue
             relative_path = file_path.relative_to(repo_root).as_posix()

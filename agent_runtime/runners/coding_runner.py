@@ -21,6 +21,7 @@ class CodingRunnerInput:
     pr_number: int | None = None
     pr_url: str | None = None
     base_ref: str | None = None
+    drift_summary: str | None = None
 
 
 def build_coding_prompt(input_data: CodingRunnerInput) -> str:
@@ -31,6 +32,8 @@ def build_coding_prompt(input_data: CodingRunnerInput) -> str:
         prompt += f" ({input_data.pr_url})"
     if input_data.base_ref is not None:
         prompt += f"\nBase ref: {input_data.base_ref}"
+    if input_data.drift_summary is not None:
+        prompt += f"\n\n## Current repo drift state\n\n{input_data.drift_summary}"
     return prompt
 
 
