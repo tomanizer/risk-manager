@@ -403,6 +403,7 @@ Rules:
 - for `get_risk_summary` and `get_risk_change_profile` in v1, reachable in-object statuses are `OK`, `DEGRADED`, `MISSING_COMPARE`, and `MISSING_HISTORY`
 - for as-of-date retrieval in v1, `UNSUPPORTED_MEASURE`, `MISSING_SNAPSHOT`, and `MISSING_NODE` are typed service-error outcomes, not partially populated `RiskDelta`, `RiskSummary`, or `RiskChangeProfile` objects
 - for as-of-date retrieval in v1, `PARTIAL` is not returned inside `RiskDelta`, `RiskSummary`, or `RiskChangeProfile`; it remains available for operation-specific use such as `RiskHistorySeries`
+- for `RiskSummary` and `RiskChangeProfile`, conditions that would produce `PARTIAL` on an underlying history retrieval, such as sparse valid points in range, must be surfaced as in-object `DEGRADED` rather than `PARTIAL`
 - as-of-date retrieval outcome precedence is:
   1. typed request validation failure
   2. typed service error `UNSUPPORTED_MEASURE`
