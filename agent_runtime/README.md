@@ -109,6 +109,24 @@ When enabled, the PM runner uses `codex exec` in the allocated worktree,
 requests a structured PM assessment, and persists `ready`, `blocked`, or
 `split_required` automatically through the existing workflow outcome path.
 
+The review runner now supports the same opt-in pattern:
+
+```bash
+export AGENT_RUNTIME_REVIEW_BACKEND=codex_exec
+```
+
+Optional review backend settings:
+
+```bash
+export AGENT_RUNTIME_REVIEW_CODEX_BIN=codex
+export AGENT_RUNTIME_REVIEW_CODEX_MODEL=gpt-5
+```
+
+When enabled, the review runner uses `codex exec` in the allocated worktree,
+requests a structured review triage, and persists `pass`,
+`changes_requested`, or `blocked` automatically through the existing workflow
+outcome path.
+
 ## Record the real manual outcome
 
 ```bash
@@ -128,6 +146,13 @@ The runtime now uses completed PM outcomes as control signals:
 - `ready` can advance a ready item to coding without asking PM again
 - `blocked` or `split_required` can stop at a human repo-update gate until the
   work item changes
+
+The runtime now also uses completed review outcomes as control signals until
+the PR changes again:
+
+- `changes_requested` can route the work item back to coding
+- `pass` or `blocked` can stop at a human repo-update gate instead of rerunning
+  review immediately on the same unchanged PR
 
 ## Release a completed runner worktree
 

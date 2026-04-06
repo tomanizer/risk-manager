@@ -535,6 +535,7 @@ def test_build_pull_request_snapshots_maps_live_payload() -> None:
                             "url": "https://github.com/tomanizer/risk-manager/pull/44",
                             "isDraft": False,
                             "headRefName": "codex/WI-1.1.3-risk-summary-history-service",
+                            "updatedAt": "2026-04-06T10:00:00Z",
                             "title": "Implement WI-1.1.3",
                             "body": "Implements history service.",
                             "reviewDecision": "APPROVED",
@@ -566,6 +567,7 @@ def test_build_pull_request_snapshots_maps_live_payload() -> None:
     assert snapshots[0].number == 44
     assert snapshots[0].unresolved_review_threads == 1
     assert snapshots[0].review_decision == "APPROVED"
+    assert snapshots[0].updated_at == "2026-04-06T10:00:00Z"
     assert snapshots[0].ci_status == "SUCCESS"
 
 
@@ -619,6 +621,7 @@ def test_build_runner_execution_for_review_includes_pr_context() -> None:
     assert execution is not None
     assert execution.runner_name is RunnerName.REVIEW
     assert "PR #52" in execution.prompt
+    assert "Base ref: origin/main" in execution.prompt
     assert execution.metadata["pr_number"] == "52"
 
 
@@ -678,6 +681,134 @@ def test_dispatch_runner_execution_returns_prepared_result() -> None:
     assert "Prepared PM readiness handoff" in result.summary
     assert result.details["target_path"].endswith("WI-1.1.4-risk-summary-core-service.md")
     assert result.outcome_status is None
+
+
+def test_completed_review_changes_requested_routes_to_coding_when_pr_is_unchanged() -> None:
+    snapshot = RuntimeSnapshot(
+        work_items=(
+            WorkItemSnapshot(
+                id="WI-1.1.4-risk-summary-core-service",
+                title="WI-1.1.4",
+                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
+                stage=WorkItemStage.READY,
+            ),
+        ),
+        pull_requests=(
+            PullRequestSnapshot(
+                work_item_id="WI-1.1.4-risk-summary-core-service",
+                number=71,
+                is_draft=False,
+                url="https://github.com/tomanizer/risk-manager/pull/71",
+                updated_at="2026-04-06T09:59:00Z",
+                unresolved_review_threads=2,
+                review_decision="CHANGES_REQUESTED",
+            ),
+        ),
+        workflow_runs=(
+            WorkflowRunRecord(
+                work_item_id="WI-1.1.4-risk-summary-core-service",
+                run_id="review-wi-1-1-4-test-run",
+                pr_number=71,
+                status="run_review",
+                last_action="run_review",
+                runner_name="review",
+                runner_status="completed",
+                outcome_status="changes_requested",
+                outcome_summary="Latest review triage requires a coding follow-up.",
+                completed_at="2026-04-06 10:00:00",
+            ),
+        ),
+    )
+
+    decision = decide_next_action(snapshot)
+
+    assert decision.action is NextActionType.RUN_CODING
+    assert decision.metadata["review_outcome_status"] == "changes_requested"
+
+
+def test_completed_review_pass_routes_to_human_update_repo_when_pr_is_unchanged() -> None:
+    snapshot = RuntimeSnapshot(
+        work_items=(
+            WorkItemSnapshot(
+                id="WI-1.1.4-risk-summary-core-service",
+                title="WI-1.1.4",
+                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
+                stage=WorkItemStage.READY,
+            ),
+        ),
+        pull_requests=(
+            PullRequestSnapshot(
+                work_item_id="WI-1.1.4-risk-summary-core-service",
+                number=71,
+                is_draft=False,
+                url="https://github.com/tomanizer/risk-manager/pull/71",
+                updated_at="2026-04-06T09:59:00Z",
+                unresolved_review_threads=1,
+                review_decision="CHANGES_REQUESTED",
+            ),
+        ),
+        workflow_runs=(
+            WorkflowRunRecord(
+                work_item_id="WI-1.1.4-risk-summary-core-service",
+                run_id="review-wi-1-1-4-test-run",
+                pr_number=71,
+                status="run_review",
+                last_action="run_review",
+                runner_name="review",
+                runner_status="completed",
+                outcome_status="pass",
+                outcome_summary="No further code changes are required.",
+                completed_at="2026-04-06 10:00:00",
+            ),
+        ),
+    )
+
+    decision = decide_next_action(snapshot)
+
+    assert decision.action is NextActionType.HUMAN_UPDATE_REPO
+    assert decision.metadata["review_outcome_status"] == "pass"
+
+
+def test_completed_review_outcome_is_ignored_after_pr_changes() -> None:
+    snapshot = RuntimeSnapshot(
+        work_items=(
+            WorkItemSnapshot(
+                id="WI-1.1.4-risk-summary-core-service",
+                title="WI-1.1.4",
+                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
+                stage=WorkItemStage.READY,
+            ),
+        ),
+        pull_requests=(
+            PullRequestSnapshot(
+                work_item_id="WI-1.1.4-risk-summary-core-service",
+                number=71,
+                is_draft=False,
+                url="https://github.com/tomanizer/risk-manager/pull/71",
+                updated_at="2026-04-06T10:01:00Z",
+                unresolved_review_threads=1,
+                review_decision="CHANGES_REQUESTED",
+            ),
+        ),
+        workflow_runs=(
+            WorkflowRunRecord(
+                work_item_id="WI-1.1.4-risk-summary-core-service",
+                run_id="review-wi-1-1-4-test-run",
+                pr_number=71,
+                status="run_review",
+                last_action="run_review",
+                runner_name="review",
+                runner_status="completed",
+                outcome_status="pass",
+                outcome_summary="No further code changes are required.",
+                completed_at="2026-04-06 10:00:00",
+            ),
+        ),
+    )
+
+    decision = decide_next_action(snapshot)
+
+    assert decision.action is NextActionType.RUN_REVIEW
 
 
 def test_build_pull_request_snapshots_uses_exact_work_item_matching() -> None:
