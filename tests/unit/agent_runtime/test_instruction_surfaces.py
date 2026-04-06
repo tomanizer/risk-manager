@@ -33,6 +33,34 @@ def test_instruction_surface_report_detects_readme_inventory_drift(tmp_path: Pat
     assert finding.source_path == ".github/agents/README.md"
 
 
+def test_instruction_surface_report_detects_stale_readme_inventory_entries(tmp_path: Path) -> None:
+    _write_instruction_surfaces(tmp_path)
+    readme_path = tmp_path / ".github" / "agents" / "README.md"
+    readme_path.write_text(
+        "\n".join(
+            [
+                "- `pm.agent.md`",
+                "- `issue-planner.agent.md`",
+                "- `risk-methodology-spec.agent.md`",
+                "- `coding.agent.md`",
+                "- `review.agent.md`",
+                "- `drift-monitor.agent.md`",
+                "- `legacy.agent.md`",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = build_instruction_surface_report(tmp_path)
+
+    assert report.stats.findings_count == 1
+    finding = report.findings[0]
+    assert finding.kind == "instruction_inventory_drift"
+    assert finding.source_path == ".github/agents/README.md"
+    assert finding.related_paths == ("legacy.agent.md",)
+
+
 def test_instruction_surface_report_detects_missing_agents_reference(tmp_path: Path) -> None:
     _write_instruction_surfaces(tmp_path)
     prompt_path = tmp_path / "prompts" / "agents" / "pm_agent_instruction.md"

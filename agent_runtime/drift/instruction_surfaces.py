@@ -68,6 +68,7 @@ DRIFT_ENTRYPOINT_FILES: tuple[Path, ...] = (
 
 INSTRUCTION_SURFACE_SEVERITY = "major"
 BACKTICK_TOKEN_PATTERN = re.compile(r"`([^`\n]+)`")
+BACKTICK_LIST_ITEM_PATTERN = re.compile(r"^\s*(?:-|\d+\.)\s+`([^`\n]+)`\s*$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -175,12 +176,19 @@ def _append_readme_inventory_findings(findings: list[InstructionSurfaceFinding],
                 )
             )
             continue
-        listed_entries = _listed_backtick_tokens(full_path)
+        listed_entries = _listed_inventory_entries(full_path)
         expected = tuple(sorted(expected_entries))
-        actual = tuple(sorted(entry for entry in listed_entries if entry in expected_entries))
+        actual = tuple(sorted(listed_entries))
         if actual == expected:
             continue
         missing_entries = tuple(entry for entry in expected if entry not in actual)
+        unexpected_entries = tuple(entry for entry in actual if entry not in expected)
+        related_paths = missing_entries + unexpected_entries
+        message_parts: list[str] = []
+        if missing_entries:
+            message_parts.append(f"missing listed entries for: {', '.join(f'`{entry}`' for entry in missing_entries)}")
+        if unexpected_entries:
+            message_parts.append(f"unexpected listed entries: {', '.join(f'`{entry}`' for entry in unexpected_entries)}")
         findings.append(
             InstructionSurfaceFinding(
                 kind="instruction_inventory_drift",
@@ -188,11 +196,8 @@ def _append_readme_inventory_findings(findings: list[InstructionSurfaceFinding],
                 drift_class="operational-instruction drift",
                 owner="repository maintenance",
                 source_path=readme_path.as_posix(),
-                related_paths=missing_entries,
-                message=(
-                    f"Instruction inventory `{readme_path.as_posix()}` is missing listed entries for: "
-                    f"{', '.join(f'`{entry}`' for entry in missing_entries)}."
-                ),
+                related_paths=related_paths,
+                message=f"Instruction inventory `{readme_path.as_posix()}` has drift: {'; '.join(message_parts)}.",
             )
         )
 
@@ -326,6 +331,27 @@ def _instruction_files_scanned(repo_root: Path, freshness_rule_files: tuple[Path
     return tuple(sorted((path for path in scanned_paths if (repo_root / path).is_file()), key=lambda path: path.as_posix()))
 
 
-def _listed_backtick_tokens(path: Path) -> tuple[str, ...]:
-    entries = {match.group(1) for match in BACKTICK_TOKEN_PATTERN.finditer(path.read_text(encoding="utf-8"))}
+def _listed_inventory_entries(path: Path) -> tuple[str, ...]:
+    lines = path.read_text(encoding="utf-8").splitlines()
+    inventory_lines = lines
+    for index, line in enumerate(lines):
+        if line.strip().startswith("## Files"):
+            inventory_lines = lines[index + 1 :]
+            break
+
+    entries: set[str] = set()
+    captured_block = False
+    for line in inventory_lines:
+        stripped = line.strip()
+        if stripped.startswith("## "):
+            if captured_block:
+                break
+            continue
+        match = BACKTICK_LIST_ITEM_PATTERN.match(line)
+        if match is not None:
+            entries.add(match.group(1))
+            captured_block = True
+            continue
+        if captured_block:
+            break
     return tuple(sorted(entries))
