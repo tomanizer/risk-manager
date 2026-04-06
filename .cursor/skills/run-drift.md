@@ -39,9 +39,10 @@ Read `prompts/agents/invocation_templates/drift_monitor_invocation.md`.
 Replace the placeholders as follows:
 
 - `<FOCUS_AREA — "full repo audit" or a specific area like "canon vs implementation coherence for risk_analytics module">` → the focus area from Step 1
-- `<CONTEXT — what triggered this audit, any known concerns>` → `"Triggered by: [what the user said]. Recent merges: [list last 3–5 commits from git log --oneline -5]."`
+- `<CONTEXT — what triggered this audit, any known concerns>` → `"Triggered by: [what the user said]. Recent merges: [paste the output of: git log --oneline -5]."`
 
-Run `git log --oneline -5` to obtain the recent commits for the context field.
+For the recent-merges part: ask the user to run `git log --oneline -5` and paste the output.
+If the user does not provide it, use the literal placeholder `[run: git log --oneline -5]` in the context field so the agent session that receives the prompt can fill it in.
 
 ## Step 4 — Print the filled prompt as one fenced block
 
@@ -67,5 +68,5 @@ Before the agent starts:
 
 - STOP if you are about to run the drift audit yourself.
 - STOP if you are about to edit or create any source or documentation file.
-- STOP if you are about to execute scripts or shell commands beyond reading `git log --oneline -5` for the context field.
+- STOP if you are about to execute any scripts or shell commands.
 - In all of these cases: produce the filled invocation prompt and hand it to the user instead.
