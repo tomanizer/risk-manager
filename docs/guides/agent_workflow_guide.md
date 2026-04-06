@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This guide explains how to use the project agents with external coding tools such as Claude Code, Codex, Cursor, and GitHub Copilot.
+This guide covers tool-specific usage patterns for the project's agent framework. For a comprehensive overview of the framework itself — what the agents are, how they work, how to use them manually and autonomously — see `docs/guides/agent_framework.md`.
 
-It is intentionally tool-agnostic at the workflow level. The same operating model should apply regardless of which coding surface you use.
+This guide explains how to use the project agents with external coding tools such as Claude Code, Codex, Cursor, and GitHub Copilot.
 
 ## The core agent roles
 
@@ -219,20 +219,16 @@ Good pattern:
 
 ## Recommended repo-visible agent setup
 
-For this project, keep the canonical repo-visible instructions aligned to the sources that already exist:
+The canonical repo-visible agent surfaces are:
 
-- `AGENTS.md` for coding-agent and repository operating instructions
-- `prompts/README.md` as the index for the prompt set
-- prompt files in `prompts/` for PM, review, issue planning, drift monitoring, PRD generation, and related workflow templates
+- `AGENTS.md` — master role definitions, handoff model, and repo rules
+- `prompts/agents/` — one standing instruction file per role (the single source of truth)
+- `prompts/agents/invocation_templates/` — per-task prompt templates with placeholders
+- `.github/agents/` — Copilot agent profiles (thin pointers to instruction files)
+- `CLAUDE.md` — Claude-specific routing (thin pointer to instruction files)
+- `GEMINI.md` — Gemini-specific routing (thin pointer to instruction files)
 
-If you later add a dedicated coding-agent prompt file, make sure this guide and `prompts/README.md` are updated together.
-
-Then map those sources into whichever tool you use:
-
-- Cursor rules
-- Copilot custom instructions or custom agents
-- Claude Code prompt templates
-- Codex session briefs
+See `prompts/agents/README.md` for the full agent index table.
 
 ## Human role in the loop
 

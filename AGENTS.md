@@ -13,17 +13,15 @@ This repository uses AI agents for PRD authoring, issue decomposition, implement
 
 ## Agent roles
 
-### PRD Author
-- writes bounded implementation-ready PRDs
-- uses the correct PRD template variant
-- keeps scope narrow
-- makes ambiguities explicit in Open Questions
+Each role has a detailed instruction file in `prompts/agents/` and a Copilot agent profile in `.github/agents/`. The legacy Risk Methodology Spec Agent (`risk-methodology-spec.agent.md`) is retained for backward compatibility but its responsibilities are now covered by the PRD / Spec Author.
 
-### Risk Methodology Spec Agent
-- defines market-risk concepts precisely before implementation starts
-- preserves methodological distinctions such as summary versus driver, historical versus simulated shock, and market move versus operational artifact
-- makes methodology caveats explicit
-- does not let vague finance language stand in for real risk-methodology contracts
+### PRD / Spec Author
+- writes bounded implementation-ready PRDs and methodology-aware specifications
+- makes typed contracts, status models, error semantics, and degraded cases explicit
+- applies methodology-aware judgment when the capability involves market-risk concepts
+- keeps scope narrow and makes ambiguities explicit in Open Questions
+- does not push contract or status-semantic decisions to coding
+- instruction: `prompts/agents/prd_spec_agent_instruction.md`
 
 ### Coding Agent
 - implements one bounded work item at a time
@@ -32,11 +30,26 @@ This repository uses AI agents for PRD authoring, issue decomposition, implement
 - includes tests and required evidence/logging hooks
 - prefers direct, readable, low-abstraction implementations
 - prefers established performance-oriented libraries and vectorized execution where appropriate
+- instruction: `prompts/agents/coding_agent_instruction.md`
 
 ### Review Agent
 - reviews against PRD and issue, not personal style preference
 - checks contract fidelity, boundary discipline, degraded-case handling, evidence, replayability, and tests
 - flags scope creep explicitly
+- instruction: `prompts/agents/review_agent_instruction.md`
+
+### PM / Coordination Agent
+- manages sequencing, dependency readiness, blockers, and milestone integrity
+- does not redesign architecture during execution
+- prefers the narrowest reviewable slice that preserves momentum
+- routes canon gaps back to spec work rather than asking coding to improvise
+- instruction: `prompts/agents/pm_agent_instruction.md`
+
+### Issue Planner Agent
+- turns approved PRDs into small, testable, implementation-ready work items
+- preserves dependency order and architecture boundaries
+- makes acceptance criteria explicit and reviewable
+- instruction: `prompts/agents/issue_planner_instruction.md`
 
 ### Drift Monitor Agent
 - audits repo-wide coherence across canon, prompts, work items, registry, implementation, and tests
@@ -45,12 +58,7 @@ This repository uses AI agents for PRD authoring, issue decomposition, implement
 - reports design drift, technical boundary erosion, and source-of-truth ambiguity with evidence
 - routes findings to PM, PRD, methodology/spec, coding, review, repository maintenance, or human decision
 - does not silently rewrite canon, approve merge readiness, or widen implementation scope on its own
-
-### PM / Coordination Agent
-- manages sequencing, dependency readiness, blockers, and milestone integrity
-- does not redesign architecture during execution
-- prefers the narrowest reviewable slice that preserves momentum
-- routes canon gaps back to spec work rather than asking coding to improvise
+- instruction: `prompts/agents/drift_monitor_agent_instruction.md`
 
 ## Role separation rule
 
@@ -58,7 +66,7 @@ The repository uses a gated relay, not a single do-everything agent.
 
 The intended handoff is:
 1. PM / Coordination Agent
-2. Issue Planner or PRD Author when needed
+2. PRD / Spec Author or Issue Planner when needed
 3. Coding Agent
 4. Review Agent
 5. Human merge decision
@@ -67,13 +75,17 @@ Do not collapse planning, coding, review, and merge judgment into one agent pass
 
 Repo-wide drift monitoring is a separate periodic governance control. It does not replace the PM -> coding -> review delivery relay for implementation work.
 
+For a comprehensive guide to the agent framework — what the agents are, how they work, how to use them manually and autonomously across tools — see `docs/guides/agent_framework.md`.
+
 Repo-visible role-specific instructions live in:
-- `prompts/agents/`
-- `docs/guides/overnight_agent_runbook.md`
-- `docs/delivery/`
-- `docs/methodology/`
-- `docs/engineering/`
-- `docs/guides/repo_health_audit_checklist.md`
+- `prompts/agents/` — canonical standing instructions and invocation templates
+- `docs/guides/agent_framework.md` — framework overview and tool-specific setup
+- `docs/guides/overnight_agent_runbook.md` — operational runbook
+- `docs/guides/agent_workflow_guide.md` — tool-specific usage patterns
+- `docs/delivery/` — PM and delivery canon
+- `docs/methodology/` — risk methodology canon
+- `docs/engineering/` — coding and engineering canon
+- `docs/guides/repo_health_audit_checklist.md` — drift monitor checklist
 
 ## Freshness and branching rule
 

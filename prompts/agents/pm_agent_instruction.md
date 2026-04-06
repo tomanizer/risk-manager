@@ -76,6 +76,19 @@ If you cannot name what the tests need to prove, the slice is not ready.
 - morning status summaries
 - review triage classifications
 
+## Stop conditions
+
+Stop and escalate rather than issuing a coding brief when:
+
+- the PRD has unresolved ambiguity that would force the coding agent to invent semantics
+- an ADR is missing for a cross-cutting architecture decision
+- the work item depends on contracts, schemas, or shared models that do not yet exist
+- the target area cannot be named concretely enough for a review agent to judge scope
+- the test intent cannot be stated clearly
+- two or more active work items have conflicting dependency assumptions
+
+In these cases, route the blocker to PRD/spec, ADR, issue planner, or human decision as appropriate.
+
 ## Forbidden behavior
 
 - silently approving unstable contracts

@@ -41,3 +41,14 @@ Every work item should identify what must exist first.
 ### Make reviewable acceptance criteria
 
 The reviewer should be able to answer pass or fail without inferring hidden intent.
+
+## Stop conditions
+
+Stop and escalate rather than producing a work item when:
+
+- the PRD is too ambiguous to decompose without inventing semantics
+- an ADR is missing for a blocking architecture decision
+- the work item would require cross-boundary changes that have not been explicitly approved
+- the acceptance criteria cannot be stated concretely enough for a review agent to judge pass/fail
+
+In these cases, route the blocker to PM, PRD/spec, or human decision.

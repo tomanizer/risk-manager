@@ -1,0 +1,24 @@
+# Agent Invocation Templates
+
+These templates define the expected prompt shape for each agent role when invoked for a specific task.
+
+They bridge the standing instruction files (in `prompts/agents/`) with the per-task context an operator provides at invocation time.
+
+## Usage
+
+1. Copy the relevant template
+2. Fill in the placeholders (marked with `<PLACEHOLDER>`)
+3. Paste as the prompt to the agent in your tool of choice
+
+The agent's standing instruction file is referenced in each template. The agent should read it first, then apply the task-specific context from the invocation prompt.
+
+## Templates
+
+| Template | Agent Role |
+|----------|-----------|
+| `pm_invocation.md` | PM / Coordination Agent |
+| `prd_spec_invocation.md` | PRD / Spec Author Agent |
+| `issue_planner_invocation.md` | Issue Planner Agent |
+| `coding_invocation.md` | Coding Agent |
+| `review_invocation.md` | Review Agent |
+| `drift_monitor_invocation.md` | Drift Monitor Agent |

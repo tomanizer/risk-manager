@@ -324,6 +324,7 @@ def _write_instruction_surfaces(root: Path) -> None:
         "\n".join(
             [
                 "- `pm.agent.md`",
+                "- `prd-spec.agent.md`",
                 "- `issue-planner.agent.md`",
                 "- `risk-methodology-spec.agent.md`",
                 "- `coding.agent.md`",
@@ -340,6 +341,7 @@ def _write_instruction_surfaces(root: Path) -> None:
         "\n".join(
             [
                 "- `pm_agent_instruction.md`",
+                "- `prd_spec_agent_instruction.md`",
                 "- `coding_agent_instruction.md`",
                 "- `review_agent_instruction.md`",
                 "- `issue_planner_instruction.md`",
@@ -365,6 +367,7 @@ def _write_instruction_surfaces(root: Path) -> None:
         "drift-monitor.agent.md": "Read `AGENTS.md`.\n1. `git fetch origin`\n2. `git switch main`\n3. `git pull --ff-only origin main`\nUse `scripts/drift/run_all.py`.\n",
         "issue-planner.agent.md": "Read `AGENTS.md`.\n",
         "pm.agent.md": "Read `AGENTS.md`.\n1. `git fetch origin`\n2. `git switch main`\n3. `git pull --ff-only origin main`\n",
+        "prd-spec.agent.md": "Read `AGENTS.md`.\n",
         "review.agent.md": "Read `AGENTS.md`.\n1. `git fetch origin`\n2. `git switch main`\n3. `git pull --ff-only origin main`\n",
         "risk-methodology-spec.agent.md": "Read `AGENTS.md`.\n",
     }
@@ -376,6 +379,7 @@ def _write_instruction_surfaces(root: Path) -> None:
         "drift_monitor_agent_instruction.md": "Read `AGENTS.md`.\nUse `scripts/drift/run_all.py`.\n",
         "issue_planner_instruction.md": "Read `AGENTS.md`.\n# Issue planner\n",
         "pm_agent_instruction.md": "Read `AGENTS.md`.\n# PM\n",
+        "prd_spec_agent_instruction.md": "Read `AGENTS.md`.\n# PRD Spec\n",
         "review_agent_instruction.md": "Read `AGENTS.md`.\n# Review\n",
         "risk_methodology_spec_agent_instruction.md": "Read `AGENTS.md`.\n",
     }

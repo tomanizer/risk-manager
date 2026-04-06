@@ -22,6 +22,7 @@ ROLE_SURFACES: tuple[tuple[str, Path, Path], ...] = (
     ("drift-monitor", Path(".github/agents/drift-monitor.agent.md"), Path("prompts/agents/drift_monitor_agent_instruction.md")),
     ("issue-planner", Path(".github/agents/issue-planner.agent.md"), Path("prompts/agents/issue_planner_instruction.md")),
     ("pm", Path(".github/agents/pm.agent.md"), Path("prompts/agents/pm_agent_instruction.md")),
+    ("prd-spec", Path(".github/agents/prd-spec.agent.md"), Path("prompts/agents/prd_spec_agent_instruction.md")),
     ("review", Path(".github/agents/review.agent.md"), Path("prompts/agents/review_agent_instruction.md")),
     (
         "risk-methodology-spec",
@@ -35,6 +36,7 @@ README_EXPECTATIONS: tuple[tuple[Path, tuple[str, ...]], ...] = (
         Path(".github/agents/README.md"),
         (
             "pm.agent.md",
+            "prd-spec.agent.md",
             "issue-planner.agent.md",
             "risk-methodology-spec.agent.md",
             "coding.agent.md",
@@ -46,6 +48,7 @@ README_EXPECTATIONS: tuple[tuple[Path, tuple[str, ...]], ...] = (
         Path("prompts/agents/README.md"),
         (
             "pm_agent_instruction.md",
+            "prd_spec_agent_instruction.md",
             "coding_agent_instruction.md",
             "review_agent_instruction.md",
             "issue_planner_instruction.md",

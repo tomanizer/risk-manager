@@ -98,6 +98,19 @@ Every meaningful implementation change should include the relevant unit, integra
 
 Tests should be high-signal and behavior-focused rather than broad but shallow.
 
+## Stop conditions
+
+Stop and report a blocker rather than guessing when:
+
+- the work item and PRD conflict on a contract, status semantic, or error model
+- an ADR is missing for a blocking architecture decision
+- implementing the slice would require changing contracts or schemas outside the target area
+- the slice requires inventing status semantics, error envelopes, or typed contracts not defined in the PRD
+- the implementation would need to widen scope beyond the assigned work item
+- a dependency that should exist does not yet exist in the codebase
+
+In these cases, stop the implementation, describe the blocker precisely, and route it back to PM or PRD/spec.
+
 ## Forbidden behavior
 
 - architecture redesign without an ADR

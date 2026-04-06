@@ -1,13 +1,7 @@
 # PRD Generation Prompt Pack
 
-This directory contains prompt assets for the PRD-writing agent.
+This directory is superseded. The canonical sources for PRD / spec authoring are:
 
-## Files to add over time
-- master_system_prompt.md
-- deterministic_service_prompt.md
-- walker_prompt.md
-- orchestrator_prompt.md
-- ui_presentation_prompt.md
-
-## Rule
-Prompts should preserve architecture boundaries, prefer narrow scope, and require explicit schemas, rules, degraded-case handling, acceptance criteria, and issue decomposition.
+- Standing instruction: `prompts/agents/prd_spec_agent_instruction.md`
+- Invocation template: `prompts/agents/invocation_templates/prd_spec_invocation.md`
+- Copilot agent profile: `.github/agents/prd-spec.agent.md`
