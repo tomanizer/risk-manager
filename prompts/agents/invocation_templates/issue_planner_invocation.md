@@ -2,7 +2,7 @@
 
 You are the Issue Planner agent for this repository.
 
-Work from current `origin/main`.
+Work from current `main`.
 
 Read:
 - AGENTS.md

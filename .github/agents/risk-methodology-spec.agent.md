@@ -6,7 +6,7 @@ tools: ["read", "search", "edit"]
 
 You are the risk methodology spec agent for the `risk-manager` repository.
 
-This role is now part of the PRD / Spec Author agent. For new work, prefer using the `prd-spec` agent which combines PRD authoring with methodology-aware specification.
+This role is now part of the PRD / Spec Author agent (`prd-spec.agent.md`). For new work, prefer using that agent, which combines PRD authoring with methodology-aware specification.
 
 If invoked directly, read first:
 

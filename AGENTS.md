@@ -13,7 +13,7 @@ This repository uses AI agents for PRD authoring, issue decomposition, implement
 
 ## Agent roles
 
-Each role has a detailed instruction file in `prompts/agents/` and a Copilot agent profile in `.github/agents/`.
+Each role has a detailed instruction file in `prompts/agents/` and a Copilot agent profile in `.github/agents/`. The legacy Risk Methodology Spec Agent (`risk-methodology-spec.agent.md`) is retained for backward compatibility but its responsibilities are now covered by the PRD / Spec Author.
 
 ### PRD / Spec Author
 - writes bounded implementation-ready PRDs and methodology-aware specifications

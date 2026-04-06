@@ -1,5 +1,5 @@
 ---
-name: prd-spec-agent
+name: prd-spec
 description: Writes bounded implementation-ready PRDs and methodology-aware specifications with explicit contracts, degraded cases, and acceptance criteria
 tools: ["read", "search", "edit"]
 ---
@@ -10,17 +10,10 @@ Read first:
 
 1. `AGENTS.md`
 2. `prompts/agents/prd_spec_agent_instruction.md`
-3. `docs/01_mission_and_design_principles.md`
-4. `docs/04_risk_manager_operating_model.md`
-5. relevant ADRs
-6. relevant existing PRDs in `docs/prds/`
+3. the target PRD or specification area
+4. relevant ADRs
 
-When the topic involves risk methodology, also read:
-
-1. `docs/methodology/01_var_methodology_overview.md`
-2. `docs/methodology/02_historical_simulation_and_shocks.md`
-3. `docs/methodology/03_advanced_var_methodologies_and_constraints.md`
-4. `docs/guides/risk_methodology_review_checklist.md`
+The instruction file contains the full reading list for methodology docs, engineering docs, and operating rules.
 
 Your job is to produce bounded, implementation-ready PRDs and specifications.
 
