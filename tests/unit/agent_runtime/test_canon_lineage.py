@@ -55,7 +55,7 @@ def test_canon_lineage_report_detects_mismatched_supersedes_reference(tmp_path: 
     assert finding.related_paths == ("archive/PRD-1.1-other-v1-archived.md",)
 
 
-def test_canon_lineage_report_detects_archived_prd_reference_in_active_surface(tmp_path: Path) -> None:
+def test_canon_lineage_report_detects_archived_canon_reference_in_active_surface(tmp_path: Path) -> None:
     _write_canon_lineage_repo(tmp_path)
     work_item = tmp_path / "work_items" / "ready" / "WI-1.md"
     work_item.parent.mkdir(parents=True, exist_ok=True)
@@ -68,8 +68,41 @@ def test_canon_lineage_report_detects_archived_prd_reference_in_active_surface(t
 
     assert report.stats.findings_count == 1
     finding = report.findings[0]
-    assert finding.kind == "archived_prd_reference_in_active_surface"
+    assert finding.kind == "archived_canon_reference_in_active_surface"
     assert finding.source_path == "work_items/ready/WI-1.md"
+
+
+def test_canon_lineage_report_detects_relative_parent_archived_reference(tmp_path: Path) -> None:
+    _write_canon_lineage_repo(tmp_path)
+    work_item = tmp_path / "work_items" / "ready" / "WI-1.md"
+    work_item.parent.mkdir(parents=True, exist_ok=True)
+    work_item.write_text(
+        "See `../../docs/prds/phase-1/archive/PRD-1.1-example-v1-archived.md`.\n",
+        encoding="utf-8",
+    )
+
+    report = build_canon_lineage_report(tmp_path)
+
+    assert report.stats.findings_count == 1
+    finding = report.findings[0]
+    assert finding.kind == "archived_canon_reference_in_active_surface"
+    assert finding.related_paths == ("../../docs/prds/phase-1/archive/PRD-1.1-example-v1-archived.md",)
+
+
+def test_canon_lineage_report_detects_suffix_archived_reference(tmp_path: Path) -> None:
+    _write_canon_lineage_repo(tmp_path)
+    suffix_archived = tmp_path / "docs" / "prds" / "phase-1" / "Spec-v1-archived.md"
+    suffix_archived.write_text("# Archived spec\n", encoding="utf-8")
+    prompt_doc = tmp_path / "prompts" / "agent.md"
+    prompt_doc.parent.mkdir(parents=True, exist_ok=True)
+    prompt_doc.write_text("See `../docs/prds/phase-1/Spec-v1-archived.md`.\n", encoding="utf-8")
+
+    report = build_canon_lineage_report(tmp_path)
+
+    assert report.stats.findings_count == 1
+    finding = report.findings[0]
+    assert finding.kind == "archived_canon_reference_in_active_surface"
+    assert finding.source_path == "prompts/agent.md"
 
 
 def test_check_canon_lineage_cli_writes_json_report(tmp_path: Path) -> None:

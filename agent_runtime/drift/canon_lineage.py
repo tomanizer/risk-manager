@@ -92,7 +92,7 @@ def _discover_versioned_docs(repo_root: Path) -> tuple[_VersionedDoc, ...]:
         match = VERSIONED_DOC_PATTERN.match(full_path.stem)
         if match is None:
             continue
-        archived = rel_path.parent.name == "archive" or match.group("archived") is not None
+        archived = _is_archived_versioned_doc(rel_path)
         lineage_dir = rel_path.parent.parent if rel_path.parent.name == "archive" else rel_path.parent
         family_key = f"{lineage_dir.as_posix()}::{match.group('base')}"
         versioned_docs.append(
@@ -106,9 +106,7 @@ def _discover_versioned_docs(repo_root: Path) -> tuple[_VersionedDoc, ...]:
     return tuple(versioned_docs)
 
 
-def _append_lineage_group_findings(
-    findings: list[CanonLineageFinding], repo_root: Path, versioned_docs: tuple[_VersionedDoc, ...]
-) -> None:
+def _append_lineage_group_findings(findings: list[CanonLineageFinding], repo_root: Path, versioned_docs: tuple[_VersionedDoc, ...]) -> None:
     docs_by_group: dict[str, list[_VersionedDoc]] = {}
     for doc in versioned_docs:
         docs_by_group.setdefault(doc.family_key, []).append(doc)
@@ -186,18 +184,18 @@ def _append_archived_reference_findings(findings: list[CanonLineageFinding], rep
         for full_path in sorted(full_root.rglob("*.md")):
             rel_path = full_path.relative_to(repo_root)
             scanned_files += 1
-            for archived_ref in _archived_prd_references(repo_root, rel_path, full_path.read_text(encoding="utf-8")):
+            for archived_ref in _archived_canon_references(repo_root, rel_path, full_path.read_text(encoding="utf-8")):
                 findings.append(
                     CanonLineageFinding(
-                        kind="archived_prd_reference_in_active_surface",
+                        kind="archived_canon_reference_in_active_surface",
                         severity="major",
                         drift_class="canon drift",
                         owner="PM",
                         source_path=rel_path.as_posix(),
                         related_paths=(archived_ref,),
                         message=(
-                            f"Active execution surface `{rel_path.as_posix()}` references archived PRD `{archived_ref}` instead of the "
-                            "current active canon document."
+                            f"Active execution surface `{rel_path.as_posix()}` references archived canon document `{archived_ref}` "
+                            "instead of the current active document."
                         ),
                     )
                 )
@@ -226,16 +224,14 @@ def _expected_predecessor_references(current_path: Path, predecessor_path: Path)
     return expected
 
 
-def _archived_prd_references(repo_root: Path, source_path: Path, contents: str) -> tuple[str, ...]:
+def _archived_canon_references(repo_root: Path, source_path: Path, contents: str) -> tuple[str, ...]:
     archived_refs: list[str] = []
     for match in MARKDOWN_DOC_REF_PATTERN.finditer(contents):
         ref = match.group(1).replace("\\", "/")
-        if "archive/" not in ref:
-            continue
         resolved = _resolve_markdown_reference(repo_root, source_path, ref)
         if resolved is None:
             continue
-        if "archive" not in resolved.parts or not resolved.name.startswith("PRD-"):
+        if not _is_archived_versioned_doc(resolved):
             continue
         archived_refs.append(ref)
     return tuple(sorted(set(archived_refs)))
@@ -245,11 +241,13 @@ def _resolve_markdown_reference(repo_root: Path, source_path: Path, reference: s
     candidate = Path(reference)
     if candidate.is_absolute():
         return None
-    for resolved in (source_path.parent / candidate, candidate):
-        normalized = Path(*[part for part in resolved.parts if part not in ("", ".")])
-        if ".." in normalized.parts:
+    for unresolved in (source_path.parent / candidate, candidate):
+        resolved = (repo_root / unresolved).resolve()
+        try:
+            normalized = resolved.relative_to(repo_root)
+        except ValueError:
             continue
-        if (repo_root / normalized).is_file():
+        if resolved.is_file():
             return normalized
     return None
 
@@ -258,3 +256,10 @@ def _lineage_owner(path: Path) -> str:
     if path.parts[:2] in (("docs", "prds"), ("docs", "prd_exemplars")):
         return "PRD author"
     return "repository maintenance"
+
+
+def _is_archived_versioned_doc(path: Path) -> bool:
+    match = VERSIONED_DOC_PATTERN.match(path.stem)
+    if match is None:
+        return False
+    return path.parent.name == "archive" or match.group("archived") is not None
