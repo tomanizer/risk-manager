@@ -379,7 +379,7 @@ Rules:
 
 ## Status model
 
-Allowed summary statuses:
+Canonical status vocabulary across service operations:
 
 - `OK`
 - `PARTIAL`
@@ -393,17 +393,26 @@ Allowed summary statuses:
 Rules:
 
 - status must always be explicit
-- exactly one canonical status must be returned for a given response
+- exactly one canonical status must be returned for a given response or typed service error
 - `status_reasons` carries secondary detail and supporting diagnostics
-- status precedence is:
-  1. `UNSUPPORTED_MEASURE`
-  2. `MISSING_SNAPSHOT`
-  3. `MISSING_NODE`
-  4. `DEGRADED`
-  5. `MISSING_COMPARE`
-  6. `MISSING_HISTORY`
-  7. `PARTIAL`
-  8. `OK`
+- this vocabulary is shared across object-returning outcomes and typed service-error outcomes; it does not imply that every status is representable inside every returned object
+- typed request validation failures sit outside returned-object status encoding and must not fabricate `RiskDelta`, `RiskSummary`, or `RiskChangeProfile` objects
+- this PRD governs which canonical outcome category applies; it does not redesign the repository's shared typed service-error or request-validation envelope
+- for `get_risk_delta`, `get_risk_summary`, and `get_risk_change_profile`, a typed object is returned only when a current scoped point exists and the required current-value plus replay/version fields can be populated honestly
+- for `get_risk_delta` in v1, reachable in-object statuses are `OK`, `DEGRADED`, and `MISSING_COMPARE`
+- for `get_risk_summary` and `get_risk_change_profile` in v1, reachable in-object statuses are `OK`, `DEGRADED`, `MISSING_COMPARE`, and `MISSING_HISTORY`
+- for as-of-date retrieval in v1, `UNSUPPORTED_MEASURE`, `MISSING_SNAPSHOT`, and `MISSING_NODE` are typed service-error outcomes, not partially populated `RiskDelta`, `RiskSummary`, or `RiskChangeProfile` objects
+- for as-of-date retrieval in v1, `PARTIAL` is not returned inside `RiskDelta`, `RiskSummary`, or `RiskChangeProfile`; it remains available for operation-specific use such as `RiskHistorySeries`
+- for `RiskSummary` and `RiskChangeProfile`, conditions that would produce `PARTIAL` on an underlying history retrieval, such as sparse valid points in range, must be surfaced as in-object `DEGRADED` rather than `PARTIAL`
+- as-of-date retrieval outcome precedence is:
+  1. typed request validation failure
+  2. typed service error `UNSUPPORTED_MEASURE`
+  3. typed service error `MISSING_SNAPSHOT`
+  4. typed service error `MISSING_NODE`
+  5. in-object `DEGRADED`
+  6. in-object `MISSING_COMPARE`
+  7. in-object `MISSING_HISTORY`
+  8. in-object `OK`
 
 For `RiskHistorySeries`, status precedence is:
 
@@ -447,7 +456,10 @@ Inputs:
 
 Returns:
 
-- `RiskSummary`
+- `RiskSummary` when a current scoped point exists for the requested `as_of_date`
+- typed service error `UNSUPPORTED_MEASURE` when the requested `measure_type` is outside this operation's governed contract
+- typed service error `MISSING_SNAPSHOT` or `MISSING_NODE` when no current scoped point can be returned honestly
+- typed request validation failure for invalid request inputs
 
 The default `lookback_window=60` applies here as 60 business days ending on `as_of_date`, inclusive of `as_of_date`.
 
@@ -484,7 +496,10 @@ Inputs:
 
 Returns:
 
-- `RiskDelta`
+- `RiskDelta` when a current scoped point exists for the requested `as_of_date`
+- typed service error `UNSUPPORTED_MEASURE` when the requested `measure_type` is outside this operation's governed contract
+- typed service error `MISSING_SNAPSHOT` or `MISSING_NODE` when no current scoped point can be returned honestly
+- typed request validation failure for invalid request inputs
 
 ### `get_risk_change_profile`
 
@@ -503,7 +518,10 @@ Inputs:
 
 Returns:
 
-- `RiskChangeProfile`
+- `RiskChangeProfile` when a current scoped point exists for the requested `as_of_date`
+- typed service error `UNSUPPORTED_MEASURE` when the requested `measure_type` is outside this operation's governed contract
+- typed service error `MISSING_SNAPSHOT` or `MISSING_NODE` when no current scoped point can be returned honestly
+- typed request validation failure for invalid request inputs
 
 The default `lookback_window=60` applies here as 60 business days ending on `as_of_date`, inclusive of `as_of_date`.
 
@@ -527,6 +545,14 @@ The default `lookback_window=60` applies here as 60 business days ending on `as_
 
 ## Degraded and error cases
 
+### Case: invalid as-of-date request
+
+Result:
+
+- typed request validation failure
+- no `RiskDelta`, `RiskSummary`, or `RiskChangeProfile` is returned
+- examples include invalid explicit `compare_to_date`, invalid or blank `snapshot_id`, unsupported `lookback_window` or `require_complete` usage for the operation, and any other request that fails typed-contract or canonical business-day validation
+
 ### Case: invalid history date range
 
 Result:
@@ -538,15 +564,18 @@ Result:
 
 Result:
 
-- `status = MISSING_SNAPSHOT` when the requested snapshot cannot be found
-- `status = MISSING_NODE` when the snapshot exists but the node does not
+- for `get_risk_delta`, `get_risk_summary`, and `get_risk_change_profile`, no object is returned when the current point is missing
+- typed service error `MISSING_SNAPSHOT` when the requested current snapshot cannot be found
+- typed service error `MISSING_NODE` when the current snapshot exists but the scoped node cannot be resolved for the requested `as_of_date`
 - no fabricated values
+
+This rule applies because `RiskDelta`, `RiskSummary`, and `RiskChangeProfile` all require current-value and replay/version metadata that cannot be populated honestly when the current scoped point is absent.
 
 ### Case: compare point missing
 
 Result:
 
-- current value returned
+- for `get_risk_delta`, `get_risk_summary`, and `get_risk_change_profile`, current value returned when the current point exists
 - prior and deltas null
 - `status = MISSING_COMPARE`
 
@@ -554,7 +583,7 @@ Result:
 
 Result:
 
-- current summary still returned if available
+- current `RiskSummary` or `RiskChangeProfile` still returned if the current point exists
 - rolling fields calculated from available points with explicit minimum thresholds:
   - mean/min/max require at least 1 point
   - std requires at least 2 points
@@ -613,13 +642,15 @@ Result:
 
 Result:
 
-- typed validation failure or `UNSUPPORTED_MEASURE`
+- for `get_risk_delta`, `get_risk_summary`, and `get_risk_change_profile`, typed service error `UNSUPPORTED_MEASURE` for a supported request shape that asks for a measure outside the governed operation contract
+- for `get_risk_history`, `UNSUPPORTED_MEASURE` remains an operation status on `RiskHistorySeries` exactly as defined in the history-status model above
+- typed request validation failure only when the request itself is structurally invalid
 
 ### Case: partial snapshot
 
 Result:
 
-- `status = DEGRADED`
+- when the current scoped point exists and required object fields can still be populated honestly, return the typed object with `status = DEGRADED`
 - include reason codes
 
 ## Replay requirements
