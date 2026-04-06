@@ -141,17 +141,38 @@ def dispatch_codex_pm_execution(execution: RunnerExecution) -> RunnerResult:
             prompt=execution.prompt,
             details=dict(execution.metadata),
         )
-    outcome_details: dict[str, object] = {}
-    if isinstance(details_value, dict):
-        outcome_details = {str(key): value for key, value in details_value.items()}
-    elif isinstance(details_value, list):
-        for item in details_value:
-            if not isinstance(item, dict):
-                continue
-            key = item.get("key")
-            value = item.get("value")
-            if isinstance(key, str):
-                outcome_details[key] = value
+    outcome_details: dict[str, str] = {}
+    if not isinstance(details_value, list):
+        return RunnerResult(
+            runner_name=execution.runner_name,
+            work_item_id=execution.work_item_id,
+            status=RunnerDispatchStatus.FAILED,
+            summary="PM backend returned details in an invalid format.",
+            prompt=execution.prompt,
+            details=dict(execution.metadata),
+        )
+    for item in details_value:
+        if not isinstance(item, dict):
+            return RunnerResult(
+                runner_name=execution.runner_name,
+                work_item_id=execution.work_item_id,
+                status=RunnerDispatchStatus.FAILED,
+                summary="PM backend returned details in an invalid format.",
+                prompt=execution.prompt,
+                details=dict(execution.metadata),
+            )
+        key = item.get("key")
+        value = item.get("value")
+        if not isinstance(key, str) or not isinstance(value, str):
+            return RunnerResult(
+                runner_name=execution.runner_name,
+                work_item_id=execution.work_item_id,
+                status=RunnerDispatchStatus.FAILED,
+                summary="PM backend returned non-string detail entries.",
+                prompt=execution.prompt,
+                details=dict(execution.metadata),
+            )
+        outcome_details[key] = value
     return RunnerResult(
         runner_name=execution.runner_name,
         work_item_id=execution.work_item_id,

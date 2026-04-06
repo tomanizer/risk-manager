@@ -19,7 +19,7 @@ def test_dispatch_pm_execution_uses_prepared_backend_by_default() -> None:
         metadata={"target_path": "work_items/ready/WI-1.1.4-risk-summary-core-service.md"},
     )
 
-    with patch.dict("os.environ", {}, clear=False):
+    with patch.dict("os.environ", {"AGENT_RUNTIME_PM_BACKEND": "prepared"}, clear=False):
         result = dispatch_pm_execution(execution)
 
     assert result.status is RunnerDispatchStatus.PREPARED
@@ -101,6 +101,46 @@ def test_dispatch_pm_execution_codex_backend_handles_cli_failure() -> None:
     assert result.status is RunnerDispatchStatus.FAILED
     assert result.outcome_status is None
     assert "backend failed" in result.summary
+
+
+def test_dispatch_pm_execution_codex_backend_rejects_non_string_details() -> None:
+    execution = RunnerExecution(
+        runner_name=RunnerName.PM,
+        work_item_id="WI-1.1.4-risk-summary-core-service",
+        prompt="Act only as the PM agent.",
+        metadata={
+            "target_path": "work_items/ready/WI-1.1.4-risk-summary-core-service.md",
+            "worktree_path": "/tmp/runtime-pm-worktree",
+        },
+    )
+
+    def fake_run(
+        command: list[str],
+        input: str,
+        capture_output: bool,
+        text: bool,
+        check: bool,
+    ) -> subprocess.CompletedProcess[str]:
+        output_path = Path(command[command.index("-o") + 1])
+        output_path.write_text(
+            json.dumps(
+                {
+                    "decision": "READY",
+                    "summary": "The work item is implementation-ready.",
+                    "details": [{"key": "reason", "value": {"bad": "shape"}}],
+                }
+            ),
+            encoding="utf-8",
+        )
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    with patch.dict("os.environ", {"AGENT_RUNTIME_PM_BACKEND": "codex_exec"}, clear=False):
+        with patch("agent_runtime.runners.pm_backend.subprocess.run", side_effect=fake_run):
+            result = dispatch_pm_execution(execution)
+
+    assert result.status is RunnerDispatchStatus.FAILED
+    assert result.outcome_status is None
+    assert "non-string detail entries" in result.summary
 
 
 def test_dispatch_pm_execution_rejects_unknown_backend() -> None:

@@ -37,4 +37,4 @@ class RunnerResult:
     details: dict[str, str] = field(default_factory=dict)
     outcome_status: str | None = None
     outcome_summary: str | None = None
-    outcome_details: dict[str, object] = field(default_factory=dict)
+    outcome_details: dict[str, str] = field(default_factory=dict)

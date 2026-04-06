@@ -9,6 +9,7 @@ from pathlib import Path
 from agent_runtime.config.defaults import build_defaults
 from agent_runtime.orchestrator.execution import build_runner_execution
 from agent_runtime.orchestrator.worktree_manager import allocate_worktree, bind_worktree_to_execution, release_worktree
+from agent_runtime.runners.contracts import RunnerDispatchStatus
 from agent_runtime.runners.dispatch import dispatch_runner_execution
 from agent_runtime.storage.sqlite import (
     WorkflowRunRecord,
@@ -231,6 +232,7 @@ def main() -> int:
         if (
             execution is not None
             and runner_result is not None
+            and runner_result.status is RunnerDispatchStatus.COMPLETED
             and runner_result.outcome_status is not None
             and execution.metadata.get("run_id") is not None
         ):
@@ -239,7 +241,7 @@ def main() -> int:
                 execution.metadata["run_id"],
                 runner_result.outcome_status,
                 runner_result.outcome_summary or runner_result.summary,
-                runner_result.outcome_details,
+                dict(runner_result.outcome_details),
             )
 
     print(
