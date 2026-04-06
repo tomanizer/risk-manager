@@ -31,6 +31,10 @@ The instruction file for each role contains its own detailed reading list. Follo
 - evidence, trace, caveat, and replay expectations
 - test quality
 
+## Agent skills
+
+Reusable agent skills are in `.cursor/skills/` (canonical source). See `AGENTS.md` for the full skill list and invocation reference.
+
 ## Hard rules
 
 - before any new review or other task, fetch latest remote state and prefer reviewing the latest PR head rather than stale local context

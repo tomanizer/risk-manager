@@ -87,6 +87,22 @@ Repo-visible role-specific instructions live in:
 - `docs/engineering/` — coding and engineering canon
 - `docs/guides/repo_health_audit_checklist.md` — drift monitor checklist
 
+## Agent skills
+
+Reusable agent skills are defined in `.cursor/skills/` and mirrored as Claude Code slash commands in `.claude/commands/`. Each skill produces a filled invocation prompt for the correct specialist agent — skills do not implement work themselves.
+
+Available skills:
+
+| Skill | Invoke in Claude Code | Purpose |
+|---|---|---|
+| `deliver-wi` | `/deliver-wi` | Identify next work item and produce agent handoff prompt |
+| `phase-review` | `/phase-review` | Assess phase completion against acceptance criteria |
+| `repo-status` | `/repo-status` | Situational awareness dashboard |
+| `run-drift` | `/run-drift` | Trigger a drift monitor pass |
+| `new-prd` | `/new-prd` | Scaffold a new PRD |
+
+In Cursor, invoke by name in chat. In Claude Code, use the `/skill-name` slash command. In other environments (Codex, Copilot), reference by name in your prompt.
+
 ## Freshness and branching rule
 
 Before any PM, coding, review, or drift-monitor pass:
