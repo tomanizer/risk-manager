@@ -147,8 +147,6 @@ def test_repo_scan_has_no_missing_test_layout_references() -> None:
         ("tests/README.md", "tests/integration/"),
         ("tests/README.md", "tests/replay/"),
         ("tests/README.md", "tests/golden_cases/"),
-        ("work_items/ready/WI-1.1.4-risk-summary-core-service.md", "tests/replay/"),
-        ("work_items/ready/WI-1.1.5-risk-summary-rolling-stats-and-replay.md", "tests/replay/"),
     }
 
     unexpected = {
