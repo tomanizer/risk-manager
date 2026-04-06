@@ -132,7 +132,23 @@ A well-formed PRD or specification should contain:
 
 ## Handoff output
 
-After completing the PRD or specification, print a single copy-paste-ready block for the operator. The block must contain the header line and the complete filled prompt together — do not split them into separate blocks.
+### Step 1 — Work summary (print first, plain text, not copy-paste)
+
+Before printing the handoff block, print a plain-text work summary so the operator has a record of what was specified. Use this structure:
+
+```text
+--- PRD/Spec Work Summary ---
+Document       : <filename and PRD ID>
+Scope covered  : <one-line description of what capability was specified>
+Key decisions  : <bullet list — notable design or contract choices made>
+Open questions : <resolved / <count> remaining — brief note on any blockers>
+Routing        : Issue Planner (new decomposition needed) | PM (gap filled) | BLOCKED
+--- end summary ---
+```
+
+### Step 2 — Handoff block (print after the summary)
+
+Print a single copy-paste-ready block for the operator. The block must contain the header line and the complete filled prompt together — do not split them into separate blocks.
 
 ### If the PRD is new and needs decomposition into work items
 

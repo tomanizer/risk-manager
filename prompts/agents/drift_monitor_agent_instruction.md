@@ -130,7 +130,24 @@ Return:
 
 ## Handoff output
 
-After producing the audit report, print a single copy-paste-ready block for the PM agent to triage findings. The block must contain the header line and the complete filled prompt together — do not split them into separate blocks.
+### Step 1 — Work summary (print first, plain text, not copy-paste)
+
+Before printing the handoff block, print a plain-text work summary so the operator has a record of the audit. Use this structure:
+
+```text
+--- Drift Monitor Work Summary ---
+Repo health    : GREEN | AMBER | RED
+Critical       : <count> findings
+Major          : <count> findings
+Minor          : <count> findings
+Top issue      : <one-line description of most urgent finding>
+Scope checked  : <list of areas audited — e.g. ADR compliance, WI/PRD alignment, schema consistency>
+--- end summary ---
+```
+
+### Step 2 — Handoff block (print after the summary)
+
+Print a single copy-paste-ready block for the PM agent to triage findings. The block must contain the header line and the complete filled prompt together — do not split them into separate blocks.
 
 Fill `prompts/agents/invocation_templates/pm_invocation.md`. Set context to: the overall health status, the count of critical and major findings, and a one-line summary of the most urgent issue. Set task to: "Triage the drift monitor findings. For each critical and major finding: confirm the routing, create or update work items as needed, and identify any that require human or architecture input before work items can be created." Print one block:
 

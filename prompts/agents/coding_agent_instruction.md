@@ -124,7 +124,25 @@ In these cases, stop the implementation, describe the blocker precisely, and rou
 
 ## Handoff output
 
-After completing the implementation and opening a draft PR, print a single copy-paste-ready block for the operator to paste into a fresh agent session. The block must contain the header line and the complete filled prompt together — not split across separate blocks.
+### Step 1 — Work summary (print first, plain text, not copy-paste)
+
+Before printing the handoff block, print a plain-text work summary so the operator has a record of what was built. Use this structure:
+
+```text
+--- Coding Work Summary ---
+WI implemented : <WI-ID> — <one-line title>
+PR             : <PR URL>
+Files changed  : <list of new or modified files>
+Tests added    : <list of new test files or describe coverage added>
+Deviations     : <any scope adjustments vs the WI — none if clean>
+CI status      : passing | failing (list failing checks)
+Known issues   : <none, or anything the reviewer should watch for>
+--- end summary ---
+```
+
+### Step 2 — Handoff block (print after the summary)
+
+Print a single copy-paste-ready block for the operator to paste into a fresh agent session. The block must contain the header line and the complete filled prompt together — not split across separate blocks.
 
 `prompts/agents/invocation_templates/review_invocation.md` is the template to fill. Do not edit or commit the template file itself; fill it mentally and print the result inline here.
 

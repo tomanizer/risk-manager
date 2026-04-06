@@ -55,7 +55,23 @@ In these cases, route the blocker to PM, PRD/spec, or human decision.
 
 ## Handoff output
 
-After producing the new work items, print a single copy-paste-ready block for the PM agent. The block must contain the header line and the complete filled prompt together — do not split them into separate blocks.
+### Step 1 — Work summary (print first, plain text, not copy-paste)
+
+Before printing the handoff block, print a plain-text work summary so the operator has a record of the planning pass. Use this structure:
+
+```text
+--- Issue Planner Work Summary ---
+Triggered by   : <new PRD | split request | blocker — and WI-ID or PRD-ID>
+WIs created    : <list of new WI-IDs and one-line titles>
+Sequence       : <brief rationale for the ordering chosen>
+Dependencies   : <any existing done/ or ready/ WIs these new items depend on>
+Blocked items  : <any WIs that cannot start until a condition is met — or none>
+--- end summary ---
+```
+
+### Step 2 — Handoff block (print after the summary)
+
+Print a single copy-paste-ready block for the PM agent. The block must contain the header line and the complete filled prompt together — do not split them into separate blocks.
 
 Fill `prompts/agents/invocation_templates/pm_invocation.md`. Set context to: which WIs were just created, what triggered the planning pass (blocker, split request, or new PRD), and which existing WIs in `done/` or `ready/` are now relevant dependencies. Print one block:
 
