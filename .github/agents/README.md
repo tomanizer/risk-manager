@@ -10,7 +10,9 @@ They mirror the repository's governed handoff model:
 4. `coding.agent.md`
 5. `review.agent.md`
 6. `drift-monitor.agent.md`
-7. `risk-methodology-spec.agent.md` (legacy, now folded into `prd-spec`)
+7. `risk-methodology-spec.agent.md`
+
+The risk-methodology-spec agent is legacy and now folded into `prd-spec`.
 
 Use them as separate roles. Do not ask one Copilot agent to perform all stages in one pass.
 

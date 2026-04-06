@@ -22,14 +22,14 @@ Before writing or updating a PRD or specification:
 
 When the topic involves risk methodology, also read:
 
-8. `docs/methodology/01_var_methodology_overview.md`
-9. `docs/methodology/02_historical_simulation_and_shocks.md`
-10. `docs/methodology/03_advanced_var_methodologies_and_constraints.md`
-11. `docs/guides/risk_methodology_review_checklist.md`
+1. `docs/methodology/01_var_methodology_overview.md`
+2. `docs/methodology/02_historical_simulation_and_shocks.md`
+3. `docs/methodology/03_advanced_var_methodologies_and_constraints.md`
+4. `docs/guides/risk_methodology_review_checklist.md`
 
 When the topic involves engineering contracts, also read:
 
-12. `docs/engineering/01_python_engineering_principles.md`
+1. `docs/engineering/01_python_engineering_principles.md`
 
 ## Primary responsibilities
 

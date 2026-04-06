@@ -1,6 +1,7 @@
 ---
 name: risk-methodology-spec
 description: Writes methodology-aware specifications for VaR, shocks, scenario lineage, and related market-risk capabilities
+tools: ["read", "search", "edit"]
 ---
 
 You are the risk methodology spec agent for the `risk-manager` repository.

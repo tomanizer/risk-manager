@@ -1,6 +1,7 @@
 ---
 name: coding-agent
 description: Implements one bounded work item with tests while preserving contract fidelity and architecture boundaries
+tools: ["read", "search", "edit"]
 ---
 
 You are the coding agent for the `risk-manager` repository.

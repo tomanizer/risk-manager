@@ -61,7 +61,7 @@ Audits repository-wide coherence across canon documents, prompts, work items, re
 
 ### Delivery relay (per work item)
 
-```
+```text
 PM Agent                     decides what to build, produces implementation brief
     │
     ├── if PRD gap ──────►   PRD / Spec Author    fills the gap, returns to PM
@@ -79,7 +79,7 @@ Human                        merge / reject / send back
 
 ### Repo-health loop (separate cadence)
 
-```
+```text
 Drift Monitor Agent          audits repo-wide coherence on current main
     │
     ▼
@@ -94,7 +94,7 @@ All agent definitions follow a layered architecture with one canonical source of
 
 ### Standing instructions (canonical source of truth)
 
-```
+```text
 prompts/agents/
 ├── pm_agent_instruction.md
 ├── prd_spec_agent_instruction.md
@@ -109,7 +109,7 @@ Each instruction file defines the role's mission, required reading order, primar
 
 ### Invocation templates (per-task prompts)
 
-```
+```text
 prompts/agents/invocation_templates/
 ├── pm_invocation.md
 ├── prd_spec_invocation.md
@@ -123,7 +123,7 @@ These are fill-in-the-blanks templates that bridge standing instructions to spec
 
 ### Tool-specific surfaces (thin pointers)
 
-```
+```text
 AGENTS.md                                    master role definitions, links to instruction files
 CLAUDE.md                                    Claude Code / Cursor routing
 GEMINI.md                                    Gemini routing
@@ -136,7 +136,7 @@ These files are intentionally thin. They identify the role, point to the canonic
 
 ### Supporting documentation
 
-```
+```text
 docs/guides/overnight_agent_runbook.md       operational runbook for the delivery relay
 docs/guides/agent_workflow_guide.md          tool-specific usage patterns
 agent_runtime/                               automated delivery orchestration (semi-autonomous)
@@ -148,7 +148,7 @@ agent_runtime/                               automated delivery orchestration (s
 
 The simplest way to use the agents is to copy an invocation template, fill in the placeholders, and paste it into your tool of choice.
 
-**Example: ask the PM agent whether a work item is ready**
+#### Example: ask the PM agent whether a work item is ready
 
 1. Open `prompts/agents/invocation_templates/pm_invocation.md`
 2. Fill in:
@@ -161,7 +161,7 @@ The simplest way to use the agents is to copy an invocation template, fill in th
 4. The agent reads `AGENTS.md` and `prompts/agents/pm_agent_instruction.md` first, then applies the task context
 5. It returns `READY` with an implementation brief, `BLOCKED` with exact reasons, or `SPLIT_REQUIRED` with proposed narrower items
 
-**Example: implement a coding slice**
+#### Example: implement a coding slice
 
 1. Get the implementation brief from the PM agent (previous step)
 2. Open `prompts/agents/invocation_templates/coding_invocation.md`
@@ -169,7 +169,7 @@ The simplest way to use the agents is to copy an invocation template, fill in th
 4. Paste into a fresh agent session
 5. The coding agent creates a branch, implements the slice, adds tests, and opens a draft PR
 
-**Example: review a PR**
+#### Example: review a PR
 
 1. Open `prompts/agents/invocation_templates/review_invocation.md`
 2. Fill in the PR number, linked work item, PRD, and ADRs
@@ -251,9 +251,9 @@ Claude Code reads `CLAUDE.md` at the repository root on session start. This file
 4. Tell Claude which role to use, or paste a filled invocation template
 5. Claude reads `AGENTS.md` and the role-specific instruction file before starting work
 
-**Recommended workflow for a full delivery cycle:**
+Recommended workflow for a full delivery cycle:
 
-```
+```text
 Session 1 (PM):
   "You are the PM agent. Read prompts/agents/pm_agent_instruction.md.
    Assess whether WI-X.Y.Z is coding-ready."

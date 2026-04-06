@@ -19,9 +19,19 @@ These instructions are the single source of truth for each agent's responsibilit
 
 The Risk Methodology Spec Agent (`risk_methodology_spec_agent_instruction.md`) is retained for backward compatibility. New methodology-aware specification work should use the PRD / Spec Author agent, which incorporates methodology judgment.
 
+## Files
+
+- `pm_agent_instruction.md`
+- `prd_spec_agent_instruction.md`
+- `coding_agent_instruction.md`
+- `review_agent_instruction.md`
+- `issue_planner_instruction.md`
+- `risk_methodology_spec_agent_instruction.md`
+- `drift_monitor_agent_instruction.md`
+
 ## Structure
 
-```
+```text
 prompts/agents/
 ├── README.md                              (this file)
 ├── pm_agent_instruction.md                (standing instruction)
