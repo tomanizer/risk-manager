@@ -43,11 +43,11 @@ import logging
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from agent_runtime.config.defaults import RuntimeDefaults
-from agent_runtime.orchestrator.graph import (
-    build_runtime_snapshot,
-    run_runtime_step,
-)
+from agent_runtime.orchestrator.execution import build_runner_execution
+from agent_runtime.orchestrator.graph import build_runtime_snapshot
+from agent_runtime.orchestrator.state import NextActionType, TransitionDecision
 from agent_runtime.orchestrator.transitions import decide_all_actions
+from agent_runtime.runners.dispatch import dispatch_runner_execution
 
 if TYPE_CHECKING:
     pass
@@ -142,19 +142,50 @@ def _decide_node(state: DeliveryState) -> list[Any] | str:
 
 
 def _dispatch_node(decision_payload: dict[str, object], *, defaults: RuntimeDefaults) -> DeliveryState:
-    """Execute a single dispatch decision and store the result in state."""
-    payload = run_runtime_step(
-        defaults,
-        build_runtime_snapshot(defaults.repo_root, defaults.state_db_path),
-        should_build_execution=True,
-        should_dispatch=True,
+    """Execute a single dispatch decision using the action already decided by _decide_node.
+
+    Uses the ``decision_payload`` (passed via ``Send``) to drive execution rather than
+    re-deciding from a fresh snapshot, which would break per-decision fan-out semantics.
+    """
+    action_str = str(decision_payload.get("action") or "")
+    work_item_id = str(decision_payload["work_item_id"]) if decision_payload.get("work_item_id") is not None else None
+    reason = str(decision_payload.get("reason") or "")
+    retry_count = int(str(decision_payload.get("retry_count") or 0))
+
+    try:
+        action = NextActionType(action_str)
+    except ValueError:
+        _log.warning("_dispatch_node received unknown action %r, skipping dispatch", action_str)
+        return {
+            "action": action_str,
+            "work_item_id": work_item_id,
+            "reason": reason,
+            "retry_count": retry_count,
+            "runner_result": None,
+        }
+
+    decision = TransitionDecision(action=action, work_item_id=work_item_id, reason=reason)
+    snapshot = build_runtime_snapshot(defaults.repo_root, defaults.state_db_path)
+    execution = build_runner_execution(snapshot, decision)
+    runner_result = dispatch_runner_execution(execution) if execution is not None else None
+
+    result_dict = (
+        {
+            "name": runner_result.runner_name.value,
+            "status": runner_result.status.value,
+            "summary": runner_result.summary,
+            "outcome_status": runner_result.outcome_status,
+            "outcome_summary": runner_result.outcome_summary,
+        }
+        if runner_result is not None
+        else None
     )
     return {
-        "action": str(payload.get("action") or ""),
-        "work_item_id": str(payload["work_item_id"]) if payload.get("work_item_id") is not None else None,
-        "reason": str(payload.get("reason") or ""),
-        "retry_count": int(str(payload.get("retry_count") or 0)),
-        "runner_result": payload.get("runner_result"),  # type: ignore[typeddict-item]
+        "action": action_str,
+        "work_item_id": work_item_id,
+        "reason": reason,
+        "retry_count": retry_count,
+        "runner_result": result_dict,  # type: ignore[typeddict-item]
     }
 
 

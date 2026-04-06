@@ -56,6 +56,7 @@ def traced(
                 try:
                     return fn(*args, **kwargs)
                 except Exception as exc:
+                    span.set_attribute("error.type", type(exc).__name__)
                     span.record_exception(exc)
                     span.set_status(Status(StatusCode.ERROR, str(exc)))
                     raise

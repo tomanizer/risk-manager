@@ -409,6 +409,7 @@ def load_workflow_run(db_path: Path, work_item_id: str) -> WorkflowRunRecord | N
                 outcome_details_json,
                 retry_count,
                 completed_at,
+                retry_count,
                 updated_at
             FROM workflow_runs
             WHERE work_item_id = ?
@@ -442,6 +443,7 @@ def load_workflow_run_by_run_id(db_path: Path, run_id: str) -> WorkflowRunRecord
                 outcome_details_json,
                 retry_count,
                 completed_at,
+                retry_count,
                 updated_at
             FROM workflow_runs
             WHERE run_id = ?
@@ -475,6 +477,7 @@ def load_workflow_runs(db_path: Path) -> tuple[WorkflowRunRecord, ...]:
                 outcome_details_json,
                 retry_count,
                 completed_at,
+                retry_count,
                 updated_at
             FROM workflow_runs
             ORDER BY updated_at DESC
@@ -735,24 +738,30 @@ def _row_to_workflow_run(row: sqlite3.Row | None) -> WorkflowRunRecord | None:
     if details_json:
         try:
             details_payload = json.loads(details_json)
-        except json.JSONDecodeError:
-            details_payload = {}
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Invalid JSON in details_json for work_item_id {row['work_item_id']!r}: {exc}") from exc
+        if not isinstance(details_payload, dict):
+            raise ValueError(f"Expected dict for details_json, got {type(details_payload).__name__}")
 
     result_payload: object = {}
     result_json = row["result_json"]
     if result_json:
         try:
             result_payload = json.loads(result_json)
-        except json.JSONDecodeError:
-            result_payload = {}
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Invalid JSON in result_json for work_item_id {row['work_item_id']!r}: {exc}") from exc
+        if not isinstance(result_payload, dict):
+            raise ValueError(f"Expected dict for result_json, got {type(result_payload).__name__}")
 
     outcome_details_payload: object = {}
     outcome_details_json = row["outcome_details_json"]
     if outcome_details_json:
         try:
             outcome_details_payload = json.loads(outcome_details_json)
-        except json.JSONDecodeError:
-            outcome_details_payload = {}
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Invalid JSON in outcome_details_json for work_item_id {row['work_item_id']!r}: {exc}") from exc
+        if not isinstance(outcome_details_payload, dict):
+            raise ValueError(f"Expected dict for outcome_details_json, got {type(outcome_details_payload).__name__}")
 
     details = details_payload if isinstance(details_payload, dict) else {}
     result = {str(key): value for key, value in result_payload.items()} if isinstance(result_payload, dict) else {}

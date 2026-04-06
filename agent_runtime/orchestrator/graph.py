@@ -474,6 +474,13 @@ def main() -> int:
         print(json.dumps({"simulation_scenarios": simulation_names()}, indent=2))
         return 0
 
+    try:
+        from agent_runtime.telemetry import configure_telemetry
+
+        configure_telemetry()
+    except Exception:
+        pass
+
     repo_root = find_repo_root(Path(__file__).resolve())
     defaults = build_defaults(repo_root)
 

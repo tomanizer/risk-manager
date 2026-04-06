@@ -14,7 +14,7 @@ stack, and how to extend the system with new instrumentation.
 |--------|-------|---------|
 | **Distributed traces** (spans) | OTel → Jaeger | Reconstruct the exact sequence of operations for a workflow run — supervisor tick, runner dispatch, drift scan |
 | **Metrics** (counters + histograms) | OTel → Prometheus | Track aggregate health: step rate, runner latency, risk call outcomes, supervisor liveness |
-| **Structured audit log** | SQLite `telemetry_events` + structlog | Tamper-evident, queryable record of every significant event; correlated with active OTel trace/span |
+| **Structured audit log** | SQLite `telemetry_events` + structlog | Append-only, queryable record of every significant event; correlated with active OTel trace/span |
 
 All three signals are optional. The runtime degrades gracefully when the
 `telemetry` extras are not installed — all wrappers become no-ops and stdlib
