@@ -17,7 +17,7 @@ Implement the minimal shared typed service-error path required for as-of-date de
   - canonical status code
   - explicit `status_reasons`
 - keep the shared models independent of `RiskDelta`, `RiskSummary`, and `RiskChangeProfile`
-- expose the shared models through `src/shared/__init__.py`
+- expose the shared models through the shared package export surface
 - add unit tests for shared-model validation and construction behavior
 
 ## Out of scope
@@ -47,8 +47,8 @@ Implement the minimal shared typed service-error path required for as-of-date de
 
 ## Acceptance Criteria
 
-- a shared typed service-error model exists in `src/shared/service_errors.py`
-- a shared typed request-validation-failure model exists in `src/shared/service_errors.py`
+- a shared typed service-error model exists in the target shared service-errors module
+- a shared typed request-validation-failure model exists in the target shared service-errors module
 - the shared service-error model can represent `UNSUPPORTED_MEASURE`, `MISSING_SNAPSHOT`, and `MISSING_NODE` without requiring any `RiskDelta` fields such as:
   - `current_value`
   - `snapshot_id`
@@ -57,7 +57,7 @@ Implement the minimal shared typed service-error path required for as-of-date de
   - `generated_at`
 - the shared models require an explicit canonical status code and support explicit `status_reasons`
 - the shared models support an explicit operation identifier so `WI-1.1.4` can use them for `get_risk_delta` without introducing a delta-local contract
-- the shared models are importable from `src/shared/__init__.py`
+- the shared models are importable from the shared package export surface
 - the shared models do not encode `risk_analytics`-specific payload fields
 - unit tests validate required fields, non-empty status codes, and explicit separation between service-error outcomes and request-validation-failure outcomes
 - this slice does not modify `RiskDelta` or any `risk_analytics` object contract
