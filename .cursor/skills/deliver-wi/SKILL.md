@@ -50,6 +50,7 @@ Also read any ADR files listed in the WI's dependencies section.
 | Draft PR exists, needs review | Review | `prompts/agents/invocation_templates/review_invocation.md` |
 | WI too broad / PM said SPLIT_REQUIRED | Issue Planner | `prompts/agents/invocation_templates/issue_planner_invocation.md` |
 | PRD gap blocking the WI | PRD/Spec Author | `prompts/agents/invocation_templates/prd_spec_invocation.md` |
+| User asks for a repo health / governance audit | Drift Monitor | `prompts/agents/invocation_templates/drift_monitor_invocation.md` |
 
 Default to **PM** when in doubt — it is always safe to run PM first.
 
@@ -96,9 +97,9 @@ Print the filled prompt as one fenced block. The first two lines of the block ar
 |------|------------------|
 | PM | Sonnet (or equivalent mid-tier) |
 | Issue Planner | GPT-4 mini or Composer (cheapest available) |
-| Coding | Sonnet — bump to Opus / GPT-5.4 if the WI is complex or a prior coding pass failed review |
+| Coding | Sonnet (consider bumping to Opus / GPT-5.4 for complex WIs or after a failed review) |
 | Review | Sonnet (or equivalent mid-tier) |
-| PRD/Spec Author | Sonnet minimum — Opus / GPT-5.4 for methodology-heavy specs |
+| PRD/Spec Author | Sonnet (consider bumping to Opus / GPT-5.4 for methodology-heavy specs) |
 | Drift Monitor | Sonnet (or equivalent mid-tier) |
 
 The block shape is:
