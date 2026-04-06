@@ -11,6 +11,7 @@ import logging
 from pathlib import Path
 
 from agent_runtime.config.defaults import RuntimeDefaults, build_defaults
+from agent_runtime.notifications.slack import notify_human_gate, notify_runner_failed, send_morning_digest
 from agent_runtime.orchestrator.execution import build_runner_execution
 from agent_runtime.orchestrator.pr_publication import maybe_publish_completed_coding_run
 from agent_runtime.orchestrator.supervisor import (
@@ -122,39 +123,57 @@ def build_runtime_snapshot(repo_root: Path, state_db_path: Path) -> RuntimeSnaps
     work_items, warnings = load_work_items(repo_root)
     pull_requests, github_warnings = fetch_pull_requests(repo_root, work_items)
     workflow_runs = load_workflow_runs(state_db_path)
-    drift_critical_findings, drift_summary_md = _load_drift_state(repo_root)
+    # drift_critical_findings / drift_summary_md are intentionally not populated
+    # here — running the full drift suite on every poll tick adds 5–10 s of latency.
+    # Drift gating is handled by the --governance pre-step, which runs before the
+    # snapshot/dispatch loop and returns early when critical findings are present.
+    # These fields are reserved for a future lightweight inline check.
     return RuntimeSnapshot(
         work_items=work_items,
         pull_requests=pull_requests,
         workflow_runs=workflow_runs,
         warnings=warnings + github_warnings,
-        drift_critical_findings=drift_critical_findings,
-        drift_summary_md=drift_summary_md,
     )
 
 
-def _load_drift_state(repo_root: Path) -> tuple[int, str | None]:
-    report_path = repo_root / "artifacts" / "drift" / "latest_report.json"
-    summary_path = repo_root / "artifacts" / "drift" / "summary.md"
-    if not report_path.is_file():
-        return 0, None
-    try:
-        payload = json.loads(report_path.read_text(encoding="utf-8"))
-        if not isinstance(payload, dict):
-            return 0, None
-        findings = payload.get("findings", [])
-        if not isinstance(findings, list):
-            return 0, None
-        critical_count = sum(1 for f in findings if isinstance(f, dict) and f.get("severity") == "critical")
-    except (OSError, ValueError):
-        return 0, None
-    drift_summary = None
-    if summary_path.is_file():
-        try:
-            drift_summary = summary_path.read_text(encoding="utf-8")
-        except OSError:
-            pass
-    return critical_count, drift_summary
+# ---------------------------------------------------------------------------
+# Notification helper (Iter 2)
+# ---------------------------------------------------------------------------
+
+
+def _emit_loop_notifications(
+    payload: dict[str, object],
+    loop_control_exit_code: int,
+    loop_control_continue: bool,
+    max_retries: int,
+) -> None:
+    """Fire Slack notifications for human gates and terminal failures."""
+    action = str(payload.get("action") or "")
+    if not loop_control_continue:
+        if action in {"human_merge", "human_update_repo"}:
+            work_item_id = str(payload.get("work_item_id") or "unknown")
+            reason = str(payload.get("reason") or "")
+            pr_url: str | None = None
+            runner_result = payload.get("runner_result")
+            if isinstance(runner_result, dict):
+                details = runner_result.get("details")
+                if isinstance(details, dict):
+                    pr_url = str(details.get("pr_url", "")) or None
+            notify_human_gate(action, work_item_id, reason, pr_url)
+        elif loop_control_exit_code != 0:
+            runner_result = payload.get("runner_result")
+            if isinstance(runner_result, dict):
+                work_item_id = str(payload.get("work_item_id") or "unknown")
+                runner_name = str(runner_result.get("name") or "unknown")
+                summary = str(runner_result.get("summary") or "")
+                raw_retry = payload.get("retry_count")
+                retry_count = int(raw_retry) if isinstance(raw_retry, int) else 0
+                notify_runner_failed(work_item_id, runner_name, summary, retries_exhausted=retry_count >= max_retries)
+
+
+# ---------------------------------------------------------------------------
+# Core step
+# ---------------------------------------------------------------------------
 
 
 def run_runtime_step(
@@ -365,6 +384,11 @@ def run_runtime_step(
     }
 
 
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run the repository agent runtime.")
     parser.add_argument(
@@ -439,6 +463,11 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Run the drift suite as a pre-step; emit a drift-check handoff if net-new findings are present.",
     )
+    parser.add_argument(
+        "--digest",
+        action="store_true",
+        help="Post a morning activity digest to Slack and exit.",
+    )
     return parser
 
 
@@ -450,10 +479,25 @@ def main() -> int:
         print(json.dumps({"simulation_scenarios": simulation_names()}, indent=2))
         return 0
 
+    try:
+        from agent_runtime.telemetry import configure_telemetry
+
+        configure_telemetry()
+    except Exception:
+        pass
+
     repo_root = find_repo_root(Path(__file__).resolve())
     defaults = build_defaults(repo_root)
+
     if args.poll_interval_seconds is not None:
         defaults = replace(defaults, poll_interval_seconds=args.poll_interval_seconds)
+
+    # Iter 2: morning digest
+    if args.digest:
+        sent = send_morning_digest(defaults.state_db_path)
+        print(json.dumps({"digest_sent": sent, "state_db_path": str(defaults.state_db_path)}, indent=2))
+        return 0
+
     if args.release_run is not None:
         release_status = release_worktree(defaults, defaults.state_db_path, args.release_run)
         print(
@@ -468,6 +512,7 @@ def main() -> int:
             )
         )
         return 0
+
     if args.complete_run is not None:
         if args.outcome_status is None or args.summary is None:
             raise RuntimeError("--complete-run requires both --outcome-status and --summary")
@@ -594,6 +639,7 @@ def main() -> int:
                     defaults.poll_interval_seconds,
                     max_retries=defaults.runner_max_retries,
                 )
+                _emit_loop_notifications(payload, loop_control.exit_code, loop_control.continue_polling, defaults.runner_max_retries)
                 supervisor_status = "waiting" if loop_control.continue_polling and (loop_control.sleep_seconds or 0) > 0 else "idle"
                 if not loop_control.continue_polling:
                     supervisor_status = "stopped"

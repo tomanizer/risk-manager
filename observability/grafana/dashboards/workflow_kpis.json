@@ -1,0 +1,200 @@
+{
+  "title": "Risk Manager — Agent Runtime KPIs",
+  "uid": "risk-manager-kpis",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "timezone": "browser",
+  "tags": ["risk-manager", "agent-runtime"],
+  "panels": [
+    {
+      "id": 1,
+      "title": "Workflow Steps / min",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(workflow_runs_total[1m])",
+          "legendFormat": "{{action}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Runner Dispatches / min",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(runner_dispatches_total[1m])",
+          "legendFormat": "{{runner_name}} / {{outcome_status}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Runner Duration (p50 / p95 / p99)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(runner_duration_seconds_bucket[5m]))",
+          "legendFormat": "p50 {{runner_name}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(runner_duration_seconds_bucket[5m]))",
+          "legendFormat": "p95 {{runner_name}}",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(runner_duration_seconds_bucket[5m]))",
+          "legendFormat": "p99 {{runner_name}}",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 2, "fillOpacity": 5 }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Risk Service Duration (p50 / p95)",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, rate(risk_service_duration_seconds_bucket[5m]))",
+          "legendFormat": "p50 {{status}}",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(risk_service_duration_seconds_bucket[5m]))",
+          "legendFormat": "p95 {{status}}",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "lineWidth": 2, "fillOpacity": 5 }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Risk Service Calls by Status",
+      "type": "piechart",
+      "gridPos": { "x": 0, "y": 16, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (status) (increase(risk_service_calls_total[1h]))",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Supervisor Heartbeat Age",
+      "type": "stat",
+      "gridPos": { "x": 8, "y": 16, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "supervisor_heartbeat_age_seconds",
+          "legendFormat": "heartbeat age",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 120 },
+              { "color": "red", "value": 300 }
+            ]
+          }
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 7,
+      "title": "Drift Findings by Severity",
+      "type": "bargauge",
+      "gridPos": { "x": 16, "y": 16, "w": 8, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (severity) (increase(drift_checks_total[24h]))",
+          "legendFormat": "{{severity}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          }
+        }
+      },
+      "options": {
+        "orientation": "vertical",
+        "reduceOptions": { "calcs": ["lastNotNull"] }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Drift Findings by Scanner (last 24 h)",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 24, "w": 24, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (scan_name, severity) (increase(drift_checks_total[1h]))",
+          "legendFormat": "{{scan_name}} / {{severity}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      }
+    }
+  ]
+}

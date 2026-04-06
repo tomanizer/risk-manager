@@ -15,6 +15,16 @@ dev = [
     "ruff==0.15.9",
     "mypy",
 ]
+agent = [
+    "langgraph>=0.3,<1.0",
+]
+telemetry = [
+    "opentelemetry-api>=1.40,<2",
+    "opentelemetry-sdk>=1.40,<2",
+    "opentelemetry-exporter-otlp-proto-http>=1.40,<2",
+    "opentelemetry-exporter-prometheus>=0.61b0,<1",
+    "structlog>=25,<26",
+]
 compute = [
     "numpy==2.4.4",
     "scipy==1.17.1",
@@ -44,6 +54,13 @@ warn_unused_configs = true
 init_forbid_extra = true
 init_typed = true
 warn_required_dynamic_aliases = true
+
+# Optional telemetry and agent extras — not installed in the default dev environment.
+# All imports are guarded by try/except ImportError so runtime behaviour is
+# unaffected when these packages are absent.
+[[tool.mypy.overrides]]
+module = ["opentelemetry.*", "structlog", "langgraph.*", "langchain_core.*"]
+ignore_missing_imports = true
 
 [tool.setuptools.packages.find]
 include = ["src*", "agent_runtime*"]

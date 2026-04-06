@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 from typing import Callable
 
+from agent_runtime.telemetry import drift_scan_span, record_drift_findings
+
 from .architecture_boundaries import ArchitectureBoundaryReport, build_architecture_boundary_report
 from .canon_lineage import CanonLineageReport, build_canon_lineage_report
 from .dependency_hygiene import DependencyHygieneReport, build_dependency_hygiene_report
@@ -255,27 +257,39 @@ def _collect_drift_suite(root: Path, *, baseline_path: Path | None = None, artif
     total_findings = 0
 
     for scanner in _SCANNERS:
-        report = scanner.build_report(repo_root)
-        raw_payload = report.to_dict()
-        raw_findings = _require_list(raw_payload.get("findings"), scan_name=scanner.scan_name, field_name="findings")
-        new_findings, waived_findings = _partition_findings(scanner.scan_name, raw_findings, baseline_entries)
-        artifact_path = _display_path(resolved_artifact_dir / scanner.artifact_name, repo_root)
-        raw_stats = _require_dict(raw_payload.get("stats"), scan_name=scanner.scan_name, field_name="stats")
-        scan_summaries.append(
-            DriftScanSummary(
-                scan_name=scanner.scan_name,
-                title=scanner.title,
-                artifact_path=artifact_path,
-                stats=raw_stats,
-                total_findings=len(raw_findings),
-                new_findings=tuple(new_findings),
-                waived_findings=tuple(waived_findings),
+        with drift_scan_span(scanner.scan_name) as _span:
+            report = scanner.build_report(repo_root)
+            raw_payload = report.to_dict()
+            raw_findings = _require_list(raw_payload.get("findings"), scan_name=scanner.scan_name, field_name="findings")
+            new_findings, waived_findings = _partition_findings(scanner.scan_name, raw_findings, baseline_entries)
+            artifact_path = _display_path(resolved_artifact_dir / scanner.artifact_name, repo_root)
+            raw_stats = _require_dict(raw_payload.get("stats"), scan_name=scanner.scan_name, field_name="stats")
+            scan_summaries.append(
+                DriftScanSummary(
+                    scan_name=scanner.scan_name,
+                    title=scanner.title,
+                    artifact_path=artifact_path,
+                    stats=raw_stats,
+                    total_findings=len(raw_findings),
+                    new_findings=tuple(new_findings),
+                    waived_findings=tuple(waived_findings),
+                )
             )
-        )
-        total_findings += len(raw_findings)
-        all_new_findings.extend(new_findings)
-        all_waived_findings.extend(waived_findings)
-        scanner_payloads[scanner.artifact_name] = json.dumps(raw_payload, indent=2, sort_keys=True)
+            total_findings += len(raw_findings)
+            all_new_findings.extend(new_findings)
+            all_waived_findings.extend(waived_findings)
+            scanner_payloads[scanner.artifact_name] = json.dumps(raw_payload, indent=2, sort_keys=True)
+
+            if _span is not None:
+                _span.set_attribute("drift.total_findings", len(raw_findings))
+                _span.set_attribute("drift.new_findings", len(new_findings))
+
+            # Emit per-severity counters for Prometheus / Grafana.
+            severity_counts: dict[str, int] = {}
+            for f in new_findings:
+                severity_counts[f.severity] = severity_counts.get(f.severity, 0) + 1
+            for severity, count in severity_counts.items():
+                record_drift_findings(scanner.scan_name, severity, count)
 
     all_new_findings.sort(key=_sort_suite_finding)
     all_waived_findings.sort(key=_sort_suite_finding)

@@ -1,0 +1,72 @@
+version: "3.9"
+
+# ---------------------------------------------------------------------------
+# Local observability stack for risk-manager telemetry
+#
+# Usage:
+#   docker compose -f docker-compose.observability.yml up -d
+#
+# Services:
+#   Jaeger  — distributed trace UI        http://localhost:16686
+#   Prometheus — metrics scrape store     http://localhost:9090
+#   Grafana — dashboards                  http://localhost:3000  (admin/admin)
+#
+# The Python process must be started with the telemetry extras installed:
+#   pip install -e ".[telemetry]"
+#   python -m agent_runtime --poll
+#
+# The Prometheus exporter HTTP server starts on port 9464 by default.
+# ---------------------------------------------------------------------------
+
+services:
+
+  # --------------------------------------------------------------------------
+  # Jaeger — all-in-one trace backend with OTLP HTTP receiver
+  # --------------------------------------------------------------------------
+  jaeger:
+    image: jaegertracing/all-in-one:1.62
+    container_name: risk_manager_jaeger
+    ports:
+      - "16686:16686"   # Jaeger UI
+      - "4318:4318"     # OTLP HTTP receiver (traces + metrics)
+      - "4317:4317"     # OTLP gRPC receiver (optional)
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    restart: unless-stopped
+
+  # --------------------------------------------------------------------------
+  # Prometheus — scrapes the /metrics endpoint exposed by the Python process
+  # --------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: risk_manager_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # --------------------------------------------------------------------------
+  # Grafana — dashboards pre-wired to Jaeger and Prometheus datasources
+  # --------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: risk_manager_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+      - jaeger
+
+volumes:
+  grafana_data:

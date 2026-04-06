@@ -66,7 +66,6 @@ def get_risk_history(
     pinned fixture-backed dataset context for that request, while returned points
     remain restricted to the inclusive requested range.
     """
-
     if start_date > end_date:
         raise ValueError("start_date must be on or before end_date")
     if snapshot_id is not None and not snapshot_id.strip():
