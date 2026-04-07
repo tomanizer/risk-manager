@@ -8,6 +8,15 @@
 - walkers before orchestrators
 - challenge and replay support built in, not bolted on
 
+## PM tracking status
+
+As of 2026-04-07:
+
+- Phase 1 (`PRD-1.1`) is marked phase-complete for PM sequencing purposes.
+- PM should not create additional `WI-1.1.x` items in `work_items/ready/` as residual completion work.
+- Next PM action is to move to the next governed phase or PRD in sequence and perform a fresh readiness assessment there.
+- Any future expansion in this capability area should be treated as a new PRD or later-phase enhancement, not as remaining `PRD-1.1` completion scope.
+
 ## Planned phases
 
 ### Phase 0
