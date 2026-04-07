@@ -148,6 +148,21 @@ def _resolve_compare_context(
     return resolved, compare_snapshot, ()
 
 
+def _compute_delta_fields(
+    current_value: float,
+    previous_value: float | None,
+) -> tuple[float | None, float | None]:
+    """Compute first-order delta fields per PRD-1.1-v2 normative semantics."""
+    if previous_value is None:
+        return None, None
+
+    delta_abs = current_value - previous_value
+    if previous_value == 0:
+        return delta_abs, None
+
+    return delta_abs, delta_abs / abs(previous_value)
+
+
 def get_risk_summary(
     node_ref: NodeRef,
     measure_type: MeasureType,
@@ -276,6 +291,12 @@ def get_risk_summary(
     else:
         status = SummaryStatus.OK
 
+    previous_value = None if previous_row is None else previous_row.value
+    delta_abs, delta_pct = _compute_delta_fields(
+        current_value=current_row.value,
+        previous_value=previous_value,
+    )
+
     return RiskSummary(
         node_ref=node_ref,
         node_level=node_ref.node_level,
@@ -285,9 +306,9 @@ def get_risk_summary(
         as_of_date=as_of_date,
         compare_to_date=resolved_compare_date,
         current_value=current_row.value,
-        previous_value=None if previous_row is None else previous_row.value,
-        delta_abs=None,
-        delta_pct=None,
+        previous_value=previous_value,
+        delta_abs=delta_abs,
+        delta_pct=delta_pct,
         rolling_mean=rolling_mean,
         rolling_std=rolling_std,
         rolling_min=rolling_min,
@@ -376,6 +397,12 @@ def get_risk_delta(
     elif compare_snapshot is None or previous_row is None:
         status = SummaryStatus.MISSING_COMPARE
 
+    previous_value = None if previous_row is None else previous_row.value
+    delta_abs, delta_pct = _compute_delta_fields(
+        current_value=current_row.value,
+        previous_value=previous_value,
+    )
+
     return RiskDelta(
         node_ref=node_ref,
         node_level=node_ref.node_level,
@@ -385,9 +412,9 @@ def get_risk_delta(
         as_of_date=as_of_date,
         compare_to_date=resolved_compare_date,
         current_value=current_row.value,
-        previous_value=None if previous_row is None else previous_row.value,
-        delta_abs=None,
-        delta_pct=None,
+        previous_value=previous_value,
+        delta_abs=delta_abs,
+        delta_pct=delta_pct,
         status=status,
         status_reasons=tuple(status_reasons),
         snapshot_id=current_snapshot.snapshot_id,
@@ -770,6 +797,12 @@ def get_risk_change_profile(
     else:
         status = SummaryStatus.OK
 
+    previous_value = None if previous_row is None else previous_row.value
+    delta_abs, delta_pct = _compute_delta_fields(
+        current_value=current_row.value,
+        previous_value=previous_value,
+    )
+
     return RiskChangeProfile(
         node_ref=node_ref,
         node_level=node_ref.node_level,
@@ -779,9 +812,9 @@ def get_risk_change_profile(
         as_of_date=as_of_date,
         compare_to_date=resolved_compare_date,
         current_value=current_row.value,
-        previous_value=None if previous_row is None else previous_row.value,
-        delta_abs=None,
-        delta_pct=None,
+        previous_value=previous_value,
+        delta_abs=delta_abs,
+        delta_pct=delta_pct,
         rolling_mean=rolling_mean,
         rolling_std=rolling_std,
         rolling_min=rolling_min,
