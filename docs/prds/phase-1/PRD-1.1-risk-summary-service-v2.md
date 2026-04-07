@@ -299,6 +299,20 @@ Fields:
 
 `RiskSummary`, `RiskDelta`, and `RiskChangeProfile` retain top-level `node_level`, `hierarchy_scope`, and `legal_entity_id` as denormalized convenience fields for exports, dashboards, and downstream consumers. These fields must always mirror `node_ref` exactly. `node_ref` remains the canonical source of truth.
 
+### Delta field semantics (normative)
+
+The following first-order delta rules are deterministic and apply consistently to all as-of-date object outputs where delta fields exist: `RiskDelta`, `RiskSummary`, and `RiskChangeProfile`.
+
+Definitions:
+
+- `delta_abs = current_value - previous_value` when `previous_value` is not null
+- `delta_pct = delta_abs / abs(previous_value)` when `previous_value` is not null and `previous_value != 0`
+
+Null and zero handling:
+
+- if `previous_value` is null, both `delta_abs` and `delta_pct` are null
+- if `previous_value == 0`, `delta_abs` is computed per the rule above and `delta_pct` is null
+
 ### Volatility regime
 
 Allowed values:
@@ -529,7 +543,7 @@ The default `lookback_window=60` applies here as 60 business days ending on `as_
 
 1. Current value is mandatory for a valid summary.
 2. Comparison is optional unless explicitly required.
-3. Percentage delta must be null when previous value is zero or null.
+3. For `RiskDelta`, `RiskSummary`, and `RiskChangeProfile`, first-order delta fields must conform to `Delta field semantics (normative)`, including null and zero handling.
 4. Rolling statistics must use only available valid points.
 5. History must be ordered ascending by date.
 6. Hierarchy references must be exact and typed.
@@ -761,6 +775,7 @@ Result:
 ### Edge
 
 - prior value equals zero
+- prior value is negative (percentage denominator uses `abs(previous_value)`)
 - sparse history in requested range
 - degraded snapshot rows
 - explicit `lookback_window` overriding the default
