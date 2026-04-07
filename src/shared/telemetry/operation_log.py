@@ -151,6 +151,8 @@ def _normalize_context_value(value: Any) -> object:
         return value.isoformat()
     if isinstance(value, Enum):
         return value.value
+    if isinstance(value, (list, tuple)):
+        return [_normalize_context_value(v) for v in value]
     if isinstance(value, dict):
         return {str(k): _normalize_context_value(v) for k, v in value.items()}
     raise TypeError(f"unsupported log context type: {type(value)!r}")
@@ -161,6 +163,8 @@ def _normalize_context_value_for_emit(value: Any) -> object:
     try:
         if isinstance(value, dict):
             return {str(k): _normalize_context_value_for_emit(v) for k, v in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [_normalize_context_value_for_emit(v) for v in value]
         return _normalize_context_value(value)
     except TypeError:
         return f"<unserializable:{type(value).__name__}>"
@@ -194,8 +198,9 @@ def emit_operation(
     """Emit one structured record for a completed operation.
 
     ``context`` values are normalized (dates → ISO strings, enums → ``.value``,
-    shallow dicts recursively). Callers pass domain fields explicitly
-    (for example ``node_ref=node_ref_log_dict(ref)``).
+    dicts and sequences recursively). Unsupported leaf values become a short
+    ``<unserializable:...>`` placeholder so emission never raises. Callers pass
+    domain fields explicitly (for example ``node_ref=node_ref_log_dict(ref)``).
     """
     if not _should_emit(status):
         return

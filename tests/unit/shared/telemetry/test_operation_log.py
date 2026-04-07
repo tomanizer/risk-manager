@@ -80,6 +80,46 @@ def test_normalize_context_value_date_enum_and_dict() -> None:
     assert tel._normalize_context_value({1: "x", "y": {True: 2}}) == {"1": "x", "y": {"True": 2}}
 
 
+def test_normalize_context_value_list_and_tuple() -> None:
+    d = date(2026, 4, 7)
+    assert tel._normalize_context_value([d, _SampleEnum.A]) == ["2026-04-07", "alpha"]
+    assert tel._normalize_context_value((1, "a")) == [1, "a"]
+
+
+def test_emit_normalizes_status_reasons_like_sequence(caplog: pytest.LogCaptureFixture) -> None:
+    tel.configure_operation_logging(enabled=True, logger=tel.StdlibLoggerAdapter(tel.LOGGER_NAME))
+    caplog.set_level(logging.INFO, logger=tel.LOGGER_NAME)
+
+    emit_operation(
+        "test.op",
+        status="OK",
+        start_time=tel.timer_start(),
+        include_trace_context=False,
+        status_reasons=("REASON_A", "REASON_B"),
+    )
+
+    assert len(caplog.records) == 1
+    payload = getattr(caplog.records[0], "structured_event")
+    assert payload["status_reasons"] == ["REASON_A", "REASON_B"]
+
+
+def test_emit_list_with_unserializable_element(caplog: pytest.LogCaptureFixture) -> None:
+    tel.configure_operation_logging(enabled=True, logger=tel.StdlibLoggerAdapter(tel.LOGGER_NAME))
+    caplog.set_level(logging.INFO, logger=tel.LOGGER_NAME)
+
+    emit_operation(
+        "test.op",
+        status="OK",
+        start_time=tel.timer_start(),
+        include_trace_context=False,
+        mixed=["ok", object()],
+    )
+
+    assert len(caplog.records) == 1
+    payload = getattr(caplog.records[0], "structured_event")
+    assert payload["mixed"] == ["ok", "<unserializable:object>"]
+
+
 def test_normalize_context_value_unsupported_raises() -> None:
     with pytest.raises(TypeError, match="unsupported log context"):
         tel._normalize_context_value(object())
