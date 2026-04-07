@@ -5,14 +5,14 @@
 - **PRD ID:** PRD-2.1
 - **Title:** Controls and Production Integrity Assessment Service
 - **Phase:** Phase 2
-- **Status:** Ready for PM readiness assessment
+- **Status:** Ready for implementation
 - **Module:** Controls & Production Integrity
 - **Type:** Deterministic service
 - **Primary owner:** Technical Owner, Controls & Production Integrity
 - **Business owner:** Market Risk Controls Owner
 - **Control owner:** Risk Data / Production Controls Owner
 - **Related components:** Data Controller Walker, Daily Risk Investigation orchestrator, Risk Analytics module
-- **Dependencies:** PRD-1.1 Risk Summary Service v2, ADR-001, ADR-002, ADR-003, ADR-004
+- **Dependencies:** PRD-1.1-v2, ADR-001, ADR-002, ADR-003, ADR-004
 
 ## Purpose
 
@@ -186,6 +186,28 @@ Allowed values for each normalized control check:
 - `FAIL`
 - `UNKNOWN`
 
+### Reason-code vocabulary
+
+Reason-code lists in v1 are a closed governed set. They must be deduplicated and sorted ascending lexicographically by the full reason-code string.
+
+Allowed v1 reason codes are:
+
+- `CHECK_RESULT_MISSING`
+- `CONTROL_ROW_DEGRADED`
+- `EVIDENCE_REF_MISSING`
+- `FRESHNESS_WARN`
+- `FRESHNESS_FAIL`
+- `COMPLETENESS_WARN`
+- `COMPLETENESS_FAIL`
+- `LINEAGE_WARN`
+- `LINEAGE_FAIL`
+- `RECONCILIATION_WARN`
+- `RECONCILIATION_FAIL`
+- `PUBLICATION_READINESS_WARN`
+- `PUBLICATION_READINESS_FAIL`
+
+`PASS` check results carry no reason codes in v1. Any future addition to this vocabulary requires a PRD update and `service_version` bump.
+
 ### Assessment status
 
 Allowed values:
@@ -268,7 +290,7 @@ Validation rules:
 
 - `node_level`, `hierarchy_scope`, and `legal_entity_id` must mirror `node_ref` exactly, following the Phase 1 convention
 - `blocking_reason_codes` and `cautionary_reason_codes` must be tuples of stable machine-readable reason codes, not prose paragraphs
-- `blocking_reason_codes` and `cautionary_reason_codes` must be deduplicated and deterministically ordered
+- `blocking_reason_codes` and `cautionary_reason_codes` must be deduplicated and lexicographically ordered ascending
 - `check_results` must contain exactly one result for each required check type
 - `check_results` must be returned in required-check order: `FRESHNESS`, `COMPLETENESS`, `LINEAGE`, `RECONCILIATION`, `PUBLICATION_READINESS`
 - `snapshot_id`, `data_version`, and `service_version` must be non-empty
@@ -280,7 +302,7 @@ Validation rules:
 
 - `check_type` must be unique within one `IntegrityAssessment`
 - `reason_codes` may be empty only when `check_state = PASS`
-- `reason_codes` must be deduplicated and deterministically ordered
+- `reason_codes` must be deduplicated and lexicographically ordered ascending
 - `evidence_refs` must contain at least one reference when `check_state` is `WARN` or `FAIL`
 - `evidence_refs` may be empty when `check_state = UNKNOWN` only if `reason_codes` includes `CHECK_RESULT_MISSING`
 
@@ -338,9 +360,11 @@ Interface rules:
    - `TRUSTED` -> `LOW`
 6. `assessment_status = OK` only when all required check results are resolved in the pinned control context and every non-pass result carries required evidence references.
 7. `assessment_status = DEGRADED` when the object is still returnable but any required check is `UNKNOWN`, any normalized control row is degraded, or any required evidence reference is missing.
-8. `blocking_reason_codes` must be the deduplicated deterministic union of reason codes from all `FAIL` check results, preserving the required-check order traversal.
-9. `cautionary_reason_codes` must be the deduplicated deterministic union of reason codes from all `WARN` and `UNKNOWN` check results, preserving the required-check order traversal.
-10. This service does not determine market causality, remediation priority, or governance closure.
+8. Missing required check results must use `CHECK_RESULT_MISSING`. Degraded normalized rows must include `CONTROL_ROW_DEGRADED`. Missing required evidence references must include `EVIDENCE_REF_MISSING` on the affected check result.
+9. `blocking_reason_codes` must be the deduplicated lexicographically ordered union of reason codes from all `FAIL` check results.
+10. `cautionary_reason_codes` must be the deduplicated lexicographically ordered union of reason codes from all `WARN` and `UNKNOWN` check results.
+11. Check-specific warning and failure outcomes must use only the governed check-specific codes from the v1 vocabulary above.
+12. This service does not determine market causality, remediation priority, or governance closure.
 
 ## Trust-state and assessment-status interaction
 
@@ -423,7 +447,7 @@ Result:
 - return `IntegrityAssessment`
 - affected checks retain their normalized check state
 - `assessment_status = DEGRADED`
-- include explicit degraded reason codes
+- include `CONTROL_ROW_DEGRADED`
 
 ### Case: warning-only control issues
 
@@ -489,7 +513,7 @@ Minimum structured logging should include:
 
 - service must support replay by `snapshot_id`
 - same resolved request plus same normalized control records plus same snapshot must yield the same output
-- replay-stable output requires deterministic ordering for `check_results`, `reason_codes`, `blocking_reason_codes`, and `cautionary_reason_codes`
+- replay-stable output requires required-check ordering for `check_results` and lexicographic ascending ordering for `reason_codes`, `blocking_reason_codes`, and `cautionary_reason_codes`
 - replay output must not depend on wall-clock execution time
 - any change to trust-state mapping, required check set, or evidence-field semantics requires a `service_version` bump and replay-fixture refresh
 
@@ -638,23 +662,13 @@ Sequencing constraints:
 - verify evidence references remain typed and non-prose
 - verify FRTB / PLA semantics have not leaked into this PRD
 
-## AI agent instructions
+## Implementation boundary and decomposition notes
 
-### Coding agent
-
-- implement only the deterministic controls-integrity service slice
-- do not move trust logic into walkers or orchestrators
-- do not redesign `NodeRef`, `MeasureType`, or the shared service-error envelope
-
-### Review agent
-
-- review for contract fidelity, status precedence, replayability, and boundary discipline
-- flag any attempt to infer trust from raw external data feeds inside this first slice
-
-### PM agent
-
-- split only into `WI-2.1.x` items
-- keep FRTB / PLA controls as a later separate PRD or sub-phase item
+- this PRD covers only the deterministic controls-integrity service slice
+- trust logic remains inside the deterministic module boundary and must not move into walkers or orchestrators
+- existing shared contracts such as `NodeRef`, `MeasureType`, and the shared service-error envelope remain unchanged in this slice
+- implementation work should decompose only into `WI-2.1.x` items
+- FRTB / PLA controls remain out of scope for this PRD and belong in a later separate PRD or sub-phase item
 
 ## Open questions
 
