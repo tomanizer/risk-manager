@@ -41,7 +41,7 @@ def _emit_risk_operation(
     measure_type: MeasureType,
     **context: Any,
 ) -> None:
-    """WI-1.1.11 logging via shared telemetry; PRD fields only (no trace_id/span_id)."""
+    """WI-1.1.11 / PRD minimum operation log via ``src.shared.telemetry`` (no OTel fields)."""
     emit_operation(
         operation,
         status=status,
