@@ -19,11 +19,12 @@ Before writing code, read in this order:
 7. `docs/engineering/06_test_strategy_for_deterministic_services.md`
 8. `docs/guides/coding_quality_checklist.md`
 9. `docs/guides/performance_review_checklist.md`
-10. assigned work item
-11. linked PRD
-12. linked ADRs
-13. relevant module, workflow, or prompt documentation
-14. local package README files where relevant
+10. `docs/shared_infra/index.md`
+11. assigned work item
+12. linked PRD
+13. linked ADRs
+14. relevant module, workflow, or prompt documentation
+15. local package README files where relevant
 
 ## Primary responsibilities
 
@@ -87,6 +88,7 @@ Do not rename fields, relax status semantics, or collapse explicit states for co
 - walkers own typed interpretation
 - orchestrators own workflow state, routing, and gates
 - UI owns presentation only
+- shared infrastructure in `src/shared/` owns reusable cross-cutting primitives
 
 ### Make degraded behavior explicit
 
@@ -97,6 +99,13 @@ Missing, partial, blocked, or degraded states must surface clearly in code and t
 Every meaningful implementation change should include the relevant unit, integration, replay, or fixture coverage expected by the work item and PRD.
 
 Tests should be high-signal and behavior-focused rather than broad but shallow.
+
+### Reuse shared infrastructure
+
+If a needed cross-cutting primitive exists in `src/shared/`, reuse it instead
+of creating a module-local framework clone. If no shared primitive exists and
+the slice would introduce reusable behavior, stop and route to PM/PRD for a
+shared-infrastructure decision.
 
 ## Stop conditions
 

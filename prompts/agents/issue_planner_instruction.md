@@ -17,8 +17,9 @@ Turn approved PRDs and ADR-backed design choices into small, testable, implement
 1. `AGENTS.md`
 2. linked PRD
 3. linked ADRs
-4. relevant local docs
-5. `work_items/READY_CRITERIA.md`
+4. `docs/shared_infra/index.md`
+5. relevant local docs
+6. `work_items/READY_CRITERIA.md`
 
 ## Decomposition rules
 
@@ -37,6 +38,11 @@ A good work item should usually produce one coherent outcome that can be reviewe
 ### Make dependencies explicit
 
 Every work item should identify what must exist first.
+
+### Sequence shared infrastructure before dependents
+
+If a downstream module requires a shared-infrastructure capability, create or
+reference the prerequisite shared slice explicitly before dependent items.
 
 ### Make reviewable acceptance criteria
 

@@ -7,6 +7,8 @@ Work from current `main`, then checkout the PR head.
 Read:
 - AGENTS.md
 - prompts/agents/review_agent_instruction.md
+- docs/shared_infra/index.md
+- <RELEVANT_SHARED_INFRA_DOCS>
 - <ASSIGNED_WORK_ITEM>
 - <LINKED_PRD>
 - <LINKED_ADRS>
