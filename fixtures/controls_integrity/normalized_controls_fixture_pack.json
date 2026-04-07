@@ -1,0 +1,1025 @@
+{
+  "service_version": "controls-integrity-fixture-pack-v1",
+  "data_version": "synthetic-controls-integrity-v1",
+  "calendar": [
+    "2026-01-02",
+    "2026-01-05",
+    "2026-01-06",
+    "2026-01-08",
+    "2026-01-09",
+    "2026-01-12"
+  ],
+  "calendar_basis": "Pinned to fixtures/risk_analytics/risk_summary_fixture_pack.json calendar; FRESHNESS and PUBLICATION_READINESS rows assume prior business-day normalization used that same pinned calendar (ADR-004).",
+  "snapshots": [
+    {
+      "snapshot_id": "SNAP-2026-01-02",
+      "as_of_date": "2026-01-02",
+      "rows": [
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "FIRM",
+            "node_id": "FIRM_GRP",
+            "node_name": "Firm Group"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "FRESHNESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "FIRM",
+            "node_id": "FIRM_GRP",
+            "node_name": "Firm Group"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "COMPLETENESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "FIRM",
+            "node_id": "FIRM_GRP",
+            "node_name": "Firm Group"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "LINEAGE",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "FIRM",
+            "node_id": "FIRM_GRP",
+            "node_name": "Firm Group"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "RECONCILIATION",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "FIRM",
+            "node_id": "FIRM_GRP",
+            "node_name": "Firm Group"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "PUBLICATION_READINESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "FRESHNESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "COMPLETENESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "LINEAGE",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "RECONCILIATION",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "PUBLICATION_READINESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "FRESHNESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "COMPLETENESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "LINEAGE",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "RECONCILIATION",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "PUBLICATION_READINESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-UK-BANK",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "FRESHNESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-UK-BANK",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "COMPLETENESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-UK-BANK",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "LINEAGE",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-UK-BANK",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "RECONCILIATION",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-UK-BANK",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "PUBLICATION_READINESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-US-BROKER",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "FRESHNESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-US-BROKER",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "COMPLETENESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-US-BROKER",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "LINEAGE",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-US-BROKER",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "RECONCILIATION",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-US-BROKER",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-02",
+          "snapshot_id": "SNAP-2026-01-02",
+          "check_type": "PUBLICATION_READINESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        }
+      ]
+    },
+    {
+      "snapshot_id": "SNAP-2026-01-05",
+      "as_of_date": "2026-01-05",
+      "rows": [
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-05",
+          "snapshot_id": "SNAP-2026-01-05",
+          "check_type": "FRESHNESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-05",
+          "snapshot_id": "SNAP-2026-01-05",
+          "check_type": "COMPLETENESS",
+          "check_state": "WARN",
+          "reason_codes": [
+            "COMPLETENESS_WARN"
+          ],
+          "evidence_refs": [
+            {
+              "evidence_type": "DQ_RUN",
+              "evidence_id": "DQ-2026-01-05-DIV_GM",
+              "source_as_of_date": "2026-01-05",
+              "snapshot_id": "SNAP-2026-01-05"
+            }
+          ],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-05",
+          "snapshot_id": "SNAP-2026-01-05",
+          "check_type": "LINEAGE",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-05",
+          "snapshot_id": "SNAP-2026-01-05",
+          "check_type": "RECONCILIATION",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-05",
+          "snapshot_id": "SNAP-2026-01-05",
+          "check_type": "PUBLICATION_READINESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        }
+      ]
+    },
+    {
+      "snapshot_id": "SNAP-2026-01-06",
+      "as_of_date": "2026-01-06",
+      "rows": [
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-06",
+          "snapshot_id": "SNAP-2026-01-06",
+          "check_type": "FRESHNESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-06",
+          "snapshot_id": "SNAP-2026-01-06",
+          "check_type": "COMPLETENESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-06",
+          "snapshot_id": "SNAP-2026-01-06",
+          "check_type": "LINEAGE",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-06",
+          "snapshot_id": "SNAP-2026-01-06",
+          "check_type": "RECONCILIATION",
+          "check_state": "FAIL",
+          "reason_codes": [
+            "RECONCILIATION_FAIL"
+          ],
+          "evidence_refs": [
+            {
+              "evidence_type": "RECON_BREAK",
+              "evidence_id": "BRK-2026-01-06-DIV_GM",
+              "source_as_of_date": "2026-01-06",
+              "snapshot_id": "SNAP-2026-01-06"
+            }
+          ],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-06",
+          "snapshot_id": "SNAP-2026-01-06",
+          "check_type": "PUBLICATION_READINESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        }
+      ]
+    },
+    {
+      "snapshot_id": "SNAP-2026-01-08",
+      "as_of_date": "2026-01-08",
+      "rows": [
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-08",
+          "snapshot_id": "SNAP-2026-01-08",
+          "check_type": "FRESHNESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-08",
+          "snapshot_id": "SNAP-2026-01-08",
+          "check_type": "COMPLETENESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-08",
+          "snapshot_id": "SNAP-2026-01-08",
+          "check_type": "LINEAGE",
+          "check_state": "UNKNOWN",
+          "reason_codes": [
+            "CHECK_RESULT_MISSING"
+          ],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-08",
+          "snapshot_id": "SNAP-2026-01-08",
+          "check_type": "RECONCILIATION",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-08",
+          "snapshot_id": "SNAP-2026-01-08",
+          "check_type": "PUBLICATION_READINESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        }
+      ]
+    },
+    {
+      "snapshot_id": "SNAP-2026-01-09",
+      "as_of_date": "2026-01-09",
+      "rows": [
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-09",
+          "snapshot_id": "SNAP-2026-01-09",
+          "check_type": "FRESHNESS",
+          "check_state": "WARN",
+          "reason_codes": [
+            "CONTROL_ROW_DEGRADED",
+            "FRESHNESS_WARN"
+          ],
+          "evidence_refs": [
+            {
+              "evidence_type": "FRESHNESS_TICKET",
+              "evidence_id": "FT-2026-01-09-DIV_GM",
+              "source_as_of_date": "2026-01-09",
+              "snapshot_id": "SNAP-2026-01-09"
+            }
+          ],
+          "is_row_degraded": true
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-09",
+          "snapshot_id": "SNAP-2026-01-09",
+          "check_type": "COMPLETENESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-09",
+          "snapshot_id": "SNAP-2026-01-09",
+          "check_type": "LINEAGE",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-09",
+          "snapshot_id": "SNAP-2026-01-09",
+          "check_type": "RECONCILIATION",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "TOP_OF_HOUSE",
+            "legal_entity_id": null,
+            "node_level": "DIVISION",
+            "node_id": "DIV_GM",
+            "node_name": "Global Markets"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-09",
+          "snapshot_id": "SNAP-2026-01-09",
+          "check_type": "PUBLICATION_READINESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        }
+      ]
+    },
+    {
+      "snapshot_id": "SNAP-2026-01-12",
+      "as_of_date": "2026-01-12",
+      "rows": [
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-UK-BANK",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-12",
+          "snapshot_id": "SNAP-2026-01-12",
+          "check_type": "FRESHNESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-UK-BANK",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-12",
+          "snapshot_id": "SNAP-2026-01-12",
+          "check_type": "COMPLETENESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-UK-BANK",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-12",
+          "snapshot_id": "SNAP-2026-01-12",
+          "check_type": "LINEAGE",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-UK-BANK",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-12",
+          "snapshot_id": "SNAP-2026-01-12",
+          "check_type": "RECONCILIATION",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-UK-BANK",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-12",
+          "snapshot_id": "SNAP-2026-01-12",
+          "check_type": "PUBLICATION_READINESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-US-BROKER",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-12",
+          "snapshot_id": "SNAP-2026-01-12",
+          "check_type": "FRESHNESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-US-BROKER",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-12",
+          "snapshot_id": "SNAP-2026-01-12",
+          "check_type": "COMPLETENESS",
+          "check_state": "WARN",
+          "reason_codes": [
+            "COMPLETENESS_WARN"
+          ],
+          "evidence_refs": [
+            {
+              "evidence_type": "DQ_RUN",
+              "evidence_id": "DQ-2026-01-12-US-DSK",
+              "source_as_of_date": "2026-01-12",
+              "snapshot_id": "SNAP-2026-01-12"
+            }
+          ],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-US-BROKER",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-12",
+          "snapshot_id": "SNAP-2026-01-12",
+          "check_type": "LINEAGE",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-US-BROKER",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-12",
+          "snapshot_id": "SNAP-2026-01-12",
+          "check_type": "RECONCILIATION",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        },
+        {
+          "node_ref": {
+            "hierarchy_scope": "LEGAL_ENTITY",
+            "legal_entity_id": "LE-US-BROKER",
+            "node_level": "DESK",
+            "node_id": "DESK_RATES_MACRO",
+            "node_name": "Rates Macro"
+          },
+          "measure_type": "VAR_1D_99",
+          "as_of_date": "2026-01-12",
+          "snapshot_id": "SNAP-2026-01-12",
+          "check_type": "PUBLICATION_READINESS",
+          "check_state": "PASS",
+          "reason_codes": [],
+          "evidence_refs": [],
+          "is_row_degraded": false
+        }
+      ]
+    }
+  ]
+}

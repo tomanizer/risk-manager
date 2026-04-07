@@ -1,0 +1,279 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "fixtures/controls_integrity/normalized_controls_fixture_pack.schema.json",
+  "title": "ControlsIntegrityFixturePack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "service_version",
+    "data_version",
+    "calendar",
+    "calendar_basis",
+    "snapshots"
+  ],
+  "properties": {
+    "service_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "data_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "calendar_basis": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Pinned calendar / business-day context for FRESHNESS and PUBLICATION_READINESS (ADR-004)."
+    },
+    "calendar": {
+      "type": "array",
+      "minItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "format": "date"
+      }
+    },
+    "snapshots": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ControlsIntegrityFixtureSnapshot"
+      }
+    }
+  },
+  "$defs": {
+    "ControlsIntegrityFixtureSnapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_id",
+        "as_of_date",
+        "rows"
+      ],
+      "properties": {
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "as_of_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NormalizedControlFixtureRow"
+          }
+        }
+      }
+    },
+    "EvidenceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_type",
+        "evidence_id"
+      ],
+      "properties": {
+        "evidence_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_as_of_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "NormalizedControlFixtureRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_ref",
+        "measure_type",
+        "as_of_date",
+        "snapshot_id",
+        "check_type",
+        "check_state",
+        "reason_codes",
+        "evidence_refs",
+        "is_row_degraded"
+      ],
+      "properties": {
+        "node_ref": {
+          "$ref": "#/$defs/NodeRef"
+        },
+        "measure_type": {
+          "type": "string",
+          "enum": [
+            "VAR_1D_99",
+            "VAR_10D_99",
+            "ES_97_5"
+          ]
+        },
+        "as_of_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "snapshot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "check_type": {
+          "type": "string",
+          "enum": [
+            "FRESHNESS",
+            "COMPLETENESS",
+            "LINEAGE",
+            "RECONCILIATION",
+            "PUBLICATION_READINESS"
+          ]
+        },
+        "check_state": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "WARN",
+            "FAIL",
+            "UNKNOWN"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "CHECK_RESULT_MISSING",
+              "COMPLETENESS_FAIL",
+              "COMPLETENESS_WARN",
+              "CONTROL_ROW_DEGRADED",
+              "EVIDENCE_REF_MISSING",
+              "FRESHNESS_FAIL",
+              "FRESHNESS_WARN",
+              "LINEAGE_FAIL",
+              "LINEAGE_WARN",
+              "PUBLICATION_READINESS_FAIL",
+              "PUBLICATION_READINESS_WARN",
+              "RECONCILIATION_FAIL",
+              "RECONCILIATION_WARN"
+            ]
+          }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          }
+        },
+        "is_row_degraded": {
+          "type": "boolean"
+        }
+      }
+    },
+    "NodeRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hierarchy_scope",
+        "legal_entity_id",
+        "node_level",
+        "node_id"
+      ],
+      "properties": {
+        "hierarchy_scope": {
+          "type": "string",
+          "enum": [
+            "TOP_OF_HOUSE",
+            "LEGAL_ENTITY"
+          ]
+        },
+        "legal_entity_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "node_level": {
+          "type": "string",
+          "enum": [
+            "FIRM",
+            "DIVISION",
+            "AREA",
+            "DESK",
+            "BOOK",
+            "POSITION",
+            "TRADE"
+          ]
+        },
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "hierarchy_scope": {
+                "const": "TOP_OF_HOUSE"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "legal_entity_id": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "hierarchy_scope": {
+                "const": "LEGAL_ENTITY"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "legal_entity_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "node_level": {
+                "enum": [
+                  "DIVISION",
+                  "AREA",
+                  "DESK",
+                  "BOOK",
+                  "POSITION",
+                  "TRADE"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
