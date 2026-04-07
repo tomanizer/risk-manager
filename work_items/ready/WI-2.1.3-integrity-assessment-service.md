@@ -17,7 +17,7 @@ Implement `get_integrity_assessment` as the canonical deterministic trust-assess
 
 ## Scope
 
-- create `src/modules/controls_integrity/service.py`
+- create the controls_integrity service module under `src/modules/`
 - resolve the pinned or canonical snapshot for the request
 - validate `snapshot_id` and `as_of_date` consistency
 - verify target existence in the pinned context using Phase 1 target semantics
@@ -53,9 +53,8 @@ Implement `get_integrity_assessment` as the canonical deterministic trust-assess
 
 ## Target Area
 
-- `src/modules/controls_integrity/service.py`
-- `src/modules/controls_integrity/__init__.py`
-- `tests/unit/modules/controls_integrity/`
+- `src/modules/` for the new controls_integrity service module and package export
+- `tests/unit/modules/` for the new controls_integrity service tests
 - `src/shared/service_errors.py` only for reuse of the existing typed error-envelope pattern, not for semantic redesign
 
 ## Acceptance Criteria
@@ -87,7 +86,7 @@ This produces the single canonical trust answer that the Data Controller Walker 
 
 ## Residual Blocker / Escalation
 
-None. This WI proceeds with module-local `EvidenceRef` handling inside `src/modules/controls_integrity/service.py`, assuming WI-2.1.2 delivers the normalized-control fixture contract unchanged.
+None. This WI proceeds with module-local `EvidenceRef` handling inside the new controls_integrity service module under `src/modules/`, assuming WI-2.1.2 delivers the normalized-control fixture contract unchanged.
 
 Any later extraction of shared `EvidenceRef` handling is out of scope for this WI and must be proposed as a separate, explicitly gated follow-up.
 

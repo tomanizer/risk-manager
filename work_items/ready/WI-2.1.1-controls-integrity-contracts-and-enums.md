@@ -17,7 +17,7 @@ Define the canonical typed contract surface for the Controls and Production Inte
 
 ## Scope
 
-- create `src/modules/controls_integrity/contracts/`
+- create the new controls_integrity contracts package under `src/modules/`
 - add enums for required check types, check states, trust states, and false-signal risk
 - add typed models for normalized control records, `EvidenceRef`, `ControlCheckResult`, and `IntegrityAssessment`
 - keep `EvidenceRef` module-local in this slice
@@ -49,9 +49,8 @@ Define the canonical typed contract surface for the Controls and Production Inte
 
 ## Target Area
 
-- `src/modules/controls_integrity/contracts/`
-- `src/modules/controls_integrity/__init__.py`
-- `tests/unit/modules/controls_integrity/`
+- `src/modules/` for the new controls_integrity contracts package and package export
+- `tests/unit/modules/` for the new controls_integrity contract tests
 - no `src/shared/` extraction in this slice
 
 ## Acceptance Criteria
@@ -81,7 +80,7 @@ This creates the governed contract layer needed before fixture packs, service lo
 
 ## Residual Blocker / Escalation
 
-None. This WI proceeds with module-local `EvidenceRef` inside `src/modules/controls_integrity/contracts/`.
+None. This WI proceeds with module-local `EvidenceRef` inside the new controls_integrity contracts package under `src/modules/`.
 
 Any later extraction into `src/shared/` is out of scope for this WI and must be proposed as a separate, explicitly gated follow-up.
 

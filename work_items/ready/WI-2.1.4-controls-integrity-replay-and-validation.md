@@ -38,9 +38,9 @@ Add replay and regression coverage that proves the controls-integrity service is
 
 ## Target Area
 
-- `tests/replay/controls_integrity/`
-- `tests/unit/modules/controls_integrity/`
-- `fixtures/controls_integrity/` only for replay fixtures already required by the completed service
+- `tests/replay/` for the new controls_integrity replay coverage
+- `tests/unit/modules/` for the new controls_integrity regression coverage
+- `fixtures/` only for controls_integrity replay fixtures already required by the completed service
 
 ## Acceptance Criteria
 

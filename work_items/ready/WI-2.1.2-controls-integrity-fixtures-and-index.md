@@ -17,7 +17,7 @@ Create the deterministic normalized-control fixture pack and fixture index that 
 
 - create a synthetic controls-integrity fixture pack aligned to the Phase 1 node identity and snapshot model
 - create a fixture schema for normalized control rows and snapshot metadata
-- create `src/modules/controls_integrity/fixtures/` loader and index helpers
+- create loader and index helpers for controls_integrity fixtures under `src/modules/`
 - support lookup by `node_ref`, `measure_type`, `as_of_date`, resolved `snapshot_id`, and `check_type`
 - encode the required uniqueness boundary of one normalized control row per target, snapshot, and check type
 - pin the calendar basis used upstream for `FRESHNESS` and `PUBLICATION_READINESS` normalization
@@ -42,10 +42,9 @@ Create the deterministic normalized-control fixture pack and fixture index that 
 
 ## Target Area
 
-- `fixtures/controls_integrity/`
-- `src/modules/controls_integrity/fixtures/`
-- `src/modules/controls_integrity/__init__.py`
-- `tests/unit/modules/controls_integrity/`
+- `fixtures/` for the new controls_integrity fixture pack
+- `src/modules/` for the new controls_integrity fixtures package and package export
+- `tests/unit/modules/` for the new controls_integrity fixture-loader tests
 
 ## Acceptance Criteria
 
