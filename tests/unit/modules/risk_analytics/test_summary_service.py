@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 import math
 import unittest
 from datetime import date, datetime, timezone
+
+import pytest
 
 from src.modules.risk_analytics import get_risk_summary
 from src.modules.risk_analytics.contracts import (
@@ -23,6 +26,19 @@ from src.modules.risk_analytics.fixtures import (
     build_fixture_index,
 )
 from src.shared import ServiceError
+from src.shared.telemetry import (
+    LOGGER_NAME,
+    StdlibLoggerAdapter,
+    configure_operation_logging,
+    reset_operation_logging_to_defaults,
+)
+
+
+@pytest.fixture(autouse=True)
+def _reset_risk_telemetry_globals() -> None:
+    reset_operation_logging_to_defaults()
+    yield
+    reset_operation_logging_to_defaults()
 
 
 # ---------------------------------------------------------------------------
@@ -839,6 +855,80 @@ class SummaryServiceHistoryPointsUsedTestCase(unittest.TestCase):
         assert isinstance(result, RiskSummary)
         self.assertEqual(result.history_points_used, 1)
         self.assertIsNone(result.rolling_std)
+
+
+def _summary_log_record(caplog: pytest.LogCaptureFixture) -> tuple[object, dict[str, object]]:
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    payload = getattr(record, "structured_event")
+    return record, payload
+
+
+def _assert_summary_log_shape(payload: dict[str, object]) -> None:
+    assert set(payload.keys()) == {
+        "operation",
+        "node_ref",
+        "measure_type",
+        "as_of_date",
+        "compare_to_date",
+        "lookback_window",
+        "snapshot_id",
+        "status",
+        "history_points_used",
+        "duration_ms",
+    }
+    assert isinstance(payload["duration_ms"], int)
+    assert payload["duration_ms"] >= 0
+    node_ref = payload["node_ref"]
+    assert isinstance(node_ref, dict)
+    assert set(node_ref.keys()) == {"node_id", "node_level", "hierarchy_scope", "legal_entity_id"}
+    for forbidden in (
+        "points",
+        "rows",
+        "rolling_mean",
+        "rolling_std",
+        "volatility_regime",
+        "current_value",
+        "delta_abs",
+    ):
+        assert forbidden not in payload
+
+
+def test_summary_logging_ok_case(caplog: pytest.LogCaptureFixture) -> None:
+    index = build_fixture_index()
+    configure_operation_logging(enabled=True, logger=StdlibLoggerAdapter(LOGGER_NAME))
+    caplog.set_level(logging.INFO, logger=LOGGER_NAME)
+
+    _ = get_risk_summary(
+        node_ref=desk_toh(),
+        measure_type=MeasureType.VAR_1D_99,
+        as_of_date=D_08,
+        fixture_index=index,
+    )
+
+    record, payload = _summary_log_record(caplog)
+    assert record.levelname == "INFO"
+    assert payload["status"] == "OK"
+    _assert_summary_log_shape(payload)
+
+
+def test_summary_logging_error_case(caplog: pytest.LogCaptureFixture) -> None:
+    index = build_fixture_index()
+    configure_operation_logging(enabled=True, logger=StdlibLoggerAdapter(LOGGER_NAME))
+    caplog.set_level(logging.INFO, logger=LOGGER_NAME)
+
+    _ = get_risk_summary(
+        node_ref=desk_toh(),
+        measure_type=MeasureType.VAR_10D_99,
+        as_of_date=D_08,
+        fixture_index=index,
+    )
+
+    record, payload = _summary_log_record(caplog)
+    assert record.levelname == "WARNING"
+    assert payload["status"] == "UNSUPPORTED_MEASURE"
+    assert payload["history_points_used"] is None
+    _assert_summary_log_shape(payload)
 
 
 if __name__ == "__main__":

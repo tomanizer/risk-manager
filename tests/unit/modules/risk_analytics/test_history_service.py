@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import unittest
 from datetime import date
+
+import pytest
 
 from src.modules.risk_analytics.contracts import (
     HierarchyScope,
@@ -14,6 +17,19 @@ from src.modules.risk_analytics.contracts import (
 )
 from src.modules.risk_analytics.fixtures import build_fixture_index
 from src.modules.risk_analytics.service import get_risk_history
+from src.shared.telemetry import (
+    LOGGER_NAME,
+    StdlibLoggerAdapter,
+    configure_operation_logging,
+    reset_operation_logging_to_defaults,
+)
+
+
+@pytest.fixture(autouse=True)
+def _reset_risk_telemetry_globals() -> None:
+    reset_operation_logging_to_defaults()
+    yield
+    reset_operation_logging_to_defaults()
 
 
 def make_top_of_house_desk(node_id: str = "DESK_RATES_MACRO") -> NodeRef:
@@ -293,6 +309,66 @@ class HistoryServiceTestCase(unittest.TestCase):
             series.status_reasons,
             ("UNSUPPORTED_MEASURE_IN_FIXTURE_PACK",),
         )
+
+
+def _history_log_record(caplog: pytest.LogCaptureFixture) -> tuple[object, dict[str, object]]:
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    payload = getattr(record, "structured_event")
+    return record, payload
+
+
+def _assert_history_log_shape(payload: dict[str, object]) -> None:
+    assert set(payload.keys()) == {
+        "operation",
+        "node_ref",
+        "measure_type",
+        "start_date",
+        "end_date",
+        "snapshot_id",
+        "status",
+        "duration_ms",
+    }
+    assert isinstance(payload["duration_ms"], int)
+    assert payload["duration_ms"] >= 0
+
+
+def test_history_logging_ok_case(caplog: pytest.LogCaptureFixture) -> None:
+    index = build_fixture_index()
+    configure_operation_logging(enabled=True, logger=StdlibLoggerAdapter(LOGGER_NAME))
+    caplog.set_level(logging.INFO, logger=LOGGER_NAME)
+
+    _ = get_risk_history(
+        node_ref=make_top_of_house_desk(),
+        measure_type=MeasureType.VAR_1D_99,
+        start_date=date(2026, 1, 2),
+        end_date=date(2026, 1, 8),
+        fixture_index=index,
+    )
+
+    record, payload = _history_log_record(caplog)
+    assert record.levelname == "INFO"
+    assert payload["status"] == "OK"
+    _assert_history_log_shape(payload)
+
+
+def test_history_logging_error_case(caplog: pytest.LogCaptureFixture) -> None:
+    index = build_fixture_index()
+    configure_operation_logging(enabled=True, logger=StdlibLoggerAdapter(LOGGER_NAME))
+    caplog.set_level(logging.INFO, logger=LOGGER_NAME)
+
+    _ = get_risk_history(
+        node_ref=make_top_of_house_desk(),
+        measure_type=MeasureType.VAR_10D_99,
+        start_date=date(2026, 1, 5),
+        end_date=date(2026, 1, 12),
+        fixture_index=index,
+    )
+
+    record, payload = _history_log_record(caplog)
+    assert record.levelname == "WARNING"
+    assert payload["status"] == "UNSUPPORTED_MEASURE"
+    _assert_history_log_shape(payload)
 
 
 if __name__ == "__main__":
