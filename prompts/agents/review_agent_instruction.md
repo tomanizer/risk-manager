@@ -124,9 +124,8 @@ the work-item lifecycle move to the feature branch:
 ```bash
 git fetch origin {branch}
 git checkout {branch}
-git mv work_items/ready/<WI-ID>-*.md work_items/done/
-git add work_items/
-git commit -m "chore: move <WI-ID> to done [review PASS]"
+git mv work_items/ready/{WI-ID}-*.md work_items/done/
+git commit -m "chore: move {WI-ID} to done [review PASS]"
 git push origin {branch}
 ```
 
