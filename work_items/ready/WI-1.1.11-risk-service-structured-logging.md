@@ -24,17 +24,18 @@ Logs are a secondary observability surface only. Typed outputs and replay artifa
   | `measure_type` | all four operations |
   | `as_of_date` | `get_risk_summary`, `get_risk_delta`, `get_risk_change_profile` |
   | `start_date`, `end_date` | `get_risk_history` |
-  | `compare_to_date` | `get_risk_summary`, `get_risk_delta`, `get_risk_change_profile` (when relevant) |
+  | `compare_to_date` | `get_risk_summary`, `get_risk_delta`, `get_risk_change_profile` (always present; `None` when not resolved) |
   | `lookback_window` | `get_risk_summary`, `get_risk_change_profile` |
-  | `snapshot_id` | all four when provided |
+  | `snapshot_id` | all four (always present; `None` when not provided by caller) |
   | `status` | all four operations |
-  | `history_points_used` | `get_risk_summary`, `get_risk_change_profile` (when returned) |
+  | `history_points_used` | `get_risk_summary`, `get_risk_change_profile` (always present; `None` when not returned) |
   | `duration_ms` | all four operations |
 
+- all fields listed above are required in every log record for the operations they apply to; when a listed field is conditional and has no value, it must be logged with `None` rather than omitted
 - `duration_ms` is measured from the top of each function to the point of return using `time.monotonic()`; it must be rounded to the nearest millisecond integer
 - log level is `INFO` for `OK`, `PARTIAL`, and `MISSING_COMPARE`; `WARNING` for `MISSING_HISTORY`, `DEGRADED`, `MISSING_SNAPSHOT`, `MISSING_NODE`, and `UNSUPPORTED_MEASURE`
 - for `get_risk_summary` and `get_risk_change_profile`, when the operation returns a `ServiceError`, `status` in the log record is the `ServiceError.status_code` string; when it returns a typed object, `status` is the object's `.status.value`
-- the log record must not include snapshot contents, raw fixture data, rolling statistics values, or volatility classification values — only the fields listed above
+- the log record must not include snapshot contents, raw fixture data, rolling statistics values, or volatility classification values; beyond the required fields above, no additional payload fields are emitted in this slice
 - `node_ref` is logged as a concise dict (keys: `node_id`, `node_level`, `hierarchy_scope`, `legal_entity_id`)
 
 ## Out of scope
@@ -67,7 +68,7 @@ Logs are a secondary observability surface only. Typed outputs and replay artifa
 - `tests/unit/modules/risk_analytics/test_change_profile_service.py`
 - `tests/unit/modules/risk_analytics/test_history_service.py`
 
-No new modules are created. No other files are touched.
+No new modules are created. Only `src/modules/risk_analytics/service.py` and the four listed existing test files may be touched; no additional files or modules beyond that set are in scope.
 
 ## Acceptance Criteria
 
@@ -79,10 +80,10 @@ No new modules are created. No other files are touched.
 - `node_ref` is logged as a dict with keys `node_id`, `node_level`, `hierarchy_scope`, `legal_entity_id`; it is not logged as the raw `NodeRef` repr
 - log level is `INFO` for `OK`, `PARTIAL`, `MISSING_COMPARE`; `WARNING` for all degraded and error statuses
 - the structlog import is guarded with try/except that falls back to stdlib logging; the service must import and function correctly in environments where structlog is absent
-- existing unit tests continue to pass without modification
-- new log-capture tests added to each of the four test files using `structlog.testing.capture_logs` (or pytest `caplog` for the stdlib fallback path), asserting:
-  - required fields are present in the emitted log record
-  - `status` value is correct for at least one positive and one error case per operation
+- existing unit test cases and assertions continue to pass unchanged; no pre-existing test expectation is rewritten to accommodate the logging change
+- new log-capture assertions are added to each of the four existing test files using pytest `caplog` (works under the default `[dev]` dependency set used in CI; tests must not import `structlog.testing`), asserting:
+  - required fields are present in the captured log record
+  - `status` value is correct for at least one positive and one error/degraded case per operation
   - `duration_ms` is a non-negative integer
 - no raw fixture values (snapshot contents, float time-series values, rolling stat floats, volatility enum internals) appear in the log record
 
