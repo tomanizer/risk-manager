@@ -15,10 +15,12 @@ This repository uses a governed multi-agent relay. You are the **operator**, not
 ## What you must do when the user asks to work on a work item
 
 1. Print `[deliver-wi] Skill active. Finding next work item and building agent prompt...` immediately.
-2. Read the WI file, linked PRD, `AGENTS.md`, and any ADRs listed in the WI dependencies.
-3. Fill the correct invocation template from `prompts/agents/invocation_templates/`.
-4. Output the filled prompt in a code block with the header: `Paste this into a FRESH [Role] agent session (new chat / new Codex session):`
-5. Stop. Do not implement anything.
+2. Run freshness gate first: `git fetch origin && git switch main && git pull --ff-only origin main`.
+3. Select work items from refreshed `main` state only (not stale feature branches).
+4. Read the WI file, linked PRD, `AGENTS.md`, and any ADRs listed in the WI dependencies.
+5. Fill the correct invocation template from `prompts/agents/invocation_templates/`.
+6. Output the filled prompt in a code block with the header: `Paste this into a FRESH [Role] agent session (new chat / new Codex session):`
+7. Stop. Do not implement anything.
 
 ## What you must NEVER do
 

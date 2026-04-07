@@ -93,3 +93,5 @@ A work item should move out of `ready/` only when one of the following is true:
 - it has been assigned for implementation and moved to `in_progress/`
 - it has been blocked by a newly discovered dependency and moved to `blocked/`
 - it has been superseded or split into narrower items
+
+After implementation completion and merge, promotion to `work_items/done/` is mandatory and should happen immediately in the governed relay step responsible for WI lifecycle updates (PM or review, per active agent instructions). A merged implementation without WI promotion is backlog-state drift and must be corrected before selecting the next WI.
