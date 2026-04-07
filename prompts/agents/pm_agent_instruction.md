@@ -79,25 +79,14 @@ If you cannot name what the tests need to prove, the slice is not ready.
 
 ## Post-merge promotion
 
-When told that a PR has been merged and a WI needs promoting:
+The review agent handles WI promotion as part of its PASS verdict: it commits
+`git mv work_items/ready/{WI-ID}-*.md work_items/done/` to the feature branch
+before the human merges, so the move lands on `main` atomically with the
+implementation.
 
-1. Find the exact WI file matching `work_items/ready/<WI-ID>-*.md`. Confirm that exactly one file exists. If zero or more than one file matches, stop and report the error to the operator.
-2. Promote it on a fresh branch:
-
-```bash
-git fetch origin && git switch main && git pull --ff-only origin main
-git switch -c chore/promote-<WI-ID>-done
-git mv work_items/ready/<WI-ID>-*.md work_items/done/
-git commit -m "chore: promote <WI-ID> to done"
-git push -u origin chore/promote-<WI-ID>-done
-gh pr create \
-  --title "chore: promote <WI-ID> to done" \
-  --body "WI completed and merged in PR #<PR-number>. Moving from ready/ to done/."
-```
-
-1. After opening the promotion PR, immediately assess the next ready work item and produce the next implementation brief or identify blockers.
-
-Do not skip the promotion PR — branch protection requires it. Do not mark the WI as done by editing the file contents; only the directory move is required.
+When the PM agent is told a PR has been merged, the WI is already in `done/`.
+The PM agent's job at that point is only to assess the next ready work item and
+produce the next implementation brief or identify blockers.
 
 ## Stop conditions
 
