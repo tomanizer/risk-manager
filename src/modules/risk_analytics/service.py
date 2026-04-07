@@ -6,8 +6,16 @@ import bisect
 import statistics
 from datetime import date, datetime, time, timezone
 from functools import lru_cache
+from typing import Any
 
 from src.shared import ServiceError
+from src.shared.telemetry import (
+    emit_operation,
+    iso_date as _iso_date,
+    node_ref_log_dict,
+    status_string as _status_string,
+    timer_start as _timer_start,
+)
 
 from .contracts import (
     MeasureType,
@@ -23,6 +31,25 @@ from .contracts import (
 )
 from .fixtures import FixtureIndex, FixtureRow, FixtureSnapshot, build_fixture_index
 from .time import BusinessDayResolutionError, resolve_compare_to_date
+
+
+def _emit_risk_operation(
+    operation: str,
+    *,
+    status: str,
+    start_time: float,
+    node_ref: NodeRef,
+    measure_type: MeasureType,
+    **context: Any,
+) -> None:
+    emit_operation(
+        operation,
+        status=status,
+        start_time=start_time,
+        node_ref=node_ref_log_dict(node_ref),
+        measure_type=measure_type,
+        **context,
+    )
 
 
 _DETERMINISTIC_GENERATED_AT_TIME = time(hour=18, minute=0, tzinfo=timezone.utc)
@@ -96,7 +123,7 @@ def _resolve_current_snapshot(
         return ServiceError(
             operation=operation,
             status_code="MISSING_SNAPSHOT",
-            status_reasons=(f"AS_OF_DATE_SNAPSHOT_NOT_FOUND:{as_of_date.isoformat()}",),
+            status_reasons=(f"AS_OF_DATE_SNAPSHOT_NOT_FOUND:{_iso_date(as_of_date)}",),
         )
     return snapshot
 
@@ -137,10 +164,10 @@ def _resolve_compare_context(
             compare_to_date=compare_to_date,
             calendar=calendar,
         )
-    except BusinessDayResolutionError:
+    except BusinessDayResolutionError as exc:
         if compare_to_date is not None:
-            raise ValueError(f"compare_to_date {compare_to_date.isoformat()} is not a business day in the supplied calendar")
-        return None, None, (f"NO_PRIOR_BUSINESS_DAY:{as_of_date.isoformat()}",)
+            raise ValueError(f"compare_to_date {compare_to_date.isoformat()} is not a business day in the supplied calendar") from exc
+        return None, None, (f"NO_PRIOR_BUSINESS_DAY:{_iso_date(as_of_date)}",)
 
     compare_snapshot = index.get_snapshot_by_date(resolved)
     if compare_snapshot is None:
@@ -184,6 +211,7 @@ def get_risk_summary(
     ServiceError for UNSUPPORTED_MEASURE, MISSING_SNAPSHOT, and MISSING_NODE
     outcomes. Raises ValueError for request validation failures.
     """
+    start_time = _timer_start()
     if lookback_window != 60:
         raise ValueError("lookback_window must be 60 in v1; any other value is unsupported")
     if snapshot_id is not None and not snapshot_id.strip():
@@ -195,24 +223,65 @@ def get_risk_summary(
     pack = index.pack
 
     if _resolve_measure_status(measure_type, index) is not None:
-        return ServiceError(
+        result = ServiceError(
             operation="get_risk_summary",
             status_code="UNSUPPORTED_MEASURE",
             status_reasons=("UNSUPPORTED_MEASURE_IN_FIXTURE_PACK",),
         )
+        log_status = _status_string(result)
+        _emit_risk_operation(
+            "get_risk_summary",
+            status=log_status,
+            start_time=start_time,
+            node_ref=node_ref,
+            measure_type=measure_type,
+            as_of_date=as_of_date,
+            compare_to_date=compare_to_date,
+            lookback_window=lookback_window,
+            snapshot_id=snapshot_id,
+            history_points_used=None,
+        )
+        return result
 
     current_snapshot_or_error = _resolve_current_snapshot(as_of_date, snapshot_id, index, operation="get_risk_summary")
     if isinstance(current_snapshot_or_error, ServiceError):
+        log_status = _status_string(current_snapshot_or_error)
+        _emit_risk_operation(
+            "get_risk_summary",
+            status=log_status,
+            start_time=start_time,
+            node_ref=node_ref,
+            measure_type=measure_type,
+            as_of_date=as_of_date,
+            compare_to_date=compare_to_date,
+            lookback_window=lookback_window,
+            snapshot_id=snapshot_id,
+            history_points_used=None,
+        )
         return current_snapshot_or_error
     current_snapshot = current_snapshot_or_error
 
     current_row = index.get_row(current_snapshot.snapshot_id, node_ref, measure_type)
     if current_row is None:
-        return ServiceError(
+        result = ServiceError(
             operation="get_risk_summary",
             status_code="MISSING_NODE",
             status_reasons=("CURRENT_NODE_MEASURE_NOT_FOUND_IN_SNAPSHOT",),
         )
+        log_status = _status_string(result)
+        _emit_risk_operation(
+            "get_risk_summary",
+            status=log_status,
+            start_time=start_time,
+            node_ref=node_ref,
+            measure_type=measure_type,
+            as_of_date=as_of_date,
+            compare_to_date=compare_to_date,
+            lookback_window=lookback_window,
+            snapshot_id=snapshot_id,
+            history_points_used=None,
+        )
+        return result
 
     resolved_compare_date, compare_snapshot, compare_reasons = _resolve_compare_context(
         as_of_date=as_of_date,
@@ -252,7 +321,7 @@ def get_risk_summary(
 
     current_is_degraded = current_snapshot.is_degraded or current_row.status == SummaryStatus.DEGRADED
     if current_is_degraded:
-        status_reasons.append(f"CURRENT_POINT_DEGRADED:{as_of_date.isoformat()}")
+        status_reasons.append(f"CURRENT_POINT_DEGRADED:{_iso_date(as_of_date)}")
 
     previous_row: FixtureRow | None = None
     compare_is_degraded = False
@@ -281,15 +350,15 @@ def get_risk_summary(
     history_is_degraded = bool(degraded_dates) or bool(missing_dates)
     no_history = not window_dates or (n_valid == 0 and not degraded_dates and not missing_dates)
 
-    status: SummaryStatus
+    summary_status: SummaryStatus
     if current_is_degraded or compare_is_degraded or history_is_degraded:
-        status = SummaryStatus.DEGRADED
+        summary_status = SummaryStatus.DEGRADED
     elif compare_snapshot is None or previous_row is None:
-        status = SummaryStatus.MISSING_COMPARE
+        summary_status = SummaryStatus.MISSING_COMPARE
     elif no_history:
-        status = SummaryStatus.MISSING_HISTORY
+        summary_status = SummaryStatus.MISSING_HISTORY
     else:
-        status = SummaryStatus.OK
+        summary_status = SummaryStatus.OK
 
     previous_value = None if previous_row is None else previous_row.value
     delta_abs, delta_pct = _compute_delta_fields(
@@ -297,7 +366,7 @@ def get_risk_summary(
         previous_value=previous_value,
     )
 
-    return RiskSummary(
+    summary = RiskSummary(
         node_ref=node_ref,
         node_level=node_ref.node_level,
         hierarchy_scope=node_ref.hierarchy_scope,
@@ -314,13 +383,27 @@ def get_risk_summary(
         rolling_min=rolling_min,
         rolling_max=rolling_max,
         history_points_used=n_valid,
-        status=status,
+        status=summary_status,
         status_reasons=tuple(status_reasons),
         snapshot_id=current_snapshot.snapshot_id,
         data_version=pack.data_version,
         service_version=pack.service_version,
         generated_at=_deterministic_generated_at(current_snapshot.as_of_date),
     )
+    log_status = _status_string(summary)
+    _emit_risk_operation(
+        "get_risk_summary",
+        status=log_status,
+        start_time=start_time,
+        node_ref=node_ref,
+        measure_type=measure_type,
+        as_of_date=as_of_date,
+        compare_to_date=summary.compare_to_date,
+        lookback_window=lookback_window,
+        snapshot_id=snapshot_id,
+        history_points_used=summary.history_points_used,
+    )
+    return summary
 
 
 def get_risk_delta(
@@ -338,6 +421,7 @@ def get_risk_delta(
     MISSING_SNAPSHOT, and MISSING_NODE outcomes. Raises ValueError for request
     validation failures such as blank snapshot_id or compare_to_date not in calendar.
     """
+    start_time = _timer_start()
     if snapshot_id is not None and not snapshot_id.strip():
         raise ValueError("snapshot_id must be non-empty when provided")
     if compare_to_date is not None and compare_to_date > as_of_date:
@@ -347,24 +431,59 @@ def get_risk_delta(
     pack = index.pack
 
     if _resolve_measure_status(measure_type, index) is not None:
-        return ServiceError(
+        result = ServiceError(
             operation="get_risk_delta",
             status_code="UNSUPPORTED_MEASURE",
             status_reasons=("UNSUPPORTED_MEASURE_IN_FIXTURE_PACK",),
         )
+        log_status = _status_string(result)
+        _emit_risk_operation(
+            "get_risk_delta",
+            status=log_status,
+            start_time=start_time,
+            node_ref=node_ref,
+            measure_type=measure_type,
+            as_of_date=as_of_date,
+            compare_to_date=compare_to_date,
+            snapshot_id=snapshot_id,
+        )
+        return result
 
     current_snapshot_or_error = _resolve_current_snapshot(as_of_date, snapshot_id, index)
     if isinstance(current_snapshot_or_error, ServiceError):
+        log_status = _status_string(current_snapshot_or_error)
+        _emit_risk_operation(
+            "get_risk_delta",
+            status=log_status,
+            start_time=start_time,
+            node_ref=node_ref,
+            measure_type=measure_type,
+            as_of_date=as_of_date,
+            compare_to_date=compare_to_date,
+            snapshot_id=snapshot_id,
+        )
         return current_snapshot_or_error
     current_snapshot = current_snapshot_or_error
 
     current_row = index.get_row(current_snapshot.snapshot_id, node_ref, measure_type)
     if current_row is None:
-        return ServiceError(
+        result = ServiceError(
             operation="get_risk_delta",
             status_code="MISSING_NODE",
             status_reasons=("CURRENT_NODE_MEASURE_NOT_FOUND_IN_SNAPSHOT",),
         )
+        log_status = _status_string(result)
+        _emit_risk_operation(
+            "get_risk_delta",
+            status=log_status,
+            start_time=start_time,
+            node_ref=node_ref,
+            measure_type=measure_type,
+            as_of_date=as_of_date,
+            compare_to_date=compare_to_date,
+            snapshot_id=snapshot_id,
+        )
+        return result
 
     resolved_compare_date, compare_snapshot, compare_reasons = _resolve_compare_context(
         as_of_date=as_of_date,
@@ -376,7 +495,7 @@ def get_risk_delta(
     status_reasons: list[str] = []
     current_is_degraded = current_snapshot.is_degraded or current_row.status == SummaryStatus.DEGRADED
     if current_is_degraded:
-        status_reasons.append(f"CURRENT_POINT_DEGRADED:{as_of_date.isoformat()}")
+        status_reasons.append(f"CURRENT_POINT_DEGRADED:{_iso_date(as_of_date)}")
 
     previous_row: FixtureRow | None = None
     compare_is_degraded = False
@@ -391,11 +510,11 @@ def get_risk_delta(
         if previous_row is None:
             status_reasons.append(f"COMPARE_NODE_MEASURE_NOT_FOUND:{compare_snapshot.as_of_date.isoformat()}")
 
-    status = SummaryStatus.OK
+    delta_status = SummaryStatus.OK
     if current_is_degraded or compare_is_degraded:
-        status = SummaryStatus.DEGRADED
+        delta_status = SummaryStatus.DEGRADED
     elif compare_snapshot is None or previous_row is None:
-        status = SummaryStatus.MISSING_COMPARE
+        delta_status = SummaryStatus.MISSING_COMPARE
 
     previous_value = None if previous_row is None else previous_row.value
     delta_abs, delta_pct = _compute_delta_fields(
@@ -403,7 +522,7 @@ def get_risk_delta(
         previous_value=previous_value,
     )
 
-    return RiskDelta(
+    delta = RiskDelta(
         node_ref=node_ref,
         node_level=node_ref.node_level,
         hierarchy_scope=node_ref.hierarchy_scope,
@@ -415,13 +534,25 @@ def get_risk_delta(
         previous_value=previous_value,
         delta_abs=delta_abs,
         delta_pct=delta_pct,
-        status=status,
+        status=delta_status,
         status_reasons=tuple(status_reasons),
         snapshot_id=current_snapshot.snapshot_id,
         data_version=pack.data_version,
         service_version=pack.service_version,
         generated_at=_deterministic_generated_at(current_snapshot.as_of_date),
     )
+    log_status = _status_string(delta)
+    _emit_risk_operation(
+        "get_risk_delta",
+        status=log_status,
+        start_time=start_time,
+        node_ref=node_ref,
+        measure_type=measure_type,
+        as_of_date=as_of_date,
+        compare_to_date=delta.compare_to_date,
+        snapshot_id=snapshot_id,
+    )
+    return delta
 
 
 def get_risk_history(
@@ -440,6 +571,7 @@ def get_risk_history(
     pinned fixture-backed dataset context for that request, while returned points
     remain restricted to the inclusive requested range.
     """
+    start_time = _timer_start()
     if start_date > end_date:
         raise ValueError("start_date must be on or before end_date")
     if snapshot_id is not None and not snapshot_id.strip():
@@ -450,7 +582,7 @@ def get_risk_history(
 
     unsupported_status = _resolve_measure_status(measure_type, index)
     if unsupported_status is not None:
-        return RiskHistorySeries(
+        result = RiskHistorySeries(
             node_ref=node_ref,
             measure_type=measure_type,
             start_date=start_date,
@@ -460,12 +592,24 @@ def get_risk_history(
             status_reasons=("UNSUPPORTED_MEASURE_IN_FIXTURE_PACK",),
             service_version=pack.service_version,
         )
+        log_status = _status_string(result)
+        _emit_risk_operation(
+            "get_risk_history",
+            status=log_status,
+            start_time=start_time,
+            node_ref=node_ref,
+            measure_type=measure_type,
+            start_date=start_date,
+            end_date=end_date,
+            snapshot_id=snapshot_id,
+        )
+        return result
 
     anchor_snapshot = None
     if snapshot_id is not None:
         anchor_snapshot = index.get_snapshot(snapshot_id)
         if anchor_snapshot is None:
-            return RiskHistorySeries(
+            result = RiskHistorySeries(
                 node_ref=node_ref,
                 measure_type=measure_type,
                 start_date=start_date,
@@ -475,24 +619,48 @@ def get_risk_history(
                 status_reasons=(f"ANCHOR_SNAPSHOT_NOT_FOUND:{snapshot_id}",),
                 service_version=pack.service_version,
             )
+            log_status = _status_string(result)
+            _emit_risk_operation(
+                "get_risk_history",
+                status=log_status,
+                start_time=start_time,
+                node_ref=node_ref,
+                measure_type=measure_type,
+                start_date=start_date,
+                end_date=end_date,
+                snapshot_id=snapshot_id,
+            )
+            return result
         if anchor_snapshot.as_of_date != end_date:
             raise ValueError("snapshot_id must resolve to a snapshot whose as_of_date equals end_date")
 
     pinned_snapshot = anchor_snapshot or index.get_snapshot_by_date(end_date)
     if pinned_snapshot is None:
-        return RiskHistorySeries(
+        result = RiskHistorySeries(
             node_ref=node_ref,
             measure_type=measure_type,
             start_date=start_date,
             end_date=end_date,
             points=(),
             status=SummaryStatus.MISSING_SNAPSHOT,
-            status_reasons=(f"END_DATE_SNAPSHOT_NOT_FOUND:{end_date.isoformat()}",),
+            status_reasons=(f"END_DATE_SNAPSHOT_NOT_FOUND:{_iso_date(end_date)}",),
             service_version=pack.service_version,
         )
+        log_status = _status_string(result)
+        _emit_risk_operation(
+            "get_risk_history",
+            status=log_status,
+            start_time=start_time,
+            node_ref=node_ref,
+            measure_type=measure_type,
+            start_date=start_date,
+            end_date=end_date,
+            snapshot_id=snapshot_id,
+        )
+        return result
 
     if not _node_measure_exists_in_pinned_context(index, node_ref, measure_type):
-        return RiskHistorySeries(
+        result = RiskHistorySeries(
             node_ref=node_ref,
             measure_type=measure_type,
             start_date=start_date,
@@ -502,6 +670,18 @@ def get_risk_history(
             status_reasons=("NODE_MEASURE_NOT_IN_PINNED_DATASET_CONTEXT",),
             service_version=pack.service_version,
         )
+        log_status = _status_string(result)
+        _emit_risk_operation(
+            "get_risk_history",
+            status=log_status,
+            start_time=start_time,
+            node_ref=node_ref,
+            measure_type=measure_type,
+            start_date=start_date,
+            end_date=end_date,
+            snapshot_id=snapshot_id,
+        )
+        return result
 
     expected_dates = _expected_dates(start_date, end_date, pack.calendar)
     points: list[RiskHistoryPoint] = []
@@ -534,7 +714,7 @@ def get_risk_history(
         )
 
     if not points:
-        return RiskHistorySeries(
+        result = RiskHistorySeries(
             node_ref=node_ref,
             measure_type=measure_type,
             start_date=start_date,
@@ -544,35 +724,59 @@ def get_risk_history(
             status_reasons=("NO_RETURNABLE_POINTS_IN_RANGE",),
             service_version=pack.service_version,
         )
+        log_status = _status_string(result)
+        _emit_risk_operation(
+            "get_risk_history",
+            status=log_status,
+            start_time=start_time,
+            node_ref=node_ref,
+            measure_type=measure_type,
+            start_date=start_date,
+            end_date=end_date,
+            snapshot_id=snapshot_id,
+        )
+        return result
 
-    status = SummaryStatus.OK
+    series_status = SummaryStatus.OK
     status_reasons: list[str] = []
 
     if degraded_dates:
-        status = SummaryStatus.DEGRADED
+        series_status = SummaryStatus.DEGRADED
         status_reasons.append(_encode_dates_reason("DEGRADED_DATES", degraded_dates))
 
     if missing_dates:
         missing_reason = _encode_dates_reason("MISSING_DATES", missing_dates)
         if require_complete:
-            status = SummaryStatus.DEGRADED
+            series_status = SummaryStatus.DEGRADED
             status_reasons.append(_encode_dates_reason("REQUIRE_COMPLETE_MISSING_DATES", missing_dates))
-        elif status is SummaryStatus.OK:
-            status = SummaryStatus.PARTIAL
+        elif series_status is SummaryStatus.OK:
+            series_status = SummaryStatus.PARTIAL
             status_reasons.append(missing_reason)
         else:
             status_reasons.append(missing_reason)
 
-    return RiskHistorySeries(
+    result = RiskHistorySeries(
         node_ref=node_ref,
         measure_type=measure_type,
         start_date=start_date,
         end_date=end_date,
         points=tuple(points),
-        status=status,
+        status=series_status,
         status_reasons=tuple(status_reasons),
         service_version=pack.service_version,
     )
+    log_status = _status_string(result)
+    _emit_risk_operation(
+        "get_risk_history",
+        status=log_status,
+        start_time=start_time,
+        node_ref=node_ref,
+        measure_type=measure_type,
+        start_date=start_date,
+        end_date=end_date,
+        snapshot_id=snapshot_id,
+    )
+    return result
 
 
 # Volatility policy constants — VOLATILITY_RULES_V1.
@@ -659,6 +863,7 @@ def get_risk_change_profile(
     ServiceError for UNSUPPORTED_MEASURE, MISSING_SNAPSHOT, and MISSING_NODE outcomes.
     Raises ValueError for request validation failures.
     """
+    start_time = _timer_start()
     if lookback_window != _BASELINE_WINDOW:
         raise ValueError(f"lookback_window must be {_BASELINE_WINDOW} in v1; any other value is unsupported")
     if snapshot_id is not None and not snapshot_id.strip():
@@ -670,24 +875,65 @@ def get_risk_change_profile(
     pack = index.pack
 
     if _resolve_measure_status(measure_type, index) is not None:
-        return ServiceError(
+        result = ServiceError(
             operation="get_risk_change_profile",
             status_code="UNSUPPORTED_MEASURE",
             status_reasons=("UNSUPPORTED_MEASURE_IN_FIXTURE_PACK",),
         )
+        log_status = _status_string(result)
+        _emit_risk_operation(
+            "get_risk_change_profile",
+            status=log_status,
+            start_time=start_time,
+            node_ref=node_ref,
+            measure_type=measure_type,
+            as_of_date=as_of_date,
+            compare_to_date=compare_to_date,
+            lookback_window=lookback_window,
+            snapshot_id=snapshot_id,
+            history_points_used=None,
+        )
+        return result
 
     current_snapshot_or_error = _resolve_current_snapshot(as_of_date, snapshot_id, index, operation="get_risk_change_profile")
     if isinstance(current_snapshot_or_error, ServiceError):
+        log_status = _status_string(current_snapshot_or_error)
+        _emit_risk_operation(
+            "get_risk_change_profile",
+            status=log_status,
+            start_time=start_time,
+            node_ref=node_ref,
+            measure_type=measure_type,
+            as_of_date=as_of_date,
+            compare_to_date=compare_to_date,
+            lookback_window=lookback_window,
+            snapshot_id=snapshot_id,
+            history_points_used=None,
+        )
         return current_snapshot_or_error
     current_snapshot = current_snapshot_or_error
 
     current_row = index.get_row(current_snapshot.snapshot_id, node_ref, measure_type)
     if current_row is None:
-        return ServiceError(
+        result = ServiceError(
             operation="get_risk_change_profile",
             status_code="MISSING_NODE",
             status_reasons=("CURRENT_NODE_MEASURE_NOT_FOUND_IN_SNAPSHOT",),
         )
+        log_status = _status_string(result)
+        _emit_risk_operation(
+            "get_risk_change_profile",
+            status=log_status,
+            start_time=start_time,
+            node_ref=node_ref,
+            measure_type=measure_type,
+            as_of_date=as_of_date,
+            compare_to_date=compare_to_date,
+            lookback_window=lookback_window,
+            snapshot_id=snapshot_id,
+            history_points_used=None,
+        )
+        return result
 
     resolved_compare_date, compare_snapshot, compare_reasons = _resolve_compare_context(
         as_of_date=as_of_date,
@@ -759,7 +1005,7 @@ def get_risk_change_profile(
 
     current_is_degraded = current_snapshot.is_degraded or current_row.status == SummaryStatus.DEGRADED
     if current_is_degraded:
-        status_reasons.append(f"CURRENT_POINT_DEGRADED:{as_of_date.isoformat()}")
+        status_reasons.append(f"CURRENT_POINT_DEGRADED:{_iso_date(as_of_date)}")
 
     previous_row: FixtureRow | None = None
     compare_is_degraded = False
@@ -787,15 +1033,15 @@ def get_risk_change_profile(
     history_is_degraded = bool(degraded_dates) or bool(missing_dates)
     no_history = not baseline_dates or (n_valid == 0 and not degraded_dates and not missing_dates)
 
-    status: SummaryStatus
+    profile_status: SummaryStatus
     if current_is_degraded or compare_is_degraded or history_is_degraded:
-        status = SummaryStatus.DEGRADED
+        profile_status = SummaryStatus.DEGRADED
     elif compare_snapshot is None or previous_row is None:
-        status = SummaryStatus.MISSING_COMPARE
+        profile_status = SummaryStatus.MISSING_COMPARE
     elif no_history:
-        status = SummaryStatus.MISSING_HISTORY
+        profile_status = SummaryStatus.MISSING_HISTORY
     else:
-        status = SummaryStatus.OK
+        profile_status = SummaryStatus.OK
 
     previous_value = None if previous_row is None else previous_row.value
     delta_abs, delta_pct = _compute_delta_fields(
@@ -803,7 +1049,7 @@ def get_risk_change_profile(
         previous_value=previous_value,
     )
 
-    return RiskChangeProfile(
+    profile = RiskChangeProfile(
         node_ref=node_ref,
         node_level=node_ref.node_level,
         hierarchy_scope=node_ref.hierarchy_scope,
@@ -822,10 +1068,24 @@ def get_risk_change_profile(
         volatility_regime=volatility_regime,
         volatility_change_flag=volatility_change_flag,
         history_points_used=n_valid,
-        status=status,
+        status=profile_status,
         status_reasons=tuple(status_reasons),
         snapshot_id=current_snapshot.snapshot_id,
         data_version=pack.data_version,
         service_version=pack.service_version,
         generated_at=_deterministic_generated_at(current_snapshot.as_of_date),
     )
+    log_status = _status_string(profile)
+    _emit_risk_operation(
+        "get_risk_change_profile",
+        status=log_status,
+        start_time=start_time,
+        node_ref=node_ref,
+        measure_type=measure_type,
+        as_of_date=as_of_date,
+        compare_to_date=profile.compare_to_date,
+        lookback_window=lookback_window,
+        snapshot_id=snapshot_id,
+        history_points_used=profile.history_points_used,
+    )
+    return profile

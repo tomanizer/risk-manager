@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 import unittest
 from datetime import date, datetime, timezone
 
 from src.modules.risk_analytics import get_risk_delta
+from src.shared.telemetry import (
+    LOGGER_NAME,
+    StdlibLoggerAdapter,
+    configure_operation_logging,
+)
 from src.modules.risk_analytics.contracts import (
     HierarchyScope,
     MeasureType,
@@ -456,3 +462,87 @@ class DeltaServiceValidationTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def _delta_log_record(caplog):
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    payload = getattr(record, "structured_event")
+    return record, payload
+
+
+def _assert_delta_log_shape(payload: dict[str, object]) -> None:
+    keys = set(payload.keys()) - {"trace_id", "span_id"}
+    assert keys == {
+        "operation",
+        "node_ref",
+        "measure_type",
+        "as_of_date",
+        "compare_to_date",
+        "snapshot_id",
+        "status",
+        "duration_ms",
+    }
+    assert isinstance(payload["duration_ms"], int)
+    assert payload["duration_ms"] >= 0
+    node_ref = payload["node_ref"]
+    assert isinstance(node_ref, dict)
+    assert set(node_ref.keys()) == {"node_id", "node_level", "hierarchy_scope", "legal_entity_id"}
+    for forbidden_key in (
+        "points",
+        "rows",
+        "snapshots",
+        "rolling_mean",
+        "rolling_std",
+        "rolling_min",
+        "rolling_max",
+        "volatility_regime",
+        "volatility_change_flag",
+        "current_value",
+        "previous_value",
+        "delta_abs",
+        "delta_pct",
+    ):
+        assert forbidden_key not in payload
+
+
+def test_delta_logging_ok_case(caplog):
+    index = build_fixture_index()
+    configure_operation_logging(
+        enabled=True,
+        logger=StdlibLoggerAdapter(LOGGER_NAME),
+    )
+    caplog.set_level(logging.INFO, logger=LOGGER_NAME)
+
+    _ = get_risk_delta(
+        node_ref=make_top_of_house_desk(),
+        measure_type=MeasureType.VAR_1D_99,
+        as_of_date=date(2026, 1, 8),
+        fixture_index=index,
+    )
+
+    record, payload = _delta_log_record(caplog)
+    assert record.levelname == "INFO"
+    assert payload["status"] == "OK"
+    _assert_delta_log_shape(payload)
+
+
+def test_delta_logging_error_case(caplog):
+    index = build_fixture_index()
+    configure_operation_logging(
+        enabled=True,
+        logger=StdlibLoggerAdapter(LOGGER_NAME),
+    )
+    caplog.set_level(logging.INFO, logger=LOGGER_NAME)
+
+    _ = get_risk_delta(
+        node_ref=make_top_of_house_desk(),
+        measure_type=MeasureType.VAR_10D_99,
+        as_of_date=date(2026, 1, 8),
+        fixture_index=index,
+    )
+
+    record, payload = _delta_log_record(caplog)
+    assert record.levelname == "WARNING"
+    assert payload["status"] == "UNSUPPORTED_MEASURE"
+    _assert_delta_log_shape(payload)
