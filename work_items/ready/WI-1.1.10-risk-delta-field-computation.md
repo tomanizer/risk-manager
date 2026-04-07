@@ -6,22 +6,23 @@ PRD-1.1-v2
 
 ## Purpose
 
-Close the confirmed implementation gap where `delta_abs` and `delta_pct` are hardcoded to `None` across all three as-of-date service operations. The fields are already present in the schemas — this slice computes and populates them according to the rules already stated in PRD-1.1-v2 and the acceptance criteria of WI-1.1.4.
+Close the confirmed implementation gap where `delta_abs` and `delta_pct` are hardcoded to `None` across all three as-of-date service operations. The fields are already present in the schemas. PRD-1.1-v2 currently governs the nullability edge case for `delta_pct` when the previous value is zero or `None`, but it does not, in the currently cited material, define the full `delta_pct` formula or the use of `abs(previous_value)`. This WI therefore captures a bounded implementation gap plus a required decision-closure step: the exact computation formula must be confirmed in, or added to, PRD-1.1-v2 before coding.
 
-No schema widening is required or permitted. This is a pure computation correctness fix.
+No schema widening is required or permitted. Once the PRD formula decision is closed, this remains a pure computation correctness fix.
 
 ## Scope
 
-- introduce a private helper `_compute_delta_fields` in `src/modules/risk_analytics/service.py` that encapsulates the two-rule computation:
+- confirm and record in PRD-1.1-v2 the exact delta computation formula to implement for this slice; specifically, confirm whether the intended formula is:
   - `delta_abs = current_value - previous_value` when `previous_value` is not `None`
   - `delta_pct = delta_abs / abs(previous_value)` when `previous_value` is not `None` and `previous_value != 0`
   - both return `None` when `previous_value` is `None`
   - `delta_pct` returns `None` when `previous_value == 0`, `delta_abs` is still computed
+- after PRD confirmation/update, introduce a private helper `_compute_delta_fields` in `src/modules/risk_analytics/service.py` to encapsulate the approved rules
 - apply `_compute_delta_fields` at the three construction sites that currently hardcode `None`:
   - `get_risk_summary` (lines 289–290)
   - `get_risk_delta` (lines 389–390)
   - `get_risk_change_profile` (lines 783–784)
-- extend existing unit test modules to assert correct computed values and correct `None` values across the required case matrix
+- extend existing unit test modules to assert correct computed values and correct `None` values across the required case matrix once the PRD-backed formula is approved
 
 ## Out of scope
 
