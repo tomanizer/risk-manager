@@ -76,7 +76,7 @@ def dispatch_pm_execution(execution: RunnerExecution) -> RunnerResult:
             codex_bin=cfg.get_role_codex_bin("pm"),
             model=cfg.get_role_model("pm", backend),
         )
-    if backend is BackendType.OPENAI_API:
+    if backend == BackendType.OPENAI_API:
         from .openai_backend import dispatch_openai_reasoning
 
         return dispatch_openai_reasoning(
@@ -86,7 +86,7 @@ def dispatch_pm_execution(execution: RunnerExecution) -> RunnerResult:
             allowed_decisions=ALLOWED_PM_DECISIONS,
             output_schema=get_output_schema(RunnerName.PM),
         )
-    if backend is BackendType.ANTHROPIC_API:
+    if backend == BackendType.ANTHROPIC_API:
         from .anthropic_backend import dispatch_anthropic_reasoning
 
         return dispatch_anthropic_reasoning(

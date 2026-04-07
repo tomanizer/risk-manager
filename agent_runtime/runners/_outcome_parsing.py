@@ -1,10 +1,15 @@
-"""Shared structured-outcome parsing for all runner backends.
+"""Shared structured-outcome parsing for SDK runner backends.
 
-All codex_exec, openai_api, and anthropic_api backends produce the same
+openai_api and anthropic_api backends produce the same
 ``{decision, summary, details}`` JSON payload.  This module provides:
 
 - ``get_output_schema`` — per-role JSON schema (decision enum varies by role)
 - ``parse_structured_outcome`` — validates the payload, returns a RunnerResult
+
+Note: the codex_exec backends (``*_backend.py``) do their own parsing and
+record a role-specific key in ``details`` (e.g. ``"pm_backend"``).  SDK
+backends routed through ``parse_structured_outcome`` record ``details["backend"]``
+instead.  Unifying these keys is tracked as a future cleanup.
 """
 
 from __future__ import annotations
@@ -87,8 +92,7 @@ def parse_structured_outcome(
     """Validate a ``{decision, summary, details}`` payload and return a RunnerResult.
 
     Returns COMPLETED on success, FAILED with a descriptive summary on any
-    validation error.  Used identically by codex_exec, openai_api, and
-    anthropic_api backends.
+    validation error.  Used by openai_api and anthropic_api backends.
 
     Args:
         payload: Already-parsed JSON object from the backend response.

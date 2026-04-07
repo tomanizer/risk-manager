@@ -75,7 +75,7 @@ def dispatch_spec_execution(execution: RunnerExecution) -> RunnerResult:
             codex_bin=cfg.get_role_codex_bin("spec"),
             model=cfg.get_role_model("spec", backend),
         )
-    if backend is BackendType.OPENAI_API:
+    if backend == BackendType.OPENAI_API:
         from .openai_backend import dispatch_openai_reasoning
 
         return dispatch_openai_reasoning(
@@ -85,7 +85,7 @@ def dispatch_spec_execution(execution: RunnerExecution) -> RunnerResult:
             allowed_decisions=ALLOWED_SPEC_DECISIONS,
             output_schema=get_output_schema(RunnerName.SPEC),
         )
-    if backend is BackendType.ANTHROPIC_API:
+    if backend == BackendType.ANTHROPIC_API:
         from .anthropic_backend import dispatch_anthropic_reasoning
 
         return dispatch_anthropic_reasoning(

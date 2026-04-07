@@ -109,13 +109,6 @@ def test_dispatch_openai_reasoning_returns_failed_on_api_error() -> None:
     assert "OpenAI API error" in result.summary or "quota exceeded" in result.summary
 
 
-def test_dispatch_openai_reasoning_raises_import_error_when_not_installed() -> None:
-    # Setting sys.modules["openai"] = None causes `import openai` to raise ImportError.
-    with patch.dict(sys.modules, {"openai": None}):
-        with pytest.raises(ImportError, match="risk-manager\\[sdk\\]"):
-            openai_backend._ensure_openai()
-
-
 def test_dispatch_openai_reasoning_returns_failed_when_api_key_missing() -> None:
     mock_openai = _make_mock_openai()
 

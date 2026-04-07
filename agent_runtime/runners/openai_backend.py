@@ -1,9 +1,8 @@
 """OpenAI SDK backend for PM, Spec, and Review runners.
 
-Import is guarded: ``openai`` is only imported when ``openai_api`` backend is
-configured.  Install the optional dependency with::
-
-    pip install 'risk-manager[sdk]'
+``openai`` is a base project dependency and is always available.  The import
+is kept lazy (inside the dispatch function) so the module can be imported
+without side-effects even when the openai_api backend is not configured.
 """
 
 from __future__ import annotations
@@ -14,14 +13,6 @@ from pathlib import Path
 from ._outcome_parsing import parse_structured_outcome
 from .contracts import RunnerDispatchStatus, RunnerExecution, RunnerResult
 from .prompt_loader import load_system_prompt
-
-
-def _ensure_openai() -> None:
-    """Raise ImportError with an install hint if the openai package is absent."""
-    try:
-        import openai  # noqa: F401
-    except ImportError:
-        raise ImportError("The 'openai' package is required for the openai_api backend. Install it with: pip install 'risk-manager[sdk]'") from None
 
 
 def dispatch_openai_reasoning(
@@ -39,7 +30,6 @@ def dispatch_openai_reasoning(
     The result is validated by ``parse_structured_outcome()``.
     The API key is read from ``get_settings().openai.api_key_str``.
     """
-    _ensure_openai()
     import openai
 
     from agent_runtime.config import get_settings
