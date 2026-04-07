@@ -204,8 +204,7 @@
             {
               "type": "null"
             }
-          ],
-          "default": null
+          ]
         },
         "node_level": {
           "type": "string",
