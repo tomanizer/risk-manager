@@ -21,8 +21,8 @@ Shared infrastructure includes:
 
 - Shared infrastructure behavior must be specified in `docs/shared_infra/`.
 - Reusable implementation belongs in `src/shared/`.
-- Module-local wrappers are allowed only when they do not drift from shared
-  contracts.
+- Module-local wrappers are allowed only when they are thin pass-throughs that
+  do not extend or modify shared contracts.
 
 ## Ownership and change control
 

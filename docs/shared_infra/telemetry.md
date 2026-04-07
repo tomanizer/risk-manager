@@ -20,8 +20,9 @@ from `agent_runtime`.
 - structured records only for governed operation events
 - canonical status string in every event
 - duration measured via monotonic clock
-- explicit `None` for required conditional fields
-- status-to-level mapping defined in one place
+- explicit `None` for conditional fields (keys must be present in payload)
+- status-to-level mapping defined in one place within the shared telemetry
+  implementation (not reimplemented in domain modules)
 
 ### Trace context
 
