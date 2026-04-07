@@ -7,9 +7,12 @@ from pathlib import Path
 
 from agent_runtime.config.settings import get_settings
 
+from ._outcome_parsing import get_output_schema
 from .contracts import BackendType, RunnerDispatchStatus, RunnerExecution, RunnerName, RunnerResult
-from .pm_backend import dispatch_codex_pm_execution, dispatch_prepared_pm_execution
+from .pm_backend import ALLOWED_PM_DECISIONS, dispatch_codex_pm_execution, dispatch_prepared_pm_execution
 from .prompt_loader import load_system_prompt
+
+_REPO_ROOT = Path(__file__).parent.parent.parent
 
 
 @dataclass(frozen=True)
@@ -72,6 +75,26 @@ def dispatch_pm_execution(execution: RunnerExecution) -> RunnerResult:
             execution,
             codex_bin=cfg.get_role_codex_bin("pm"),
             model=cfg.get_role_model("pm", backend),
+        )
+    if backend == BackendType.OPENAI_API:
+        from .openai_backend import dispatch_openai_reasoning
+
+        return dispatch_openai_reasoning(
+            execution,
+            repo_root=_REPO_ROOT,
+            model=cfg.get_role_model("pm", backend),
+            allowed_decisions=ALLOWED_PM_DECISIONS,
+            output_schema=get_output_schema(RunnerName.PM),
+        )
+    if backend == BackendType.ANTHROPIC_API:
+        from .anthropic_backend import dispatch_anthropic_reasoning
+
+        return dispatch_anthropic_reasoning(
+            execution,
+            repo_root=_REPO_ROOT,
+            model=cfg.get_role_model("pm", backend),
+            allowed_decisions=ALLOWED_PM_DECISIONS,
+            output_schema=get_output_schema(RunnerName.PM),
         )
     return RunnerResult(
         runner_name=execution.runner_name,
