@@ -1,8 +1,9 @@
 """Shared structured operation logging for `src/` modules.
 
 Aligned with `docs/shared_infra/telemetry.md` and design patterns from
-`agent_runtime/telemetry` (stdlib + optional structlog, level gating, no
-`agent_runtime` imports).
+`agent_runtime/telemetry` (stdlib-first, level gating, no ``agent_runtime``
+imports). A configured structlog logger may be injected via
+:func:`configure_operation_logging`.
 
 Handlers attach to :data:`LOGGER_NAME` via ``logging.getLogger(...)``.
 """
@@ -17,11 +18,6 @@ from enum import Enum
 from typing import Any, cast
 
 from src.shared import ServiceError
-
-try:
-    import structlog
-except ImportError:
-    structlog = None
 
 DEFAULT_EVENT_NAME = "operation"
 
@@ -38,27 +34,38 @@ _WARNING_STATUSES = {"MISSING_HISTORY", "DEGRADED", "MISSING_SNAPSHOT", "MISSING
 class StdlibLoggerAdapter:
     """structlog-style surface backed by stdlib ``logging`` (handlers, levels, filters)."""
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, bound_context: dict[str, object] | None = None) -> None:
         self._log = logging.getLogger(name)
+        self._bound_context = dict(bound_context or {})
+
+    def _structured_event(self, **kw: object) -> dict[str, object]:
+        if not self._bound_context:
+            return dict(kw)
+        merged: dict[str, object] = dict(self._bound_context)
+        merged.update(kw)
+        return merged
 
     def debug(self, event: str, **kw: object) -> None:
-        self._log.debug(event, extra={"structured_event": kw})
+        self._log.debug(event, extra={"structured_event": self._structured_event(**kw)})
 
     def info(self, event: str, **kw: object) -> None:
-        self._log.info(event, extra={"structured_event": kw})
+        self._log.info(event, extra={"structured_event": self._structured_event(**kw)})
 
     def warning(self, event: str, **kw: object) -> None:
-        self._log.warning(event, extra={"structured_event": kw})
+        self._log.warning(event, extra={"structured_event": self._structured_event(**kw)})
 
     def error(self, event: str, **kw: object) -> None:
-        self._log.error(event, extra={"structured_event": kw})
+        self._log.error(event, extra={"structured_event": self._structured_event(**kw)})
 
     def exception(self, event: str, **kw: object) -> None:
-        self._log.exception(event, extra={"structured_event": kw})
+        self._log.exception(event, extra={"structured_event": self._structured_event(**kw)})
 
     def bind(self, **kw: object) -> "StdlibLoggerAdapter":
-        del kw
-        return self
+        if not kw:
+            return StdlibLoggerAdapter(self._log.name, dict(self._bound_context))
+        merged = dict(self._bound_context)
+        merged.update(kw)
+        return StdlibLoggerAdapter(self._log.name, merged)
 
     def isEnabledFor(self, level: int) -> bool:  # noqa: N802
         return self._log.isEnabledFor(level)
@@ -69,8 +76,7 @@ def _env_enabled() -> bool:
 
 
 def _build_default_logger() -> Any:
-    if structlog is not None:
-        return structlog.get_logger(LOGGER_NAME)
+    """Default to stdlib so levels and handlers on ``logging.getLogger(LOGGER_NAME)`` apply."""
     return StdlibLoggerAdapter(LOGGER_NAME)
 
 
@@ -150,6 +156,16 @@ def _normalize_context_value(value: Any) -> object:
     raise TypeError(f"unsupported log context type: {type(value)!r}")
 
 
+def _normalize_context_value_for_emit(value: Any) -> object:
+    """Normalize context for emission; never raises (unsupported values become a short placeholder)."""
+    try:
+        if isinstance(value, dict):
+            return {str(k): _normalize_context_value_for_emit(v) for k, v in value.items()}
+        return _normalize_context_value(value)
+    except TypeError:
+        return f"<unserializable:{type(value).__name__}>"
+
+
 def _status_level(status: str) -> int:
     if status in _INFO_STATUSES:
         return logging.INFO
@@ -194,7 +210,7 @@ def emit_operation(
         payload["trace_id"] = trace_id
         payload["span_id"] = span_id
     for key, val in context.items():
-        payload[key] = _normalize_context_value(val)
+        payload[key] = _normalize_context_value_for_emit(val)
 
     if status in _INFO_STATUSES:
         _log.info(EVENT_NAME, **payload)
