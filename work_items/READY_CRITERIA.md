@@ -89,7 +89,7 @@ The PM agent must not assign a work item for coding if any of the following are 
 - tests cannot be inferred safely
 - the item mixes architecture design and routine implementation in one step
 - the item widens scope beyond the approved PRD
-- the item changes shared infrastructure behavior without linking relevant `docs/shared_infra/` canon and dependency impact
+- the item changes shared infrastructure behavior without both linking the relevant `docs/shared_infra/` canon files and stating dependency or adoption impact explicitly
 
 ## Promotion rule
 

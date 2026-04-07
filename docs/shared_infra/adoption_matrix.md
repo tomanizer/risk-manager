@@ -14,7 +14,7 @@ Track shared-infrastructure usage, owners, and rollout state by layer.
 
 | Area | Shared infra item | Status | Notes |
 | --- | --- | --- | --- |
-| `src/modules/risk_analytics/` | telemetry contract | partial | Local `operation_logging.py` aligned to contract; candidate to colocate with the shared telemetry subpackage under `src/shared/` |
+| `src/modules/risk_analytics/` | telemetry contract | planned | No module-local telemetry helper exists under `src/` today; adoption pending tracked implementation work items against `docs/shared_infra/telemetry.md` |
 | `src/walkers/` | telemetry contract | planned | Enforce once first walker telemetry WI lands |
 | `src/orchestrators/` | telemetry contract | planned | Keep orchestration concerns separate from deterministic services |
 | `agent_runtime/` | telemetry framework | adopted | Canonical runtime implementation; design reference only for `src/` |
