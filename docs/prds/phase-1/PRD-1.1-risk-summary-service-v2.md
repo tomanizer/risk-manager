@@ -299,6 +299,20 @@ Fields:
 
 `RiskSummary`, `RiskDelta`, and `RiskChangeProfile` retain top-level `node_level`, `hierarchy_scope`, and `legal_entity_id` as denormalized convenience fields for exports, dashboards, and downstream consumers. These fields must always mirror `node_ref` exactly. `node_ref` remains the canonical source of truth.
 
+### Delta field semantics (normative)
+
+The following first-order delta rules are deterministic and apply consistently to all as-of-date object outputs where delta fields exist: `RiskDelta`, `RiskSummary`, and `RiskChangeProfile`.
+
+Definitions:
+
+- `delta_abs = current_value - previous_value` when `previous_value` is not null
+- `delta_pct = delta_abs / abs(previous_value)` when `previous_value` is not null and `previous_value != 0`
+
+Null and zero handling:
+
+- if `previous_value` is null, both `delta_abs` and `delta_pct` are null
+- if `previous_value == 0`, `delta_abs` is computed per the rule above and `delta_pct` is null
+
 ### Volatility regime
 
 Allowed values:
@@ -529,19 +543,22 @@ The default `lookback_window=60` applies here as 60 business days ending on `as_
 
 1. Current value is mandatory for a valid summary.
 2. Comparison is optional unless explicitly required.
-3. Percentage delta must be null when previous value is zero or null.
-4. Rolling statistics must use only available valid points.
-5. History must be ordered ascending by date.
-6. Hierarchy references must be exact and typed.
-7. This service does not aggregate from raw trades on demand in v1 unless already present in canonical store.
-8. No narrative text in outputs.
-9. First-order change and second-order volatility must be treated as distinct concepts.
-10. A small delta does not imply low risk if rolling volatility is elevated.
-11. Volatility metrics must be computed only from valid historical points within the pinned scope and snapshot context.
-12. Volatility interpretation must be deterministic and rule-based in v1, with no narrative or heuristic LLM logic.
-13. `volatility_regime` must be derived deterministically from the normalized `volatility_ratio` defined in the volatility policy.
-14. `volatility_change_flag` must be derived deterministically from the `dispersion_change_ratio` defined in the volatility policy.
-15. Exact volatility thresholds, window lengths, anchor semantics, inclusivity, and minimum-history gates are part of the governed volatility policy and must be versioned.
+3. For `RiskDelta`, `RiskSummary`, and `RiskChangeProfile`, `delta_abs` must equal `current_value - previous_value` whenever `previous_value` is not null.
+4. For `RiskDelta`, `RiskSummary`, and `RiskChangeProfile`, `delta_pct` must equal `delta_abs / abs(previous_value)` whenever `previous_value` is not null and `previous_value != 0`.
+5. For `RiskDelta`, `RiskSummary`, and `RiskChangeProfile`, if `previous_value` is null then both `delta_abs` and `delta_pct` must be null.
+6. For `RiskDelta`, `RiskSummary`, and `RiskChangeProfile`, if `previous_value == 0` then `delta_abs` remains computed and `delta_pct` must be null.
+7. Rolling statistics must use only available valid points.
+8. History must be ordered ascending by date.
+9. Hierarchy references must be exact and typed.
+10. This service does not aggregate from raw trades on demand in v1 unless already present in canonical store.
+11. No narrative text in outputs.
+12. First-order change and second-order volatility must be treated as distinct concepts.
+13. A small delta does not imply low risk if rolling volatility is elevated.
+14. Volatility metrics must be computed only from valid historical points within the pinned scope and snapshot context.
+15. Volatility interpretation must be deterministic and rule-based in v1, with no narrative or heuristic LLM logic.
+16. `volatility_regime` must be derived deterministically from the normalized `volatility_ratio` defined in the volatility policy.
+17. `volatility_change_flag` must be derived deterministically from the `dispersion_change_ratio` defined in the volatility policy.
+18. Exact volatility thresholds, window lengths, anchor semantics, inclusivity, and minimum-history gates are part of the governed volatility policy and must be versioned.
 
 ## Degraded and error cases
 
@@ -761,6 +778,7 @@ Result:
 ### Edge
 
 - prior value equals zero
+- prior value is negative (percentage denominator uses `abs(previous_value)`)
 - sparse history in requested range
 - degraded snapshot rows
 - explicit `lookback_window` overriding the default
