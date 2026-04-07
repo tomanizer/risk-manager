@@ -543,6 +543,24 @@ class IntegrityAssessmentVersionFieldsTest(unittest.TestCase):
         with self.assertRaises(ValidationError):
             IntegrityAssessment(**kwargs)
 
+    def test_rejects_whitespace_only_snapshot_id(self) -> None:
+        kwargs = make_base_assessment_kwargs()
+        kwargs["snapshot_id"] = "   "
+        with self.assertRaises(ValidationError):
+            IntegrityAssessment(**kwargs)
+
+    def test_rejects_whitespace_only_data_version(self) -> None:
+        kwargs = make_base_assessment_kwargs()
+        kwargs["data_version"] = "   "
+        with self.assertRaises(ValidationError):
+            IntegrityAssessment(**kwargs)
+
+    def test_rejects_whitespace_only_service_version(self) -> None:
+        kwargs = make_base_assessment_kwargs()
+        kwargs["service_version"] = "   "
+        with self.assertRaises(ValidationError):
+            IntegrityAssessment(**kwargs)
+
 
 class IntegrityAssessmentTrustStatesTest(unittest.TestCase):
     def test_trusted_all_pass(self) -> None:

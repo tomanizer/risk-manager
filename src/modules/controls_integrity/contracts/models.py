@@ -107,7 +107,7 @@ class NormalizedControlRecord(BaseModel):
 class ControlCheckResult(BaseModel):
     """Result for one required control check within an IntegrityAssessment."""
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
     check_type: CheckType
     check_state: CheckState
@@ -167,7 +167,7 @@ class IntegrityAssessment(BaseModel):
     - snapshot_id, data_version, service_version are required non-empty
     """
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
 
     node_ref: NodeRef
     node_level: NodeLevel | None = None
@@ -219,9 +219,10 @@ class IntegrityAssessment(BaseModel):
                     raise ValueError(f"{field_name} must mirror node_ref exactly")
                 values[field_name] = expected_value
 
-        # Non-empty version fields
+        # Non-empty version fields (strip before checking — str_strip_whitespace
+        # runs after the before-validator, so whitespace-only must be caught here)
         for field_name in ("snapshot_id", "data_version", "service_version"):
-            if field_name in values and not values[field_name]:
+            if field_name in values and not str(values[field_name]).strip():
                 raise ValueError(f"{field_name} must be non-empty")
 
         # Deduplicate and sort aggregate reason-code lists
