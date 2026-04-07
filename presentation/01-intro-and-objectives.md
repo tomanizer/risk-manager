@@ -57,7 +57,7 @@ From the target operating model (`docs/00_tom_overview.md`):
 ## Run the bank vs change the bank
 
 | | **Run the bank** | **Change the bank** |
-|--|--|--|
+| --- | --- | --- |
 | **Question** | What is risk? What moved? Is it unusual? | What do we ship next? Is the PR contract-faithful? |
 | **Mechanism** | `src/modules/`, walkers, orchestrators | PRDs, `work_items/`, agent relay, `agent_runtime/` |
 | **Authoritative outputs** | Typed summaries, history, statuses, replay | Merged code, tests, governed docs |
@@ -78,7 +78,7 @@ From the target operating model (`docs/00_tom_overview.md`):
 ## Repository map (high level)
 
 | Area | Role |
-|------|------|
+| --- | --- |
 | `docs/` | Architecture canon, PRDs, methodology, engineering standards |
 | `src/modules/` | Deterministic domain modules (e.g. `risk_analytics`, `controls_integrity`) |
 | `prompts/agents/` | Standing instructions + invocation templates per agent role |

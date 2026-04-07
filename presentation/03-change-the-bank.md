@@ -11,7 +11,7 @@ A single session that specs, codes, reviews, and “approves” its own work **c
 **Enforced separation:**
 
 | Role | Owns | Must not |
-|------|------|----------|
+| --- | --- | --- |
 | **PM / coordination** | Sequencing, readiness, briefs | Rewriting architecture ad hoc |
 | **PRD / spec author** | Typed contracts, degraded states, methodology precision | Pushing ambiguity to coding |
 | **Issue planner** | Small work items from large PRDs | — |
@@ -75,7 +75,7 @@ src/, tests/        Implementation and verification
 **Practical modes:**
 
 | Mode | What runs | Governance |
-|------|-----------|------------|
+| --- | --- | --- |
 | Manual | Human copies prompts into separate chats | Strongest separation |
 | Semi-auto | Runtime invokes runners; human gates merges | Default posture in docs |
 | Autonomous | Continuous dispatch with keys & hooks | Requires explicit ops discipline |

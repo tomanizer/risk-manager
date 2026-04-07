@@ -1,0 +1,16 @@
+{
+  // markdownlint-cli2 does not read .markdownlintignore; mirror those patterns here.
+  // See https://github.com/DavidAnson/markdownlint-cli2#markdownlint-cli2jsonc
+  "ignores": [
+    "README.md",
+    ".github/PULL_REQUEST_TEMPLATE.md",
+    "docs/**",
+    "prompts/**",
+    "work_items/**",
+    "src/README.md",
+    "src/**/README.md",
+    "tests/README.md",
+    "fixtures/README.md",
+    "presentation/deck.md"
+  ]
+}

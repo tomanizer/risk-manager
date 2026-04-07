@@ -21,14 +21,14 @@ Many processes need the **same** governed answers:
 
 ## In scope vs out of scope (PRD-1.1)
 
-**In scope**
+### In scope
 
 - Typed **node reference** + **hierarchy scope** (`TOP_OF_HOUSE` / `LEGAL_ENTITY`)  
 - Measures: `VAR_1D_99`, `VAR_10D_99`, `ES_97_5`  
 - Summary, delta, history, volatility-aware change signals, snapshot pinning, **business-day** rules via resolver  
 - **Fixture-driven** deterministic tests / replay  
 
-**Out of scope (examples)**
+### Out of scope (examples)
 
 - Risk-factor decomposition, contributor ranking, Greeks explain, PnL vectors  
 - Limit checks, FRTB PLA / HPL / RTPL  
@@ -59,7 +59,7 @@ Same logical desk name can mean **different** scope contexts — the service mus
 ## API surface ↔ implementation
 
 | PRD operation | Role |
-|---------------|------|
+| --- | --- |
 | `get_risk_summary` | Point-in-time summary + optional rolling context |
 | `get_risk_delta` | Absolute / % delta vs compare date |
 | `get_risk_history` | Time series over `[start_date, end_date]` |
@@ -94,7 +94,7 @@ This is the **intended wiring**: modules feed **multiple** interpreters and work
 ## Key documents (further reading)
 
 | Document | Content |
-|----------|---------|
+| --- | --- |
 | `docs/00_tom_overview.md` | TOM modules, walkers, orchestrators |
 | `docs/01_mission_and_design_principles.md` | Evidence-first, deterministic core |
 | `docs/05_walker_charters.md` | Walker missions and boundaries |
@@ -117,6 +117,6 @@ npx @marp-team/marp-cli@4 --no-stdin deck.md -o risk-manager-overview.pdf
 ---
 
 <!-- _class: lead -->
-# Thank you
+## Thank you
 
 **Risk Manager** — deterministic core, bounded walkers, governed change.

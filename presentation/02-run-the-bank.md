@@ -13,7 +13,7 @@ Each module owns **deterministic truth** for a bounded domain (`src/modules/READ
 **Implemented / in progress (examples):**
 
 | Module | Path | Notes |
-|--------|------|--------|
+| --- | --- | --- |
 | Risk Analytics | `src/modules/risk_analytics/` | Contracts, fixture-backed service, business-day resolution |
 | Controls Integrity | `src/modules/controls_integrity/` | Typed contracts for integrity domain |
 
@@ -26,7 +26,7 @@ Each module owns **deterministic truth** for a bounded domain (`src/modules/READ
 Walkers are **not** generic assistants. Each has a **charter**, **tool permissions**, and **must-not** rules (`docs/05_walker_charters.md`).
 
 | Walker | Role (summary) |
-|--------|------------------|
+| --- | --- |
 | **Quant** | Structural drivers: what moved, where in hierarchy, first- vs second-order |
 | **Time series** | Persistence, outliers, regimes, volatility context |
 | **Data controller** | Trust, completeness, false-signal conditions |

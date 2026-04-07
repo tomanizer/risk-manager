@@ -57,7 +57,7 @@ From the target operating model (`docs/00_tom_overview.md`):
 ## Run the bank vs change the bank
 
 | | **Run the bank** | **Change the bank** |
-|--|--|--|
+| --- | --- | --- |
 | **Question** | What is risk? What moved? Is it unusual? | What do we ship next? Is the PR contract-faithful? |
 | **Mechanism** | `src/modules/`, walkers, orchestrators | PRDs, `work_items/`, agent relay, `agent_runtime/` |
 | **Authoritative outputs** | Typed summaries, history, statuses, replay | Merged code, tests, governed docs |
@@ -78,7 +78,7 @@ From the target operating model (`docs/00_tom_overview.md`):
 ## Repository map (high level)
 
 | Area | Role |
-|------|------|
+| --- | --- |
 | `docs/` | Architecture canon, PRDs, methodology, engineering standards |
 | `src/modules/` | Deterministic domain modules (e.g. `risk_analytics`, `controls_integrity`) |
 | `prompts/agents/` | Standing instructions + invocation templates per agent role |
@@ -103,7 +103,7 @@ Each module owns **deterministic truth** for a bounded domain (`src/modules/READ
 **Implemented / in progress (examples):**
 
 | Module | Path | Notes |
-|--------|------|--------|
+| --- | --- | --- |
 | Risk Analytics | `src/modules/risk_analytics/` | Contracts, fixture-backed service, business-day resolution |
 | Controls Integrity | `src/modules/controls_integrity/` | Typed contracts for integrity domain |
 
@@ -116,7 +116,7 @@ Each module owns **deterministic truth** for a bounded domain (`src/modules/READ
 Walkers are **not** generic assistants. Each has a **charter**, **tool permissions**, and **must-not** rules (`docs/05_walker_charters.md`).
 
 | Walker | Role (summary) |
-|--------|------------------|
+| --- | --- |
 | **Quant** | Structural drivers: what moved, where in hierarchy, first- vs second-order |
 | **Time series** | Persistence, outliers, regimes, volatility context |
 | **Data controller** | Trust, completeness, false-signal conditions |
@@ -200,7 +200,7 @@ A single session that specs, codes, reviews, and “approves” its own work **c
 **Enforced separation:**
 
 | Role | Owns | Must not |
-|------|------|----------|
+| --- | --- | --- |
 | **PM / coordination** | Sequencing, readiness, briefs | Rewriting architecture ad hoc |
 | **PRD / spec author** | Typed contracts, degraded states, methodology precision | Pushing ambiguity to coding |
 | **Issue planner** | Small work items from large PRDs | — |
@@ -264,7 +264,7 @@ src/, tests/        Implementation and verification
 **Practical modes:**
 
 | Mode | What runs | Governance |
-|------|-----------|------------|
+| --- | --- | --- |
 | Manual | Human copies prompts into separate chats | Strongest separation |
 | Semi-auto | Runtime invokes runners; human gates merges | Default posture in docs |
 | Autonomous | Continuous dispatch with keys & hooks | Requires explicit ops discipline |
@@ -306,14 +306,14 @@ Many processes need the **same** governed answers:
 
 ## In scope vs out of scope (PRD-1.1)
 
-**In scope**
+### In scope
 
 - Typed **node reference** + **hierarchy scope** (`TOP_OF_HOUSE` / `LEGAL_ENTITY`)  
 - Measures: `VAR_1D_99`, `VAR_10D_99`, `ES_97_5`  
 - Summary, delta, history, volatility-aware change signals, snapshot pinning, **business-day** rules via resolver  
 - **Fixture-driven** deterministic tests / replay  
 
-**Out of scope (examples)**
+### Out of scope (examples)
 
 - Risk-factor decomposition, contributor ranking, Greeks explain, PnL vectors  
 - Limit checks, FRTB PLA / HPL / RTPL  
@@ -344,7 +344,7 @@ Same logical desk name can mean **different** scope contexts — the service mus
 ## API surface ↔ implementation
 
 | PRD operation | Role |
-|---------------|------|
+| --- | --- |
 | `get_risk_summary` | Point-in-time summary + optional rolling context |
 | `get_risk_delta` | Absolute / % delta vs compare date |
 | `get_risk_history` | Time series over `[start_date, end_date]` |
@@ -379,7 +379,7 @@ This is the **intended wiring**: modules feed **multiple** interpreters and work
 ## Key documents (further reading)
 
 | Document | Content |
-|----------|---------|
+| --- | --- |
 | `docs/00_tom_overview.md` | TOM modules, walkers, orchestrators |
 | `docs/01_mission_and_design_principles.md` | Evidence-first, deterministic core |
 | `docs/05_walker_charters.md` | Walker missions and boundaries |
@@ -402,6 +402,6 @@ npx @marp-team/marp-cli@4 --no-stdin deck.md -o risk-manager-overview.pdf
 ---
 
 <!-- _class: lead -->
-# Thank you
+## Thank you
 
 **Risk Manager** — deterministic core, bounded walkers, governed change.
