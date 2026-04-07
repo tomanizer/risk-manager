@@ -233,7 +233,7 @@ Allowed values:
 
 - `node_ref` must use the Phase 1 typed hierarchy address and scope semantics unchanged
 - `measure_type` must use the Phase 1 supported measure enum unchanged
-- all Phase 1 `MeasureType` values are in scope for this service unchanged; `measure_type` remains part of canonical request identity and must not introduce a new service-specific filtering model
+- all Phase 1 `MeasureType` values are in scope for this service unchanged; `measure_type` remains part of canonical request identity and must not introduce a new service-specific filtering model; a structurally invalid `measure_type` value is a typed request validation failure, not a named service error; `UNSUPPORTED_MEASURE` is not applicable to this service in v1
 - if `snapshot_id` is provided, it must be non-empty and must resolve to a snapshot whose `as_of_date` equals `as_of_date`
 - if `snapshot_id` is omitted, the service resolves the canonical snapshot for `as_of_date`
 - control records must be resolved in the same pinned snapshot context as the risk target
@@ -289,6 +289,8 @@ Fields:
 Validation rules:
 
 - `node_level`, `hierarchy_scope`, and `legal_entity_id` must mirror `node_ref` exactly, following the Phase 1 convention
+- if `hierarchy_scope = TOP_OF_HOUSE`, `legal_entity_id` must be null
+- if `hierarchy_scope = LEGAL_ENTITY`, `legal_entity_id` is required and must be non-empty
 - `blocking_reason_codes` and `cautionary_reason_codes` must be tuples of stable machine-readable reason codes, not prose paragraphs
 - `blocking_reason_codes` and `cautionary_reason_codes` must be deduplicated and lexicographically ordered ascending
 - `check_results` must contain exactly one result for each required check type
@@ -303,6 +305,7 @@ Validation rules:
 - `check_type` must be unique within one `IntegrityAssessment`
 - `reason_codes` may be empty only when `check_state = PASS`
 - `reason_codes` must be deduplicated and lexicographically ordered ascending
+- `evidence_refs` must be empty when `check_state = PASS`
 - `evidence_refs` must contain at least one reference when `check_state` is `WARN` or `FAIL`
 - `evidence_refs` may be empty when `check_state = UNKNOWN` only if `reason_codes` includes `CHECK_RESULT_MISSING`
 
@@ -312,7 +315,7 @@ Validation rules:
 
 - `evidence_type` and `evidence_id` must be non-empty
 - `snapshot_id` must be present when the evidence is snapshot-scoped
-- `source_as_of_date` must be on or before `as_of_date`
+- `source_as_of_date` must be on or before the `as_of_date` of the containing `IntegrityAssessment`
 
 ## Interfaces / APIs
 
@@ -374,6 +377,7 @@ These fields answer different questions and must not be collapsed together.
 | --- | --- | --- | --- |
 | all required checks pass | `TRUSTED` | `OK` | safe to interpret as operationally clean |
 | one or more required checks warn, evidence complete, no degraded row | `CAUTION` | `OK` | interpretable with caveats |
+| one or more required checks warn, but evidence is incomplete or a normalized row is degraded | `CAUTION` | `DEGRADED` | caveats apply and the returned object is itself degraded |
 | one or more required checks fail, evidence complete, no degraded row | `BLOCKED` | `OK` | blocked because controls indicate the signal is not trustworthy enough |
 | one or more required checks are unknown | `UNRESOLVED` | `DEGRADED` | returnable object, but trust cannot be resolved honestly |
 | one or more required checks fail and required evidence is missing | `BLOCKED` | `DEGRADED` | controls still block interpretation, and the returned object is itself degraded |
@@ -457,6 +461,7 @@ Result:
 - `trust_state = CAUTION`
 - `false_signal_risk = MEDIUM`
 - `assessment_status = OK` when evidence requirements are satisfied and no degraded row exists
+- `assessment_status = DEGRADED` when any required evidence reference is missing or any normalized row is degraded, even when no FAIL check is present
 
 ### Case: one or more failed required checks
 
@@ -466,6 +471,19 @@ Result:
 - `trust_state = BLOCKED`
 - `false_signal_risk = HIGH`
 - `assessment_status = OK` when evidence requirements are satisfied and no degraded row exists
+
+### Outcome precedence for `get_integrity_assessment`
+
+When multiple conditions apply to a single request, the following precedence governs what is returned:
+
+1. typed request validation failure
+2. typed service error `MISSING_SNAPSHOT`
+3. typed service error `MISSING_NODE`
+4. typed service error `MISSING_CONTROL_CONTEXT`
+5. in-object `DEGRADED`
+6. in-object `OK`
+
+A typed service error always takes precedence over a returned `IntegrityAssessment` object. Within returned objects, `DEGRADED` takes precedence over `OK`.
 
 ## Evidence, logging, and replay
 
@@ -570,7 +588,8 @@ Minimum structured logging should include:
 ### Edge
 
 - one required check missing, producing `UNRESOLVED` and `DEGRADED`
-- degraded normalized control row with a warning result
+- degraded normalized control row with a warning result, producing `CAUTION` and `DEGRADED`
+- warning check with missing evidence reference, producing `CAUTION` and `DEGRADED`
 - same logical node in different legal entities returns distinct assessments when control records differ
 
 ### Replay
