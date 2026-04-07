@@ -124,16 +124,10 @@ class ControlCheckResult(BaseModel):
         raw_codes = values.get("reason_codes")
         if raw_codes is not None:
             if isinstance(raw_codes, str):
-                raise ValueError(
-                    "reason_codes must be provided as a list or tuple of ReasonCode values, not a string"
-                )
+                raise ValueError("reason_codes must be provided as a list or tuple of ReasonCode values, not a string")  # fmt: skip
             if not isinstance(raw_codes, (list, tuple)):
-                raise ValueError(
-                    "reason_codes must be provided as a list or tuple of ReasonCode values"
-                )
-            parsed: tuple[ReasonCode, ...] = tuple(
-                ReasonCode(c) if not isinstance(c, ReasonCode) else c for c in raw_codes
-            )
+                raise ValueError("reason_codes must be provided as a list or tuple of ReasonCode values")  # fmt: skip
+            parsed: tuple[ReasonCode, ...] = tuple(ReasonCode(c) if not isinstance(c, ReasonCode) else c for c in raw_codes)  # fmt: skip
             values["reason_codes"] = _deduplicated_sorted_reason_codes(parsed)
         return values
 
@@ -152,14 +146,14 @@ class ControlCheckResult(BaseModel):
         # WARN or FAIL: must have at least one evidence_ref
         if state in (CheckState.WARN, CheckState.FAIL):
             if not self.evidence_refs:
-                raise ValueError(f"evidence_refs must contain at least one reference when check_state is {state}")
+                raise ValueError(f"evidence_refs must contain at least one reference when check_state is {state}")  # fmt: skip
             return self
 
         # UNKNOWN: evidence_refs may be empty only when CHECK_RESULT_MISSING is present
         if state == CheckState.UNKNOWN:
             if not self.evidence_refs:
                 if ReasonCode.CHECK_RESULT_MISSING not in self.reason_codes:
-                    raise ValueError("evidence_refs may be empty for UNKNOWN check_state only when reason_codes includes CHECK_RESULT_MISSING")
+                    raise ValueError("evidence_refs may be empty for UNKNOWN check_state only when reason_codes includes CHECK_RESULT_MISSING")  # fmt: skip
             return self
 
         return self
@@ -242,9 +236,7 @@ class IntegrityAssessment(BaseModel):
                 continue
             if not isinstance(raw, (list, tuple)):
                 raise ValueError(f"{field_name} must be provided as a list or tuple of reason codes")
-            parsed_codes: tuple[ReasonCode, ...] = tuple(
-                ReasonCode(c) if not isinstance(c, ReasonCode) else c for c in raw
-            )
+            parsed_codes: tuple[ReasonCode, ...] = tuple(ReasonCode(c) if not isinstance(c, ReasonCode) else c for c in raw)  # fmt: skip
             values[field_name] = _deduplicated_sorted_reason_codes(parsed_codes)
 
         return values
@@ -255,6 +247,6 @@ class IntegrityAssessment(BaseModel):
         expected = list(REQUIRED_CHECK_ORDER)
         actual = [r.check_type for r in self.check_results]
         if actual != expected:
-            raise ValueError(f"check_results must contain exactly one result for each required check in order {expected!r}; got {actual!r}")
+            raise ValueError(f"check_results must contain exactly one result for each required check in order {expected!r}; got {actual!r}")  # fmt: skip
 
         return self
