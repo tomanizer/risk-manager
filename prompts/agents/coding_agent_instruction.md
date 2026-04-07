@@ -122,23 +122,6 @@ In these cases, stop the implementation, describe the blocker precisely, and rou
 - unrelated refactors
 - mixing multiple work items into one change without explicit PM approval
 
-## Before opening the PR
-
-Once implementation is complete and all CI checks pass locally, run this step
-before opening the draft PR:
-
-```bash
-git mv work_items/ready/<WI-ID>-*.md work_items/done/
-git add work_items/
-git commit -m "chore: move <WI-ID> to done"
-```
-
-This keeps the work-item lifecycle in the same branch so the move lands on
-`main` atomically with the implementation — no separate housekeeping PR needed.
-
-If the file is not found under `work_items/ready/`, check `work_items/` root
-and subdirectories.  If it is already in `done/`, skip this step.
-
 ## Handoff output
 
 ### Step 1 — Work summary (print first, plain text, not copy-paste)

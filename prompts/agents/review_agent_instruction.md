@@ -43,16 +43,8 @@ Do tests cover positive, negative, edge, and degraded cases required by the PRD?
 
 ### 7. Work-item lifecycle
 
-Verify that the PR includes a commit that moves the work item file from
-`work_items/ready/` to `work_items/done/`.  Check with:
-
-```bash
-gh pr diff {pr_number} --name-only | grep "work_items/done/"
-```
-
-If the file is absent, add **"missing WI done/ move"** to required changes and
-route back to coding via CHANGES_REQUESTED.  Do not block on this if the file
-was already in `done/` before the PR was opened.
+Not a review check — the review agent performs this action itself after
+issuing PASS (see "GitHub actions required during review", step 4).
 
 ## Stop conditions
 
@@ -124,6 +116,24 @@ If any check is failing:
 
 Do not issue PASS if CI is failing on checks attributable to the PR changes.
 
+### 4. Move work item to done
+
+After posting APPROVE to GitHub, and only when the verdict is PASS, commit
+the work-item lifecycle move to the feature branch:
+
+```bash
+git fetch origin {branch}
+git checkout {branch}
+git mv work_items/ready/<WI-ID>-*.md work_items/done/
+git add work_items/
+git commit -m "chore: move <WI-ID> to done [review PASS]"
+git push origin {branch}
+```
+
+Skip this step if:
+- the verdict is CHANGES_REQUESTED or BLOCKED
+- the file is not found under `work_items/ready/` (already moved or never there)
+
 ## Required output format
 
 Return:
@@ -174,7 +184,7 @@ Required changes: none
 After merging:
   Tell deliver-wi: "PR #[PR number] for [WI-ID] is merged"
   The skill will route to a fresh PM Agent session to identify the next work item.
-  (The WI move from ready/ to done/ is included in the PR and lands on main at merge.)
+  (The WI was moved to done/ by this review session and is now on the feature branch.)
 ```
 
 ### If CHANGES_REQUESTED
