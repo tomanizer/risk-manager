@@ -7,6 +7,8 @@ Work from current `main`.
 Read in order:
 - AGENTS.md
 - prompts/agents/pm_agent_instruction.md
+- docs/shared_infra/index.md
+- <RELEVANT_SHARED_INFRA_DOCS>
 - <LINKED_PRD>
 - <TARGET_WORK_ITEM>
 - <LINKED_ADRS>

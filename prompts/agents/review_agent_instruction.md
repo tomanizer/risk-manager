@@ -12,8 +12,9 @@ The review agent is not a style enforcer first. Its main job is to detect wrong 
 2. assigned work item
 3. linked PRD
 4. linked ADRs
-5. relevant changed files
-6. relevant tests
+5. `docs/shared_infra/index.md` (when shared infra is touched)
+6. relevant changed files
+7. relevant tests
 
 ## Review priorities
 
@@ -28,6 +29,9 @@ Did any schema, field, enum, state, or status meaning drift?
 ### 3. Boundary discipline
 
 Did logic leak across module, walker, orchestrator, or UI boundaries?
+
+Did the PR duplicate shared-infrastructure behavior outside `src/shared/`
+without explicit approval?
 
 ### 4. Degraded and error behavior
 

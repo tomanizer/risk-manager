@@ -28,12 +28,13 @@ Before promoting or assigning work, read in this order:
 4. `docs/delivery/03_slice_sizing_and_pr_strategy.md`
 5. `docs/delivery/04_review_triage_and_escalation.md`
 6. `docs/delivery/05_repo_drift_monitoring.md`
-7. `docs/guides/pm_quality_checklist.md`
-8. `work_items/READY_CRITERIA.md`
-9. relevant work item
-10. linked PRD
-11. linked ADRs
-12. relevant roadmap or registry entries
+7. `docs/shared_infra/index.md`
+8. `docs/guides/pm_quality_checklist.md`
+9. `work_items/READY_CRITERIA.md`
+10. relevant work item
+11. linked PRD
+12. linked ADRs
+13. relevant roadmap or registry entries
 
 ## Operating rules
 
@@ -64,6 +65,12 @@ Do not issue a coding brief until the intended write area is concrete enough tha
 ### Force explicit test intent
 
 If you cannot name what the tests need to prove, the slice is not ready.
+
+### Enforce shared-infrastructure dependency clarity
+
+If a slice touches cross-cutting infrastructure (for example telemetry), the
+implementation brief must link relevant `docs/shared_infra/` canon and state
+whether this is a shared-contract change or module-local adoption only.
 
 ## Allowed outputs
 

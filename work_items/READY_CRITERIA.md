@@ -69,6 +69,14 @@ For any work item that affects deterministic services, walkers, orchestrators, o
 - no unresolved cross-cutting architecture question remains
 - any needed ADR already exists or is explicitly linked as a prerequisite
 
+### 9. Shared infrastructure dependency clarity
+
+For any work item that changes or depends on cross-cutting infrastructure:
+
+- shared-infra dependencies are declared explicitly (for example telemetry)
+- relevant `docs/shared_infra/` canon files are linked
+- adoption or migration impact is explicit (none is allowed if truly isolated)
+
 ## Automatic block conditions
 
 The PM agent must not assign a work item for coding if any of the following are true:
@@ -81,6 +89,7 @@ The PM agent must not assign a work item for coding if any of the following are 
 - tests cannot be inferred safely
 - the item mixes architecture design and routine implementation in one step
 - the item widens scope beyond the approved PRD
+- the item changes shared infrastructure behavior without linking relevant `docs/shared_infra/` canon and dependency impact
 
 ## Promotion rule
 

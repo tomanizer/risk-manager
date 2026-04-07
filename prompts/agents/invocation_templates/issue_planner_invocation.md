@@ -7,6 +7,8 @@ Work from current `main`.
 Read:
 - AGENTS.md
 - prompts/agents/issue_planner_instruction.md
+- docs/shared_infra/index.md
+- <RELEVANT_SHARED_INFRA_DOCS>
 - <LINKED_PRD>
 - <LINKED_ADRS>
 - <RELEVANT_WORK_ITEMS>

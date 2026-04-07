@@ -4,7 +4,7 @@ This repository uses AI agents for PRD authoring, issue decomposition, implement
 
 ## Architecture hierarchy
 1. `docs/` contains the governed architecture canon.
-2. `docs/delivery/`, `docs/methodology/`, and `docs/engineering/` contain governed operating, domain, and implementation canon for specialist agents.
+2. `docs/delivery/`, `docs/methodology/`, `docs/engineering/`, and `docs/shared_infra/` contain governed operating, domain, and implementation canon for specialist agents.
 3. `docs/prds/` and `docs/prd_exemplars/` define implementation contracts and exemplars.
 4. `prompts/` contains AI-mediated delivery instructions.
 5. `work_items/` holds bounded execution slices.
@@ -85,6 +85,7 @@ Repo-visible role-specific instructions live in:
 - `docs/delivery/` — PM and delivery canon
 - `docs/methodology/` — risk methodology canon
 - `docs/engineering/` — coding and engineering canon
+- `docs/shared_infra/` — shared infrastructure canon and adoption matrix
 - `docs/guides/repo_health_audit_checklist.md` — drift monitor checklist
 
 ## Agent skills
