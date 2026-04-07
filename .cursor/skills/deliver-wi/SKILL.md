@@ -79,7 +79,7 @@ Read these files for the chosen WI:
 
 | File | What to extract |
 |------|-----------------|
-| `work_items/ready/<WI-ID>-*.md` | scope, out-of-scope, target area, dependencies, acceptance criteria, stop conditions, suggested agent |
+| `work_items/ready/<WI-ID>-*.md` or `work_items/in_progress/<WI-ID>-*.md` | scope, out-of-scope, target area, dependencies, acceptance criteria, stop conditions, suggested agent |
 | The linked PRD path named in the WI | contract details |
 | `AGENTS.md` | role definitions and relay rules |
 
@@ -126,7 +126,7 @@ Use the PM implementation brief when one exists from a prior PM session. Fall ba
 
 ### Review placeholder mapping
 
-- `<ASSIGNED_WORK_ITEM>` → path to WI file
+- `<ASSIGNED_WORK_ITEM>` → path to WI file (prefer `work_items/in_progress/...` when present; otherwise `work_items/ready/...`)
 - `<LINKED_PRD>` → path to PRD
 - `<LINKED_ADRS>` → ADR paths
 - `<PR_NUMBER>` → ask user if unknown

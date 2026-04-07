@@ -122,6 +122,32 @@ In these cases, stop the implementation, describe the blocker precisely, and rou
 - unrelated refactors
 - mixing multiple work items into one change without explicit PM approval
 
+## Work-item lifecycle action required during coding
+
+Before opening or updating the implementation PR, the coding agent must ensure
+the assigned WI is in `work_items/in_progress/` on the feature branch.
+
+Required action:
+
+1. If the WI is still in `work_items/ready/`, move it to `work_items/in_progress/`.
+2. Commit the lifecycle move on the same feature branch used for the slice.
+3. Push the branch so the PR reflects in-progress state while coding/review is active.
+
+Suggested commands:
+
+```bash
+git fetch origin
+git switch main
+git pull --ff-only origin main
+git checkout {branch}
+git mv work_items/ready/{WI-ID}-*.md work_items/in_progress/
+git commit -m "chore: move {WI-ID} to in_progress [coding start]"
+git push origin {branch}
+```
+
+Skip the move only if the WI is already in `in_progress/` or has already been
+promoted to `done/` by governed lifecycle handling.
+
 ## Handoff output
 
 ### Step 1 — Work summary (print first, plain text, not copy-paste)

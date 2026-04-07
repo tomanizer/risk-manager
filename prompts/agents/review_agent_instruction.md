@@ -126,14 +126,18 @@ git fetch origin {branch}
 git switch main
 git pull --ff-only origin main
 git checkout {branch}
-git mv work_items/ready/{WI-ID}-*.md work_items/done/
+# Preferred path: coding should already have moved WI to in_progress/
+git mv work_items/in_progress/{WI-ID}-*.md work_items/done/
+# Fallback for older branches that still keep WI in ready/
+# git mv work_items/ready/{WI-ID}-*.md work_items/done/
 git commit -m "chore: move {WI-ID} to done [review PASS]"
 git push origin {branch}
 ```
 
 Skip this step if:
 - the verdict is CHANGES_REQUESTED or BLOCKED
-- the file is not found under `work_items/ready/` (already moved or never there)
+- the file is not found under `work_items/in_progress/` and not found under
+  `work_items/ready/` (already moved or never there)
 
 ## Required output format
 
