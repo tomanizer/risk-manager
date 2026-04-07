@@ -37,19 +37,7 @@ from src.modules.risk_analytics.fixtures import (
     build_fixture_index,
 )
 from src.shared import ServiceError
-from src.shared.telemetry import (
-    LOGGER_NAME,
-    StdlibLoggerAdapter,
-    configure_operation_logging,
-    reset_operation_logging_to_defaults,
-)
-
-
-@pytest.fixture(autouse=True)
-def _reset_risk_telemetry_globals() -> None:
-    reset_operation_logging_to_defaults()
-    yield
-    reset_operation_logging_to_defaults()
+from src.shared.telemetry import LOGGER_NAME, StdlibLoggerAdapter, configure_operation_logging
 
 
 # ---------------------------------------------------------------------------
@@ -893,6 +881,28 @@ def _assert_change_profile_log_shape(payload: dict[str, object]) -> None:
         "duration_ms",
     }
     assert isinstance(payload["duration_ms"], int)
+    assert payload["duration_ms"] >= 0
+    node_ref = payload["node_ref"]
+    assert isinstance(node_ref, dict)
+    assert set(node_ref.keys()) == {"node_id", "node_level", "hierarchy_scope", "legal_entity_id"}
+    for forbidden in (
+        "points",
+        "rows",
+        "snapshots",
+        "rolling_mean",
+        "rolling_std",
+        "rolling_min",
+        "rolling_max",
+        "volatility_regime",
+        "volatility_change_flag",
+        "current_value",
+        "previous_value",
+        "delta_abs",
+        "delta_pct",
+        "trace_id",
+        "span_id",
+    ):
+        assert forbidden not in payload
 
 
 def test_change_profile_logging_ok_case(caplog: pytest.LogCaptureFixture) -> None:

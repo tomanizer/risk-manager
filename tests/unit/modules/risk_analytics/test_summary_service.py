@@ -26,19 +26,7 @@ from src.modules.risk_analytics.fixtures import (
     build_fixture_index,
 )
 from src.shared import ServiceError
-from src.shared.telemetry import (
-    LOGGER_NAME,
-    StdlibLoggerAdapter,
-    configure_operation_logging,
-    reset_operation_logging_to_defaults,
-)
-
-
-@pytest.fixture(autouse=True)
-def _reset_risk_telemetry_globals() -> None:
-    reset_operation_logging_to_defaults()
-    yield
-    reset_operation_logging_to_defaults()
+from src.shared.telemetry import LOGGER_NAME, StdlibLoggerAdapter, configure_operation_logging
 
 
 # ---------------------------------------------------------------------------
@@ -885,11 +873,19 @@ def _assert_summary_log_shape(payload: dict[str, object]) -> None:
     for forbidden in (
         "points",
         "rows",
+        "snapshots",
         "rolling_mean",
         "rolling_std",
+        "rolling_min",
+        "rolling_max",
         "volatility_regime",
+        "volatility_change_flag",
         "current_value",
+        "previous_value",
         "delta_abs",
+        "delta_pct",
+        "trace_id",
+        "span_id",
     ):
         assert forbidden not in payload
 

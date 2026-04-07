@@ -22,6 +22,7 @@ from .contracts import (
     RiskChangeProfile,
     RiskDelta,
     RiskHistoryPoint,
+
     RiskHistorySeries,
     RiskSummary,
     SummaryStatus,
@@ -232,7 +233,7 @@ def get_risk_summary(
 
     Returns a RiskSummary when a current scoped point exists. Returns a typed
     ServiceError for UNSUPPORTED_MEASURE, MISSING_SNAPSHOT, and MISSING_NODE
-    outcomes.     Raises ValueError for request validation failures.
+    outcomes. Raises ValueError for request validation failures.
     """
     start_time = _timer_start()
     if lookback_window != 60:
