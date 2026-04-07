@@ -7,6 +7,8 @@ Work from fresh current `main`.
 Read:
 - AGENTS.md
 - prompts/agents/coding_agent_instruction.md
+- docs/shared_infra/index.md
+- <RELEVANT_SHARED_INFRA_DOCS>
 - <LINKED_PRD>
 - <ASSIGNED_WORK_ITEM>
 - <LINKED_ADRS>

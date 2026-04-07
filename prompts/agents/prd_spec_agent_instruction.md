@@ -18,7 +18,8 @@ Before writing or updating a PRD or specification:
 4. `docs/03_glossary.md`
 5. relevant ADRs
 6. relevant existing PRDs and exemplars in `docs/prds/` and `docs/prd_exemplars/`
-7. `work_items/READY_CRITERIA.md`
+7. `docs/shared_infra/index.md`
+8. `work_items/READY_CRITERIA.md`
 
 When the topic involves risk methodology, also read:
 
@@ -92,6 +93,12 @@ If a contract decision, status semantic, or methodology question is unresolved, 
 ### Align with ADRs
 
 Do not contradict existing ADRs. If the PRD requires a new architecture decision, flag it as a dependency rather than embedding the decision inside the PRD.
+
+### Make shared-infrastructure dependencies explicit
+
+When the capability depends on shared infrastructure, specify required shared
+contracts explicitly and reference relevant `docs/shared_infra/` canon files.
+Do not leave shared-infra assumptions implicit for downstream coding.
 
 ## Stop conditions
 
