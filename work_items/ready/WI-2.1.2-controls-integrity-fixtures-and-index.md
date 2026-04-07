@@ -70,7 +70,7 @@ This provides the replayable control context required before service logic can b
 
 ## Residual Blocker / Escalation
 
-None if WI-2.1.1 resolves the `EvidenceRef` placement decision. If that decision is deferred, keep `EvidenceRef` module-local in this fixture slice.
+None. For this fixture slice, keep `EvidenceRef` module-local.
 
 ## Suggested Agent
 

@@ -87,7 +87,9 @@ This produces the single canonical trust answer that the Data Controller Walker 
 
 ## Residual Blocker / Escalation
 
-None if WI-2.1.1 kept or narrowly placed `EvidenceRef` and WI-2.1.2 delivered the normalized-control fixture contract unchanged.
+None. This WI proceeds with module-local `EvidenceRef` handling inside `src/modules/controls_integrity/service.py`, assuming WI-2.1.2 delivers the normalized-control fixture contract unchanged.
+
+Any later extraction of shared `EvidenceRef` handling is out of scope for this WI and must be proposed as a separate, explicitly gated follow-up.
 
 ## Suggested Agent
 
