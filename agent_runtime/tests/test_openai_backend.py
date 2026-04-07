@@ -8,8 +8,6 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 # Import the backend module once at module-level so it stays in sys.modules.
 # Individual tests patch sys.modules["openai"] to control what `import openai`
 # returns inside dispatch_openai_reasoning at call time.
