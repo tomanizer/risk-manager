@@ -22,7 +22,6 @@ from .contracts import (
     RiskChangeProfile,
     RiskDelta,
     RiskHistoryPoint,
-
     RiskHistorySeries,
     RiskSummary,
     SummaryStatus,
