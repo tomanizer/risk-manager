@@ -347,7 +347,7 @@ Interface rules:
 These fields answer different questions and must not be collapsed together.
 
 | Scenario | trust_state | assessment_status | Required interpretation |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | all required checks pass | `TRUSTED` | `OK` | safe to interpret as operationally clean |
 | one or more required checks warn, evidence complete, no degraded row | `CAUTION` | `OK` | interpretable with caveats |
 | one or more required checks fail, evidence complete, no degraded row | `BLOCKED` | `OK` | blocked because controls indicate the signal is not trustworthy enough |
@@ -590,7 +590,7 @@ Create a small synthetic control fixture pack aligned to the Phase 1 risk fixtur
 
 ### New capability work
 
-- new module package under `src/modules/controls_integrity/`
+- new `controls_integrity` module package within existing `src/modules/`
 - new contracts for trust-state, check-state, and integrity assessments
 - new normalized control fixture index and retrieval logic
 - new deterministic rule engine for trust aggregation
@@ -609,15 +609,15 @@ Recommended issue families:
 
 - `WI-2.1.1` contracts and enums
   - add typed schemas and enums for trust-state, check-state, evidence refs, and integrity assessments
-  - target area: `src/modules/controls_integrity/contracts/`, `src/shared/` only if PM explicitly approves shared evidence-object extraction
+  - target area: `src/modules/` for the new `controls_integrity/contracts` package, `src/shared/` only if PM explicitly approves shared evidence-object extraction
 
 - `WI-2.1.2` normalized control fixtures and fixture index
   - build replayable control fixture pack aligned to the Phase 1 snapshot and node identities
-  - target area: `src/modules/controls_integrity/fixtures/`, `fixtures/`, `tests/replay/`
+  - target area: `src/modules/` for the new `controls_integrity/fixtures` package, `fixtures/`, `tests/replay/`
 
 - `WI-2.1.3` deterministic service implementation
   - implement `get_integrity_assessment` and rule precedence exactly as specified here
-  - target area: `src/modules/controls_integrity/service.py`
+  - target area: `src/modules/` for the new `controls_integrity/service.py` implementation
 
 - `WI-2.1.4` degraded, negative, and replay validation
   - add unit and replay coverage for missing, unresolved, degraded, and scope-differentiated cases
