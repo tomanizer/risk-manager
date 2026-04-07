@@ -238,9 +238,14 @@ class IntegrityAssessment(BaseModel):
         # Deduplicate and sort aggregate reason-code lists
         for field_name in ("blocking_reason_codes", "cautionary_reason_codes"):
             raw = values.get(field_name)
-            if raw is not None:
-                parsed_codes: tuple[ReasonCode, ...] = tuple(ReasonCode(c) if not isinstance(c, ReasonCode) else c for c in raw)
-                values[field_name] = _deduplicated_sorted_reason_codes(parsed_codes)
+            if raw is None:
+                continue
+            if not isinstance(raw, (list, tuple)):
+                raise ValueError(f"{field_name} must be provided as a list or tuple of reason codes")
+            parsed_codes: tuple[ReasonCode, ...] = tuple(
+                ReasonCode(c) if not isinstance(c, ReasonCode) else c for c in raw
+            )
+            values[field_name] = _deduplicated_sorted_reason_codes(parsed_codes)
 
         return values
 
