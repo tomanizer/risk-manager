@@ -123,6 +123,8 @@ the work-item lifecycle move to the feature branch:
 
 ```bash
 git fetch origin {branch}
+git switch main
+git pull --ff-only origin main
 git checkout {branch}
 git mv work_items/ready/{WI-ID}-*.md work_items/done/
 git commit -m "chore: move {WI-ID} to done [review PASS]"
