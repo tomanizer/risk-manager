@@ -121,7 +121,7 @@ class _RiskContractBase(BaseModel):
                 raise ValueError("delta_pct must be None when previous_value is zero")
             return values
 
-        expected_delta_pct = delta_abs / previous_value
+        expected_delta_pct = delta_abs / abs(previous_value)
         delta_pct = values.get("delta_pct")
         if delta_pct is None:
             values["delta_pct"] = expected_delta_pct
@@ -129,7 +129,7 @@ class _RiskContractBase(BaseModel):
 
         delta_pct = _FLOAT_ADAPTER.validate_python(delta_pct)
         if not _float_matches(delta_pct, expected_delta_pct):
-            raise ValueError("delta_pct must equal delta_abs / previous_value")
+            raise ValueError("delta_pct must equal delta_abs / abs(previous_value)")
 
         return values
 

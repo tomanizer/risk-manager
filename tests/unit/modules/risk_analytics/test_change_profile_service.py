@@ -500,6 +500,14 @@ class ChangeProfileStatusModelTestCase(unittest.TestCase):
         reasons = " ".join(result.status_reasons)
         self.assertIn("REQUIRE_COMPLETE_MISSING_DATES", reasons)
 
+    def test_degraded_status_does_not_suppress_delta_when_previous_exists(self) -> None:
+        values = [100.0] * 20 + [110.0, 114.0]
+        result = _call_synth(values, degraded_indices=[21])
+        assert isinstance(result, RiskChangeProfile)
+        self.assertEqual(result.status, SummaryStatus.DEGRADED)
+        self.assertEqual(result.delta_abs, 4.0)
+        self.assertAlmostEqual(result.delta_pct, 4.0 / 110.0)
+
 
 # ---------------------------------------------------------------------------
 # Service error paths
@@ -707,8 +715,54 @@ class ChangeProfileContractTestCase(unittest.TestCase):
             if result.previous_value != 0:
                 self.assertAlmostEqual(
                     result.delta_pct,  # type: ignore[arg-type]
-                    expected_abs / result.previous_value,
+                    expected_abs / abs(result.previous_value),
                 )
+
+    def test_delta_pct_null_when_previous_value_is_zero(self) -> None:
+        values = [100.0] * 20 + [0.0, 16.0]
+        result = _call_synth(values)
+        assert isinstance(result, RiskChangeProfile)
+        self.assertEqual(result.previous_value, 0.0)
+        self.assertEqual(result.delta_abs, 16.0)
+        self.assertIsNone(result.delta_pct)
+
+    def test_delta_pct_uses_abs_denominator_for_negative_previous_value(self) -> None:
+        values = [100.0] * 20 + [-4.0, 2.0]
+        result = _call_synth(values)
+        assert isinstance(result, RiskChangeProfile)
+        self.assertEqual(result.previous_value, -4.0)
+        self.assertEqual(result.delta_abs, 6.0)
+        self.assertAlmostEqual(result.delta_pct, 6.0 / 4.0)
+
+    def test_contract_validation_accepts_abs_denominator_for_negative_previous(self) -> None:
+        node_ref = desk_toh("DESK_SYNTH_PROFILE")
+        obj = RiskChangeProfile(
+            node_ref=node_ref,
+            node_level=node_ref.node_level,
+            hierarchy_scope=node_ref.hierarchy_scope,
+            legal_entity_id=node_ref.legal_entity_id,
+            measure_type=MeasureType.VAR_1D_99,
+            as_of_date=date(2026, 2, 6),
+            compare_to_date=date(2026, 2, 5),
+            current_value=2.0,
+            previous_value=-4.0,
+            delta_abs=6.0,
+            delta_pct=1.5,
+            rolling_mean=1.0,
+            rolling_std=1.0,
+            rolling_min=0.0,
+            rolling_max=2.0,
+            volatility_regime=VolatilityRegime.NORMAL,
+            volatility_change_flag=VolatilityChangeFlag.STABLE,
+            history_points_used=2,
+            status=SummaryStatus.OK,
+            status_reasons=(),
+            snapshot_id="S5",
+            data_version="d1",
+            service_version="v1",
+            generated_at=datetime(2026, 2, 6, 18, 0, tzinfo=timezone.utc),
+        )
+        self.assertEqual(obj.delta_pct, 1.5)
 
     def test_rolling_std_null_for_single_valid_point(self) -> None:
         # 5-date fixture (minimum pack size), as_of = first date with only 1 window point.

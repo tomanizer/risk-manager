@@ -15,7 +15,13 @@ from src.modules.risk_analytics.contracts import (
     RiskSummary,
     SummaryStatus,
 )
-from src.modules.risk_analytics.fixtures import build_fixture_index
+from src.modules.risk_analytics.fixtures import (
+    FixtureIndex,
+    FixtureRow,
+    FixtureSnapshot,
+    RiskSummaryFixturePack,
+    build_fixture_index,
+)
 from src.shared import ServiceError
 
 
@@ -95,6 +101,57 @@ def _std(values: list[float]) -> float:
     assert n >= 2, "std requires at least 2 points"
     m = _mean(values)
     return math.sqrt(sum((v - m) ** 2 for v in values) / (n - 1))
+
+
+def _make_synthetic_summary_index(
+    *,
+    current_value: float,
+    previous_value: float | None,
+    current_degraded: bool = False,
+) -> tuple[FixtureIndex, date, date, NodeRef]:
+    d1 = date(2026, 2, 2)
+    d2 = date(2026, 2, 3)
+    d3 = date(2026, 2, 4)
+    d4 = date(2026, 2, 5)
+    d5 = date(2026, 2, 6)
+    node_ref = desk_toh("DESK_SYNTH_SUMMARY")
+
+    rows_d4 = ()
+    if previous_value is not None:
+        rows_d4 = (
+            FixtureRow(
+                node_ref=node_ref,
+                measure_type=MeasureType.VAR_1D_99,
+                value=previous_value,
+                status=SummaryStatus.OK,
+            ),
+        )
+
+    pack = RiskSummaryFixturePack(
+        service_version="v1-synth-summary-test",
+        data_version="d1-synth-summary-test",
+        calendar=(d1, d2, d3, d4, d5),
+        snapshots=(
+            FixtureSnapshot(snapshot_id="S1", as_of_date=d1, is_degraded=False, rows=()),
+            FixtureSnapshot(snapshot_id="S2", as_of_date=d2, is_degraded=False, rows=()),
+            FixtureSnapshot(snapshot_id="S3", as_of_date=d3, is_degraded=False, rows=()),
+            FixtureSnapshot(snapshot_id="S4", as_of_date=d4, is_degraded=False, rows=rows_d4),
+            FixtureSnapshot(
+                snapshot_id="S5",
+                as_of_date=d5,
+                is_degraded=current_degraded,
+                rows=(
+                    FixtureRow(
+                        node_ref=node_ref,
+                        measure_type=MeasureType.VAR_1D_99,
+                        value=current_value,
+                        status=SummaryStatus.OK,
+                    ),
+                ),
+            ),
+        ),
+    )
+    return FixtureIndex(pack), d5, d4, node_ref
 
 
 # ---------------------------------------------------------------------------
@@ -660,6 +717,68 @@ class SummaryServiceFirstOrderReuseTestCase(unittest.TestCase):
         self.assertEqual(result.status, SummaryStatus.DEGRADED)
         reasons = " ".join(result.status_reasons)
         self.assertIn("COMPARE_POINT_DEGRADED", reasons)
+
+    def test_negative_prior_uses_abs_denominator(self) -> None:
+        index, as_of_date, compare_to_date, node_ref = _make_synthetic_summary_index(
+            current_value=2.0,
+            previous_value=-4.0,
+        )
+        result = get_risk_summary(
+            node_ref=node_ref,
+            measure_type=MeasureType.VAR_1D_99,
+            as_of_date=as_of_date,
+            compare_to_date=compare_to_date,
+            fixture_index=index,
+        )
+        assert isinstance(result, RiskSummary)
+        self.assertEqual(result.delta_abs, 6.0)
+        self.assertAlmostEqual(result.delta_pct, 6.0 / 4.0)
+
+    def test_degraded_status_does_not_suppress_delta_when_previous_exists(self) -> None:
+        index, as_of_date, compare_to_date, node_ref = _make_synthetic_summary_index(
+            current_value=14.0,
+            previous_value=10.0,
+            current_degraded=True,
+        )
+        result = get_risk_summary(
+            node_ref=node_ref,
+            measure_type=MeasureType.VAR_1D_99,
+            as_of_date=as_of_date,
+            compare_to_date=compare_to_date,
+            fixture_index=index,
+        )
+        assert isinstance(result, RiskSummary)
+        self.assertEqual(result.status, SummaryStatus.DEGRADED)
+        self.assertEqual(result.delta_abs, 4.0)
+        self.assertAlmostEqual(result.delta_pct, 0.4)
+
+    def test_contract_validation_accepts_abs_denominator_for_negative_previous(self) -> None:
+        node_ref = desk_toh("DESK_SYNTH_SUMMARY")
+        obj = RiskSummary(
+            node_ref=node_ref,
+            node_level=node_ref.node_level,
+            hierarchy_scope=node_ref.hierarchy_scope,
+            legal_entity_id=node_ref.legal_entity_id,
+            measure_type=MeasureType.VAR_1D_99,
+            as_of_date=date(2026, 2, 6),
+            compare_to_date=date(2026, 2, 5),
+            current_value=2.0,
+            previous_value=-4.0,
+            delta_abs=6.0,
+            delta_pct=1.5,
+            rolling_mean=1.0,
+            rolling_std=1.0,
+            rolling_min=0.0,
+            rolling_max=2.0,
+            history_points_used=2,
+            status=SummaryStatus.OK,
+            status_reasons=(),
+            snapshot_id="S5",
+            data_version="d1",
+            service_version="v1",
+            generated_at=datetime(2026, 2, 6, 18, 0, tzinfo=timezone.utc),
+        )
+        self.assertEqual(obj.delta_pct, 1.5)
 
 
 class SummaryServiceHistoryPointsUsedTestCase(unittest.TestCase):
