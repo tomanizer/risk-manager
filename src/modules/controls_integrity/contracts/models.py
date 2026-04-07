@@ -123,7 +123,17 @@ class ControlCheckResult(BaseModel):
         values = dict(data)
         raw_codes = values.get("reason_codes")
         if raw_codes is not None:
-            parsed: tuple[ReasonCode, ...] = tuple(ReasonCode(c) if not isinstance(c, ReasonCode) else c for c in raw_codes)
+            if isinstance(raw_codes, str):
+                raise ValueError(
+                    "reason_codes must be provided as a list or tuple of ReasonCode values, not a string"
+                )
+            if not isinstance(raw_codes, (list, tuple)):
+                raise ValueError(
+                    "reason_codes must be provided as a list or tuple of ReasonCode values"
+                )
+            parsed: tuple[ReasonCode, ...] = tuple(
+                ReasonCode(c) if not isinstance(c, ReasonCode) else c for c in raw_codes
+            )
             values["reason_codes"] = _deduplicated_sorted_reason_codes(parsed)
         return values
 
