@@ -12,8 +12,11 @@ pattern established in test_summary_service.py.
 
 from __future__ import annotations
 
+import logging
 import unittest
 from datetime import date, datetime, timedelta, timezone
+
+import pytest
 
 from src.modules.risk_analytics import get_risk_change_profile
 from src.modules.risk_analytics.contracts import (
@@ -34,6 +37,7 @@ from src.modules.risk_analytics.fixtures import (
     build_fixture_index,
 )
 from src.shared import ServiceError
+from src.shared.telemetry import LOGGER_NAME, StdlibLoggerAdapter, configure_operation_logging
 
 
 # ---------------------------------------------------------------------------
@@ -854,6 +858,89 @@ class ChangeProfileValidationTestCase(unittest.TestCase):
                 compare_to_date=date(2026, 1, 7),
                 fixture_index=self.index,
             )
+
+
+def _change_profile_log_record(caplog: pytest.LogCaptureFixture) -> tuple[object, dict[str, object]]:
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    payload = getattr(record, "structured_event")
+    return record, payload
+
+
+def _assert_change_profile_log_shape(payload: dict[str, object]) -> None:
+    assert set(payload.keys()) == {
+        "operation",
+        "node_ref",
+        "measure_type",
+        "as_of_date",
+        "compare_to_date",
+        "lookback_window",
+        "snapshot_id",
+        "status",
+        "history_points_used",
+        "duration_ms",
+    }
+    assert isinstance(payload["duration_ms"], int)
+    assert payload["duration_ms"] >= 0
+    node_ref = payload["node_ref"]
+    assert isinstance(node_ref, dict)
+    assert set(node_ref.keys()) == {"node_id", "node_level", "hierarchy_scope", "legal_entity_id"}
+    for forbidden in (
+        "points",
+        "rows",
+        "snapshots",
+        "rolling_mean",
+        "rolling_std",
+        "rolling_min",
+        "rolling_max",
+        "volatility_regime",
+        "volatility_change_flag",
+        "current_value",
+        "previous_value",
+        "delta_abs",
+        "delta_pct",
+        "trace_id",
+        "span_id",
+    ):
+        assert forbidden not in payload
+
+
+def test_change_profile_logging_ok_case(caplog: pytest.LogCaptureFixture) -> None:
+    index = build_fixture_index()
+    configure_operation_logging(enabled=True, logger=StdlibLoggerAdapter(LOGGER_NAME))
+    caplog.set_level(logging.INFO, logger=LOGGER_NAME)
+
+    _ = get_risk_change_profile(
+        node_ref=desk_toh(),
+        measure_type=MeasureType.VAR_1D_99,
+        as_of_date=D_08,
+        compare_to_date=D_06,
+        fixture_index=index,
+    )
+
+    record, payload = _change_profile_log_record(caplog)
+    assert record.levelname == "INFO"
+    assert payload["status"] == "OK"
+    _assert_change_profile_log_shape(payload)
+
+
+def test_change_profile_logging_error_case(caplog: pytest.LogCaptureFixture) -> None:
+    index = build_fixture_index()
+    configure_operation_logging(enabled=True, logger=StdlibLoggerAdapter(LOGGER_NAME))
+    caplog.set_level(logging.INFO, logger=LOGGER_NAME)
+
+    _ = get_risk_change_profile(
+        node_ref=desk_toh(),
+        measure_type=MeasureType.VAR_10D_99,
+        as_of_date=D_08,
+        fixture_index=index,
+    )
+
+    record, payload = _change_profile_log_record(caplog)
+    assert record.levelname == "WARNING"
+    assert payload["status"] == "UNSUPPORTED_MEASURE"
+    assert payload["history_points_used"] is None
+    _assert_change_profile_log_shape(payload)
 
 
 if __name__ == "__main__":

@@ -707,7 +707,7 @@ Result:
 - typed outputs and replay artifacts remain the canonical evidence surfaces for this service
 - logs may mirror request, status, and replay context, but logs must not replace replay artifacts or typed evidence/replay metadata
 - minimum structured logging should include:
-  - request or correlation id
+  - request or correlation id (when a stable id exists at the service boundary; until then this element is deferred and must not be invented ad hoc in the module)
   - operation variant
   - `node_ref`
   - `measure_type`
@@ -718,6 +718,7 @@ Result:
   - returned `status`
   - `history_points_used` when relevant
   - duration
+- **Implementation (WI-1.1.11):** the four service operations emit one structured operation event at return through `src.shared.telemetry`, aligned with `docs/shared_infra/telemetry.md`. Status-to-log-level mapping and payload discipline (explicit `None`, no fixture leakage) are owned by shared telemetry helpers, not reimplemented inside `risk_analytics`. Code under `src/` must not import `agent_runtime` for logging. For this service slice, operation payloads use the PRD minimum field set only (`include_trace_context=False` on emission) so logs do not add OpenTelemetry trace keys as a parallel evidence surface.
 
 ## Acceptance criteria
 
