@@ -41,6 +41,19 @@ If the PR affects deterministic or governed outputs, are replay and evidence hoo
 
 Do tests cover positive, negative, edge, and degraded cases required by the PRD?
 
+### 7. Work-item lifecycle
+
+Verify that the PR includes a commit that moves the work item file from
+`work_items/ready/` to `work_items/done/`.  Check with:
+
+```bash
+gh pr diff {pr_number} --name-only | grep "work_items/done/"
+```
+
+If the file is absent, add **"missing WI done/ move"** to required changes and
+route back to coding via CHANGES_REQUESTED.  Do not block on this if the file
+was already in `done/` before the PR was opened.
+
 ## Stop conditions
 
 Stop and escalate rather than issuing a pass/fail when:
@@ -160,8 +173,8 @@ Required changes: none
 
 After merging:
   Tell deliver-wi: "PR #[PR number] for [WI-ID] is merged"
-  The skill will route to a fresh PM Agent session.
-  The PM agent will promote the WI from ready/ to done/ and identify the next work item.
+  The skill will route to a fresh PM Agent session to identify the next work item.
+  (The WI move from ready/ to done/ is included in the PR and lands on main at merge.)
 ```
 
 ### If CHANGES_REQUESTED
