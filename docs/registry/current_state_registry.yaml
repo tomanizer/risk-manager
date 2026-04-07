@@ -1,5 +1,5 @@
 version: 1
-last_updated: 2026-04-05
+last_updated: 2026-04-07
 
 components:
   modules:
@@ -23,6 +23,14 @@ components:
         - name: risk_summary_core_service
           path: null
           status: not-started
+    - id: MOD-CONTROLS-INTEGRITY
+      name: Controls Integrity
+      status: in-progress
+      contract_status: implemented
+      sub_components:
+        - name: contracts
+          path: src/modules/controls_integrity/contracts/
+          status: implemented
     - id: MOD-FRTB-PLA-CONTROLS
       name: FRTB / PLA Controls
       status: proposed
