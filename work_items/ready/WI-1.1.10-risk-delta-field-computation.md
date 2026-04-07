@@ -19,9 +19,9 @@ No schema widening is required or permitted. Once the PRD formula decision is cl
   - `delta_pct` returns `None` when `previous_value == 0`, `delta_abs` is still computed
 - after PRD confirmation/update, introduce a private helper `_compute_delta_fields` in `src/modules/risk_analytics/service.py` to encapsulate the approved rules
 - apply `_compute_delta_fields` at the three construction sites that currently hardcode `None`:
-  - `get_risk_summary` (lines 289–290)
-  - `get_risk_delta` (lines 389–390)
-  - `get_risk_change_profile` (lines 783–784)
+  - `get_risk_summary`, in the `RiskSummary` construction block where `delta_abs` and `delta_pct` are currently populated
+  - `get_risk_delta`, in the `RiskDelta` construction block where `delta_abs` and `delta_pct` are currently populated
+  - `get_risk_change_profile`, in the `RiskChangeProfile` construction block where `delta_abs` and `delta_pct` are currently populated
 - extend existing unit test modules to assert correct computed values and correct `None` values across the required case matrix once the PRD-backed formula is approved
 
 ## Out of scope
