@@ -147,7 +147,7 @@ The top-level `node_level`, `hierarchy_scope`, and `legal_entity_id` fields are 
 
 The contract for `delta_pct` is:
 
-- `delta_pct = delta_abs / previous_value` when `previous_value` is non-null and non-zero
+- `delta_pct = delta_abs / abs(previous_value)` when `previous_value` is non-null and non-zero
 - `delta_pct = null` when `previous_value` is null or zero
 
 #### `RiskSummary`
