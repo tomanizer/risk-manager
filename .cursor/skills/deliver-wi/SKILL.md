@@ -20,11 +20,23 @@ Before doing anything else, print this exact line so the user knows the skill is
 [deliver-wi] Skill active. Finding next work item and building agent prompt...
 ```
 
+## Mandatory freshness gate (before selecting any WI)
+
+Before Step 0/1 logic, verify branch freshness explicitly:
+
+1. `git fetch origin`
+2. `git switch main`
+3. `git pull --ff-only origin main`
+
+If any command fails, STOP and tell the user exactly what failed. Do not select a work item from stale state.
+
+Then perform WI discovery from this refreshed `main` checkout only.
+
 ## Step 0 — Handle a just-merged PR (short-circuit)
 
 If the user says something like "PR #X is merged", "PR for WI-X.Y.Z was merged", or "just merged PR #X":
 
-WI promotion is the PM agent's job — it owns backlog state. Do not run `git mv` or open commits yourself.
+Do not run `git mv` or open commits yourself. Route WI lifecycle handling through the PM handoff using the current repository instructions.
 
 Instead, fill `prompts/agents/invocation_templates/pm_invocation.md` and print one block:
 
@@ -40,13 +52,13 @@ Read in order:
 - AGENTS.md
 - prompts/agents/pm_agent_instruction.md
 - work_items/READY_CRITERIA.md
-- [path to the WI file that was just merged, still in ready/ until promoted]
+- [path to the WI file that was just merged (if still in ready/) or the done/ path if already promoted]
 
 Context:
-PR #[PR number] implementing [WI-ID] has been merged. The WI has not yet been promoted.
+PR #[PR number] implementing [WI-ID] has been merged. Confirm WI lifecycle state (`ready/` vs `done/`) on current main and perform any required lifecycle action before assessing the next item.
 
 Task:
-1. Promote [WI-ID]: git mv work_items/ready/[WI filename] work_items/done/, commit on a fresh branch, open a promotion PR.
+1. Reconcile WI lifecycle state for [WI-ID] according to current repo instructions (promote if required; otherwise confirm already promoted).
 2. Then assess the next ready work item and produce an implementation brief.
 ```
 
