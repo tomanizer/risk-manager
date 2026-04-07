@@ -111,7 +111,7 @@ Chapter files `01`–`04` are merged into one Marp file for export:
 ```bash
 cd presentation && ./build-deck.sh
 npx @marp-team/marp-cli@4 --no-stdin deck.md -o risk-manager-overview.pdf
-# or: ... -o risk-manager-overview.html
+# or HTML (often better for Mermaid diagrams): ... -o risk-manager-overview.html
 ```
 
 ---

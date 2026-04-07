@@ -59,7 +59,7 @@ src/, tests/        Implementation and verification
 ## Manual operation
 
 1. `git fetch` / fast-forward `main` (freshness rule).  
-2. Open **separate** tool sessions for PM → coding → review (`overnight_agent_runbook.md`).  
+2. Open **separate** tool sessions for PM → coding → review (`docs/guides/overnight_agent_runbook.md`).  
 3. Fill invocation templates from `prompts/agents/invocation_templates/`.  
 4. Wait for CI / Copilot / Gemini comments; **review agent** triages them.
 

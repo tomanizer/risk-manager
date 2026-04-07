@@ -54,3 +54,6 @@ artifacts/drift/synthesis.md
 !.env.example
 secrets/
 
+# Marp stitched deck (run presentation/build-deck.sh)
+presentation/deck.md
+

@@ -2,7 +2,7 @@
 
 **Definition:** software that runs in production (or replay) to answer risk questions with **deterministic**, **typed**, **replayable** results — plus **specialist walkers** that synthesize interpretation from those facts.
 
-This is separate from the **meta-process** that builds and governs the repo (next deck).
+This is separate from the **meta-process** that builds and governs the repo (later in this deck).
 
 ---
 
