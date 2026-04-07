@@ -42,11 +42,16 @@ from `agent_runtime`.
 
 ## Recommended implementation layout
 
-- `src/shared/telemetry/_compat.py`
-- `src/shared/telemetry/setup.py`
-- `src/shared/telemetry/logging.py`
-- `src/shared/telemetry/spans.py` (optional first)
-- `src/shared/telemetry/metrics.py` (optional first)
+Keep operation emission, optional OpenTelemetry hooks, and metrics adapters in
+a dedicated subpackage under `src/shared/`. An illustrative layout (filenames
+are guidance for implementers, not drift findings until files exist in-tree):
+
+```text
+src/shared/telemetry/
+  __init__.py
+  operation_log.py        # operation events; canonical status-to-level mapping
+  (further modules such as compat/setup/spans/metrics as the roadmap warrants)
+```
 
 Module-local helpers (for example in `src/modules/risk_analytics/`) may wrap
 shared functions but must not redefine status mapping or payload contracts.
@@ -59,4 +64,3 @@ When a PR touches telemetry:
 - shared contract adherence is explicit
 - operation-level tests cover required fields and forbidden-field leakage
 - level-gating and disable-gating behavior are tested
-

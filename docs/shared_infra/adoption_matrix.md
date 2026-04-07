@@ -13,8 +13,8 @@ Track shared-infrastructure usage, owners, and rollout state by layer.
 ## Matrix
 
 | Area | Shared infra item | Status | Notes |
-|---|---|---|---|
-| `src/modules/risk_analytics/` | telemetry contract | partial | Local `operation_logging.py` aligned to contract; candidate to move under `src/shared/telemetry/` |
+| --- | --- | --- | --- |
+| `src/modules/risk_analytics/` | telemetry contract | partial | Local `operation_logging.py` aligned to contract; candidate to colocate with the shared telemetry subpackage under `src/shared/` |
 | `src/walkers/` | telemetry contract | planned | Enforce once first walker telemetry WI lands |
 | `src/orchestrators/` | telemetry contract | planned | Keep orchestration concerns separate from deterministic services |
 | `agent_runtime/` | telemetry framework | adopted | Canonical runtime implementation; design reference only for `src/` |
@@ -23,4 +23,3 @@ Track shared-infrastructure usage, owners, and rollout state by layer.
 
 - PM validates matrix updates for cross-cutting infra WIs.
 - Review agent flags matrix drift when PR changes shared infra behavior without matrix updates.
-

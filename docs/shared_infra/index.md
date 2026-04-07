@@ -45,4 +45,3 @@ Shared infrastructure includes:
 
 - `docs/shared_infra/telemetry.md`
 - `docs/shared_infra/adoption_matrix.md`
-
