@@ -123,10 +123,7 @@ class ControlCheckResult(BaseModel):
         values = dict(data)
         raw_codes = values.get("reason_codes")
         if raw_codes is not None:
-            parsed: tuple[ReasonCode, ...] = tuple(
-                ReasonCode(c) if not isinstance(c, ReasonCode) else c
-                for c in raw_codes
-            )
+            parsed: tuple[ReasonCode, ...] = tuple(ReasonCode(c) if not isinstance(c, ReasonCode) else c for c in raw_codes)
             values["reason_codes"] = _deduplicated_sorted_reason_codes(parsed)
         return values
 
@@ -145,20 +142,14 @@ class ControlCheckResult(BaseModel):
         # WARN or FAIL: must have at least one evidence_ref
         if state in (CheckState.WARN, CheckState.FAIL):
             if not self.evidence_refs:
-                raise ValueError(
-                    f"evidence_refs must contain at least one reference when "
-                    f"check_state is {state}"
-                )
+                raise ValueError(f"evidence_refs must contain at least one reference when check_state is {state}")
             return self
 
         # UNKNOWN: evidence_refs may be empty only when CHECK_RESULT_MISSING is present
         if state == CheckState.UNKNOWN:
             if not self.evidence_refs:
                 if ReasonCode.CHECK_RESULT_MISSING not in self.reason_codes:
-                    raise ValueError(
-                        "evidence_refs may be empty for UNKNOWN check_state only when "
-                        "reason_codes includes CHECK_RESULT_MISSING"
-                    )
+                    raise ValueError("evidence_refs may be empty for UNKNOWN check_state only when reason_codes includes CHECK_RESULT_MISSING")
             return self
 
         return self
@@ -237,9 +228,7 @@ class IntegrityAssessment(BaseModel):
         for field_name in ("blocking_reason_codes", "cautionary_reason_codes"):
             raw = values.get(field_name)
             if raw is not None:
-                parsed_codes: tuple[ReasonCode, ...] = tuple(
-                    ReasonCode(c) if not isinstance(c, ReasonCode) else c for c in raw
-                )
+                parsed_codes: tuple[ReasonCode, ...] = tuple(ReasonCode(c) if not isinstance(c, ReasonCode) else c for c in raw)
                 values[field_name] = _deduplicated_sorted_reason_codes(parsed_codes)
 
         return values
@@ -250,9 +239,6 @@ class IntegrityAssessment(BaseModel):
         expected = list(REQUIRED_CHECK_ORDER)
         actual = [r.check_type for r in self.check_results]
         if actual != expected:
-            raise ValueError(
-                f"check_results must contain exactly one result for each required check "
-                f"in order {expected!r}; got {actual!r}"
-            )
+            raise ValueError(f"check_results must contain exactly one result for each required check in order {expected!r}; got {actual!r}")
 
         return self

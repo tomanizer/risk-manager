@@ -402,9 +402,7 @@ class IntegrityAssessmentMirrorFieldTest(unittest.TestCase):
         self.assertIsNone(assessment.legal_entity_id)
 
     def test_mirror_fields_populated_from_node_ref_legal_entity(self) -> None:
-        assessment = IntegrityAssessment(
-            **make_base_assessment_kwargs(node_ref=make_le_node_ref("LE_ALPHA"))
-        )
+        assessment = IntegrityAssessment(**make_base_assessment_kwargs(node_ref=make_le_node_ref("LE_ALPHA")))
         self.assertEqual(assessment.node_level, NodeLevel.DESK)
         self.assertEqual(assessment.hierarchy_scope, HierarchyScope.LEGAL_ENTITY)
         self.assertEqual(assessment.legal_entity_id, "LE_ALPHA")
@@ -615,9 +613,7 @@ class IntegrityAssessmentTrustStatesTest(unittest.TestCase):
 class IntegrityAssessmentLegalEntityScopeTest(unittest.TestCase):
     def test_le_scoped_assessment_carries_legal_entity_id(self) -> None:
         le_ref = make_le_node_ref("LE_BETA")
-        assessment = IntegrityAssessment(
-            **make_base_assessment_kwargs(node_ref=le_ref)
-        )
+        assessment = IntegrityAssessment(**make_base_assessment_kwargs(node_ref=le_ref))
         self.assertEqual(assessment.legal_entity_id, "LE_BETA")
         self.assertEqual(assessment.hierarchy_scope, HierarchyScope.LEGAL_ENTITY)
 
