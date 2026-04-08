@@ -29,6 +29,9 @@ Review against:
 6. test sufficiency
 7. Gemini and Copilot review comments if present
 
+Work-item lifecycle (PASS only):
+- If your verdict is **PASS** and you **APPROVE** the PR, you must move the linked work item from `work_items/in_progress/` to `work_items/done/` **on the PR branch**, commit, and **push to the PR** so the merge includes that lifecycle update. Follow `prompts/agents/review_agent_instruction.md` → "GitHub actions required during review" → step 4. Skip if not PASS or if the WI is already in `done/`.
+
 Return:
 1. pass or fail recommendation
 2. material findings with evidence
