@@ -69,7 +69,7 @@ Before issuing a pass/fail, the review agent must complete all of these steps us
 
 Run a **babysit** pass on the linked PR so it stays merge-ready, and **repeat** comment and CI hygiene until the branch is in good shape or you have handed off to coding with explicit blockers.
 
-- **Invoke babysit:** Run the **babysit** skill from this repository: `.cursor/skills/babysit/SKILL.md` (Cursor: e.g. `/babysit <PR#>`; Claude Code: `/babysit`; elsewhere: instruct the agent to read that file). Those steps are the behavioral contract. If the file cannot be read, perform the equivalent yourself: `gh pr view`, `gh pr checks`, compare head to `main` for conflicts, fix **PR-attributable** CI failures with small scoped commits, push, and re-check CI until green or clearly blocked.
+- **Invoke babysit:** Run the **babysit** skill from this repository: `.cursor/skills/babysit/SKILL.md` (Cursor: e.g. `/babysit <PR#>`; Claude Code: `/babysit`; elsewhere: instruct the agent to read that file). Those steps are the behavioral contract. If the file cannot be read, perform the equivalent yourself: `gh pr view` (note `baseRefName` and `headRefName`), `gh pr checks`, compare the PR head to **`origin/<baseRefName>`** (not always `main`) for conflicts. Babysit may push **small merge-readiness** commits (branch sync, trivial conflict resolution, mechanical doc/config/markdown/drift hygiene). **Do not** use babysit during review to patch **implementation** under `src/` or to fix **product-level** lint, typecheck, or test failures attributable to the change under review — route those through **step 3** (CHANGES_REQUESTED) to coding, even if the diff looks small.
 - **Review threads and conversations:** Treat inline review threads as **ongoing**, not one-shot. After triaging Copilot, Gemini, Bugbot, and human comments, **reply** where it adds signal, then **resolve** threads that are fixed, not applicable, or fully answered. **Re-query** open threads after each push or substantive change (GraphQL `pullRequest { reviewThreads { nodes { id isResolved } } }` on the repo, or equivalent). Loop until there are no remaining actionable unresolved **inline** threads, or you have documented why a thread must stay open (escalation).
 - **Ordinary PR/issue comments** (timeline, not file-attached) do not use `resolveReviewThread`; reply there when triage requires it.
 
@@ -100,11 +100,10 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments
 gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews
 ```
 
-Prefer listing **unresolved** file review threads via GraphQL so you can resolve them by `threadId`:
+Prefer listing **unresolved** file review threads via GraphQL so you can resolve them by `threadId` (include `comments` so triage has bodies):
 
 ```bash
-# Example: query reviewThreads { nodes { id isResolved comments { nodes { author { login } body } } } }
-gh api graphql -f query='query { repository(owner: "OWNER", name: "REPO") { pullRequest(number: PR_NUMBER) { reviewThreads(first: 50) { nodes { id isResolved } } } } }'
+gh api graphql -f query='query { repository(owner: "OWNER", name: "REPO") { pullRequest(number: PR_NUMBER) { reviewThreads(first: 50) { nodes { id isResolved comments(first: 20) { nodes { author { login } body } } } } } } }'
 ```
 
 For each comment thread:
@@ -131,6 +130,8 @@ Check the current status of all CI checks on the PR:
 ```bash
 gh pr checks {pr_number}
 ```
+
+Step 0 babysit may already have cleared **mechanical** CI blockers (docs, workflow noise). This step still governs the **review verdict** for **implementation** quality.
 
 If any check is failing:
 

@@ -90,12 +90,12 @@ Repo-visible role-specific instructions live in:
 
 ## Agent skills
 
-Reusable agent skills are defined in `.cursor/skills/` and mirrored as Claude Code slash commands in `.claude/commands/`. Each skill produces a filled invocation prompt for the correct specialist agent — skills do not implement work themselves.
+Reusable agent skills are defined in `.cursor/skills/` and mirrored as Claude Code slash commands in `.claude/commands/`. Most skills produce a filled invocation prompt for the correct specialist agent and **do not implement work themselves**. The **`babysit`** skill is the exception: it may run `git` / `gh`, triage threads, and push **small merge-readiness** commits per `.cursor/skills/babysit/SKILL.md`.
 
 Available skills:
 
 | Skill | Invoke in Claude Code | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `deliver-wi` | `/deliver-wi` | Identify next work item and produce agent handoff prompt |
 | `phase-review` | `/phase-review` | Assess phase completion against acceptance criteria |
 | `repo-status` | `/repo-status` | Situational awareness dashboard |

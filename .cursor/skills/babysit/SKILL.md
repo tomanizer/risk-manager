@@ -2,7 +2,7 @@
 name: babysit
 description: >-
   Keep a GitHub PR merge-ready: triage review comments, resolve inline threads,
-  fix merge conflicts when intent is clear, and repair PR-attributable CI with
+  fix merge conflicts when intent is clear, and repair merge-blocking CI with
   small scoped commits until checks are green. Tool-agnostic — use in Cursor,
   Claude Code, Codex, Copilot, or any agent that can run git and gh.
 ---
@@ -22,11 +22,11 @@ Before doing anything else, print:
 - User says **babysit**, **babysit PR**, **`/babysit`**, or **`/babysit 154`** (PR number).
 - Review agent or operator wants the branch **green**, **threads resolved**, and **no trivial blockers** before merge.
 
-## Hard constraints
-
-- **Small, scoped fixes only** for CI or obvious comment-driven nits. No feature work or contract changes unless the user explicitly widens scope.
-- **Do not merge** the PR unless the user explicitly asks you to merge; babysit stops at merge-ready.
-- If a conflict or comment requires **product/architecture judgment**, stop and ask instead of guessing.
+> **HARD CONSTRAINT — small, scoped fixes only:** Only small, scoped fixes for CI, merge hygiene, or obvious comment-driven nits. No feature work or contract changes unless the user explicitly widens scope.
+>
+> **HARD CONSTRAINT — do not merge:** Do not merge the PR unless the user explicitly asks you to merge; babysit stops at merge-ready.
+>
+> **HARD CONSTRAINT — stop on judgment calls:** If a conflict or comment requires product or architecture judgment, stop and ask instead of guessing.
 
 ## Inputs
 
@@ -51,16 +51,26 @@ Report: mergeable, merge-state (e.g. blocked by rules), and which checks passed 
 
 If checks are **still running**, wait and re-run `gh pr checks` before declaring done.
 
-### 2. Branch freshness and conflicts
+### 2. Checkout PR head (before any local commits)
+
+```bash
+gh pr checkout <PR#>
+```
+
+Confirm your branch matches the PR head (`headRefName` from step 1). If you only read state and make **no commits**, checkout is optional; once you edit or commit, you must be on the PR head branch.
+
+### 3. Branch freshness and conflicts
 
 ```bash
 git fetch origin
 ```
 
-- If the PR branch is **behind** `origin/<base>` and CI or review expect an updated base, merge or rebase per repo convention (prefer **merge** from base into PR branch if unsure, to avoid force-push surprises).
+Use **`baseRefName`** from step 1 (often `main`, not always). Compare the PR head to **`origin/<baseRefName>`**.
+
+- If the PR branch is **behind** `origin/<baseRefName>` and CI or review expect an updated base, merge or rebase per repo convention (prefer **merge** from base into PR branch if unsure, to avoid force-push surprises).
 - If **merge conflicts** exist, open conflicted files. Resolve only when the correct resolution is obvious from both sides; otherwise stop with a short conflict summary for the human.
 
-### 3. CI failures attributable to this PR
+### 4. CI failures attributable to this PR
 
 For each **failing** required check:
 
@@ -69,11 +79,17 @@ For each **failing** required check:
 
 Repeat until required checks are green or you hit a hard blocker.
 
-### 4. Comments and review threads
+### 5. Comments and review threads
 
 **Inline review threads** (Copilot, Gemini, humans on files):
 
-1. List threads and resolution state (GraphQL example — set `owner`, `name`, `number`):
+1. List threads and resolution state. Runnable example (set `OWNER`, `REPO`, `PR_NUMBER`):
+
+```bash
+gh api graphql -f query='query { repository(owner: "OWNER", name: "REPO") { pullRequest(number: PR_NUMBER) { reviewThreads(first: 50) { nodes { id isResolved comments(first: 20) { nodes { author { login } body } } } } } } }'
+```
+
+Same query inline for reference:
 
 ```graphql
 query {
@@ -109,7 +125,7 @@ Batch several `resolveReviewThread` fields in one `mutation { a: ... b: ... }` w
 
 **Timeline / issue comments** (not file-attached): reply when triage needs a public answer; there is no `resolveReviewThread` for those.
 
-### 5. Closing summary
+### 6. Closing summary
 
 Return a short report:
 
