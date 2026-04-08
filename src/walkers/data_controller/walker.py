@@ -28,7 +28,7 @@ def assess_integrity(
         node_ref,
         measure_type,
         as_of_date,
-        snapshot_id,
+        snapshot_id=snapshot_id,
         risk_fixture_index=risk_fixture_index,
         controls_fixture_index=controls_fixture_index,
     )
