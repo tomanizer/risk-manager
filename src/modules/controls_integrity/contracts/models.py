@@ -7,6 +7,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
+from src.shared import EvidenceRef
+
 from src.modules.risk_analytics.contracts import (
     HierarchyScope,
     MeasureType,
@@ -53,29 +55,6 @@ def _deduplicated_sorted_reason_codes(
 ) -> tuple[ReasonCode, ...]:
     """Return deduplicated, lexicographically ascending reason codes."""
     return tuple(sorted(set(codes), key=lambda c: c.value))
-
-
-class EvidenceRef(BaseModel):
-    """Typed evidence reference.
-
-    Module-local in this slice (WI-2.1.1).  A repo-wide shared extraction
-    remains an open question governed by ADR-003 and must not happen here.
-    """
-
-    model_config = ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)
-
-    evidence_type: str
-    evidence_id: str
-    source_as_of_date: date | None = None
-    snapshot_id: str | None = None
-
-    @model_validator(mode="after")
-    def validate_fields(self) -> "EvidenceRef":
-        if not self.evidence_type:
-            raise ValueError("evidence_type must be non-empty")
-        if not self.evidence_id:
-            raise ValueError("evidence_id must be non-empty")
-        return self
 
 
 class NormalizedControlRecord(BaseModel):
