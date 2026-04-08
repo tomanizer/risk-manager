@@ -11,10 +11,8 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.modules.controls_integrity.contracts import (
-    CheckState,
     CheckType,
     NormalizedControlRecord,
-    ReasonCode,
     REQUIRED_CHECK_ORDER,
 )
 from src.modules.risk_analytics.contracts import MeasureType, NodeRef
@@ -39,41 +37,6 @@ def resolve_default_controls_integrity_fixture_path() -> Path:
     )
 
 
-def _sorted_reason_codes(codes: tuple[ReasonCode, ...]) -> tuple[ReasonCode, ...]:
-    return tuple(sorted(set(codes), key=lambda c: c.value))
-
-
-def _validate_normalized_row_semantics(record: NormalizedControlRecord) -> None:
-    """Fixture-only rules aligned with PRD-2.1 check semantics (upstream normalized row)."""
-    state = record.check_state
-    codes = record.reason_codes
-    refs = record.evidence_refs
-
-    if not _sorted_reason_codes(codes) == codes:
-        raise ValueError("reason_codes must be deduplicated and lexicographically ascending")
-
-    if state == CheckState.PASS:
-        if codes:
-            raise ValueError("PASS normalized rows must have empty reason_codes")
-        if refs:
-            raise ValueError("PASS normalized rows must have empty evidence_refs")
-        return
-
-    if state in (CheckState.WARN, CheckState.FAIL):
-        if not refs:
-            raise ValueError(
-                f"{state} normalized rows must include at least one evidence_ref in fixtures",
-            )
-        return
-
-    if state == CheckState.UNKNOWN:
-        if not refs and ReasonCode.CHECK_RESULT_MISSING not in codes:
-            raise ValueError(
-                "UNKNOWN rows without evidence_refs must include CHECK_RESULT_MISSING",
-            )
-        return
-
-
 class ControlsIntegrityFixtureSnapshot(BaseModel):
     """One pinned snapshot slice of normalized control rows."""
 
@@ -96,7 +59,6 @@ class ControlsIntegrityFixtureSnapshot(BaseModel):
                 raise ValueError(
                     f"row as_of_date {row.as_of_date!r} does not match snapshot date {self.as_of_date!r}",
                 )
-            _validate_normalized_row_semantics(row)
         return self
 
 

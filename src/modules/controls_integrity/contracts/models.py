@@ -14,6 +14,7 @@ from src.modules.risk_analytics.contracts import (
     NodeRef,
 )
 
+from ._check_state_semantics import _validate_check_state_reason_evidence
 from .enums import (
     AssessmentStatus,
     CheckState,
@@ -97,10 +98,28 @@ class NormalizedControlRecord(BaseModel):
     evidence_refs: tuple[EvidenceRef, ...] = Field(default_factory=tuple)
     is_row_degraded: bool = False
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_reason_codes(cls, data: Any) -> Any:
+        """Deduplicate and sort reason_codes before field assignment (mirror ControlCheckResult)."""
+        if not isinstance(data, dict):
+            return data
+        values = dict(data)
+        raw_codes = values.get("reason_codes")
+        if raw_codes is not None:
+            if isinstance(raw_codes, str):
+                raise ValueError("reason_codes must be provided as a list or tuple of ReasonCode values, not a string")  # fmt: skip
+            if not isinstance(raw_codes, (list, tuple)):
+                raise ValueError("reason_codes must be provided as a list or tuple of ReasonCode values")  # fmt: skip
+            parsed: tuple[ReasonCode, ...] = tuple(ReasonCode(c) if not isinstance(c, ReasonCode) else c for c in raw_codes)  # fmt: skip
+            values["reason_codes"] = _deduplicated_sorted_reason_codes(parsed)
+        return values
+
     @model_validator(mode="after")
     def validate_record(self) -> "NormalizedControlRecord":
         if not self.snapshot_id:
             raise ValueError("snapshot_id must be non-empty")
+        _validate_check_state_reason_evidence(self.check_state, self.reason_codes, self.evidence_refs)
         return self
 
 
@@ -133,34 +152,7 @@ class ControlCheckResult(BaseModel):
 
     @model_validator(mode="after")
     def validate_result(self) -> "ControlCheckResult":
-        state = self.check_state
-
-        # PASS: no reason codes, no evidence refs
-        if state == CheckState.PASS:
-            if self.reason_codes:
-                raise ValueError("reason_codes must be empty when check_state is PASS")
-            if self.evidence_refs:
-                raise ValueError("evidence_refs must be empty when check_state is PASS")
-            return self
-
-        # WARN or FAIL: must have at least one evidence_ref unless evidence is
-        # explicitly flagged missing (PRD-2.1 degraded object semantics).
-        if state in (CheckState.WARN, CheckState.FAIL):
-            if not self.evidence_refs and ReasonCode.EVIDENCE_REF_MISSING not in self.reason_codes:
-                raise ValueError(f"evidence_refs must contain at least one reference when check_state is {state}")  # fmt: skip
-            return self
-
-        # UNKNOWN: evidence_refs may be empty only when the absence is explained
-        # (missing check row, or evidence not usable for this assessment date).
-        if state == CheckState.UNKNOWN:
-            if not self.evidence_refs:
-                if ReasonCode.CHECK_RESULT_MISSING not in self.reason_codes and ReasonCode.EVIDENCE_REF_MISSING not in self.reason_codes:
-                    raise ValueError(
-                        "evidence_refs may be empty for UNKNOWN check_state only when reason_codes includes "
-                        "CHECK_RESULT_MISSING or EVIDENCE_REF_MISSING"
-                    )  # fmt: skip
-            return self
-
+        _validate_check_state_reason_evidence(self.check_state, self.reason_codes, self.evidence_refs)
         return self
 
 

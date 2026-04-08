@@ -209,7 +209,7 @@ class ControlsIntegrityFixtureLoaderTestCase(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             fixture_path = Path(temp_dir) / "bad_pass.json"
             fixture_path.write_text(json.dumps(payload), encoding="utf-8")
-            with self.assertRaisesRegex(ValidationError, "PASS normalized rows must have empty reason_codes"):
+            with self.assertRaisesRegex(ValidationError, "reason_codes must be empty when check_state is PASS"):
                 load_controls_integrity_fixture_pack(fixture_path)
 
     def test_fixture_pack_matches_standalone_json_schema(self) -> None:

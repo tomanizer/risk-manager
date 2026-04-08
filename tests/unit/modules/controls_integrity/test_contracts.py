@@ -256,6 +256,130 @@ class NormalizedControlRecordTest(unittest.TestCase):
         self.assertTrue(record.is_row_degraded)
 
 
+def _base_normalized_kwargs(**overrides: object) -> dict:
+    base = {
+        "node_ref": make_toh_node_ref(),
+        "measure_type": MeasureType.VAR_1D_99,
+        "as_of_date": AS_OF,
+        "snapshot_id": SNAP_ID,
+        "check_type": CheckType.FRESHNESS,
+        "check_state": CheckState.PASS,
+    }
+    base.update(overrides)
+    return base
+
+
+class NormalizedControlRecordCheckSemanticsTest(unittest.TestCase):
+    """PRD-2.1 check_state / reason_codes / evidence_refs parity with ControlCheckResult (WI-2.1.5)."""
+
+    def test_pass_rejects_reason_codes(self) -> None:
+        with self.assertRaises(ValidationError):
+            NormalizedControlRecord(
+                **_base_normalized_kwargs(
+                    check_state=CheckState.PASS,
+                    reason_codes=(ReasonCode.FRESHNESS_WARN,),
+                )
+            )
+
+    def test_pass_rejects_evidence_refs(self) -> None:
+        with self.assertRaises(ValidationError):
+            NormalizedControlRecord(
+                **_base_normalized_kwargs(
+                    check_state=CheckState.PASS,
+                    evidence_refs=(make_evidence_ref(),),
+                )
+            )
+
+    def test_warn_requires_evidence_or_evidence_ref_missing_code(self) -> None:
+        with self.assertRaises(ValidationError):
+            NormalizedControlRecord(
+                **_base_normalized_kwargs(
+                    check_state=CheckState.WARN,
+                    check_type=CheckType.COMPLETENESS,
+                    reason_codes=(ReasonCode.COMPLETENESS_WARN,),
+                    evidence_refs=(),
+                )
+            )
+
+    def test_warn_allows_empty_evidence_when_evidence_ref_missing(self) -> None:
+        record = NormalizedControlRecord(
+            **_base_normalized_kwargs(
+                check_state=CheckState.WARN,
+                reason_codes=(ReasonCode.FRESHNESS_WARN, ReasonCode.EVIDENCE_REF_MISSING),
+                evidence_refs=(),
+            )
+        )
+        self.assertEqual(record.evidence_refs, ())
+
+    def test_fail_allows_empty_evidence_when_evidence_ref_missing(self) -> None:
+        record = NormalizedControlRecord(
+            **_base_normalized_kwargs(
+                check_state=CheckState.FAIL,
+                reason_codes=(ReasonCode.FRESHNESS_FAIL, ReasonCode.EVIDENCE_REF_MISSING),
+                evidence_refs=(),
+            )
+        )
+        self.assertEqual(record.evidence_refs, ())
+
+    def test_unknown_empty_evidence_requires_explanatory_reason(self) -> None:
+        with self.assertRaises(ValidationError):
+            NormalizedControlRecord(
+                **_base_normalized_kwargs(
+                    check_state=CheckState.UNKNOWN,
+                    reason_codes=(ReasonCode.CONTROL_ROW_DEGRADED,),
+                    evidence_refs=(),
+                )
+            )
+
+    def test_unknown_with_check_result_missing_allows_empty_evidence(self) -> None:
+        record = NormalizedControlRecord(
+            **_base_normalized_kwargs(
+                check_state=CheckState.UNKNOWN,
+                reason_codes=(ReasonCode.CHECK_RESULT_MISSING,),
+                evidence_refs=(),
+            )
+        )
+        self.assertEqual(record.reason_codes, (ReasonCode.CHECK_RESULT_MISSING,))
+
+    def test_unknown_with_evidence_ref_missing_allows_empty_evidence(self) -> None:
+        record = NormalizedControlRecord(
+            **_base_normalized_kwargs(
+                check_state=CheckState.UNKNOWN,
+                reason_codes=(ReasonCode.EVIDENCE_REF_MISSING,),
+                evidence_refs=(),
+            )
+        )
+        self.assertEqual(record.evidence_refs, ())
+
+    def test_unknown_all_empty_reason_codes_and_empty_evidence_rejected(self) -> None:
+        with self.assertRaises(ValidationError):
+            NormalizedControlRecord(
+                **_base_normalized_kwargs(
+                    check_state=CheckState.UNKNOWN,
+                    reason_codes=(),
+                    evidence_refs=(),
+                )
+            )
+
+    def test_reason_codes_deduplicated_and_sorted(self) -> None:
+        record = NormalizedControlRecord(
+            **_base_normalized_kwargs(
+                check_state=CheckState.WARN,
+                check_type=CheckType.COMPLETENESS,
+                reason_codes=(
+                    ReasonCode.CONTROL_ROW_DEGRADED,
+                    ReasonCode.COMPLETENESS_WARN,
+                    ReasonCode.COMPLETENESS_WARN,
+                ),
+                evidence_refs=(make_evidence_ref(),),
+            )
+        )
+        self.assertEqual(
+            record.reason_codes,
+            (ReasonCode.COMPLETENESS_WARN, ReasonCode.CONTROL_ROW_DEGRADED),
+        )
+
+
 # ---------------------------------------------------------------------------
 # ControlCheckResult tests
 # ---------------------------------------------------------------------------
