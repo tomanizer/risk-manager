@@ -388,6 +388,15 @@ class ControlCheckResultUnknownTest(unittest.TestCase):
                 evidence_refs=(),
             )
 
+    def test_unknown_with_evidence_ref_missing_allows_empty_evidence(self) -> None:
+        result = ControlCheckResult(
+            check_type=CheckType.FRESHNESS,
+            check_state=CheckState.UNKNOWN,
+            reason_codes=(ReasonCode.EVIDENCE_REF_MISSING,),
+            evidence_refs=(),
+        )
+        self.assertEqual(result.evidence_refs, ())
+
     def test_unknown_with_evidence_refs_and_no_check_result_missing_is_valid(self) -> None:
         result = ControlCheckResult(
             check_type=CheckType.FRESHNESS,

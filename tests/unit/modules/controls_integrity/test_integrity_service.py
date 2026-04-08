@@ -323,6 +323,7 @@ def test_evidence_future_as_of_degrades(risk_index, controls_index, monkeypatch:
     assert out.assessment_status == AssessmentStatus.DEGRADED
     comp = next(c for c in out.check_results if c.check_type == CheckType.COMPLETENESS)
     assert ReasonCode.EVIDENCE_REF_MISSING in comp.reason_codes
+    assert not comp.evidence_refs
 
 
 def test_reason_codes_sorted_and_deduplicated(risk_index, controls_index, monkeypatch: pytest.MonkeyPatch) -> None:

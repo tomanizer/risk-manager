@@ -150,11 +150,15 @@ class ControlCheckResult(BaseModel):
                 raise ValueError(f"evidence_refs must contain at least one reference when check_state is {state}")  # fmt: skip
             return self
 
-        # UNKNOWN: evidence_refs may be empty only when CHECK_RESULT_MISSING is present
+        # UNKNOWN: evidence_refs may be empty only when the absence is explained
+        # (missing check row, or evidence not usable for this assessment date).
         if state == CheckState.UNKNOWN:
             if not self.evidence_refs:
-                if ReasonCode.CHECK_RESULT_MISSING not in self.reason_codes:
-                    raise ValueError("evidence_refs may be empty for UNKNOWN check_state only when reason_codes includes CHECK_RESULT_MISSING")  # fmt: skip
+                if ReasonCode.CHECK_RESULT_MISSING not in self.reason_codes and ReasonCode.EVIDENCE_REF_MISSING not in self.reason_codes:
+                    raise ValueError(
+                        "evidence_refs may be empty for UNKNOWN check_state only when reason_codes includes "
+                        "CHECK_RESULT_MISSING or EVIDENCE_REF_MISSING"
+                    )  # fmt: skip
             return self
 
         return self

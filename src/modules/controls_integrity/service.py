@@ -135,20 +135,22 @@ def _resolve_controls_snapshot(
     return snap
 
 
+def _evidence_refs_for_assessment_output(
+    evidence_refs: tuple[EvidenceRef, ...],
+    as_of_date: date,
+) -> tuple[EvidenceRef, ...]:
+    """Refs usable on this assessment: ``source_as_of_date`` null or on/before ``as_of_date`` (PRD-2.1)."""
+    return tuple(ref for ref in evidence_refs if ref.source_as_of_date is None or ref.source_as_of_date <= as_of_date)
+
+
 def _evidence_incomplete_for_assessment(
     check_state: CheckState,
     evidence_refs: tuple[EvidenceRef, ...],
-    as_of_date: date,
 ) -> bool:
-    """True when WARN/FAIL lacks usable evidence for the assessment object (PRD-2.1)."""
+    """True when WARN/FAIL has no evidence refs left after assessment-date filtering (PRD-2.1)."""
     if check_state not in (CheckState.WARN, CheckState.FAIL):
         return False
-    if not evidence_refs:
-        return True
-    for ref in evidence_refs:
-        if ref.source_as_of_date is not None and ref.source_as_of_date > as_of_date:
-            return True
-    return False
+    return not evidence_refs
 
 
 def _merge_reason_codes(
@@ -177,11 +179,10 @@ def _control_check_from_record(
     if record.is_row_degraded and ReasonCode.CONTROL_ROW_DEGRADED not in reasons:
         reasons.append(ReasonCode.CONTROL_ROW_DEGRADED)
 
-    evidence_incomplete = _evidence_incomplete_for_assessment(
-        record.check_state,
-        record.evidence_refs,
-        as_of_date,
-    )
+    filtered_evidence = _evidence_refs_for_assessment_output(record.evidence_refs, as_of_date)
+    if record.check_state == CheckState.UNKNOWN and not filtered_evidence and record.evidence_refs and ReasonCode.EVIDENCE_REF_MISSING not in reasons:
+        reasons.append(ReasonCode.EVIDENCE_REF_MISSING)
+    evidence_incomplete = _evidence_incomplete_for_assessment(record.check_state, filtered_evidence)
     if evidence_incomplete and ReasonCode.EVIDENCE_REF_MISSING not in reasons:
         reasons.append(ReasonCode.EVIDENCE_REF_MISSING)
 
@@ -191,7 +192,7 @@ def _control_check_from_record(
         check_type=check_type,
         check_state=record.check_state,
         reason_codes=merged,
-        evidence_refs=record.evidence_refs,
+        evidence_refs=filtered_evidence,
     )
 
 
