@@ -10,3 +10,6 @@ src/README.md
 src/**/README.md
 tests/README.md
 fixtures/README.md
+
+# Generated Marp bundle (sources are linted in 01–04)
+presentation/deck.md
