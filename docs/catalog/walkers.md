@@ -8,6 +8,7 @@ Interprets persistence, outliers, recurrence, and regime behavior.
 
 ## Data Controller Walker
 Interprets trust, readiness, and false-signal conditions.
+- v1 PRD: `docs/prds/phase-2/PRD-4.1-data-controller-walker-v1.md`
 
 ## Controls / Change Walker
 Interprets internal process, release, valuation, and change causality.
