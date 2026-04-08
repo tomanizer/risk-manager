@@ -2,7 +2,7 @@
 
 ## Linked PRD (deliverable)
 
-**Primary artifact (to be authored by this work item):** `docs/prds/phase-2/PRD-4.1-data-controller-walker-v1.md`
+**Primary artifact (to be authored by this work item):** PRD-4.1-data-controller-walker-v1.md under docs/prds/phase-2/ (path does not exist until this WI lands; avoid backtick path literals in work items so drift reference_integrity stays green).
 
 **Upstream contracts (read-only, must not change semantics):**
 
@@ -28,7 +28,7 @@ Lock **Data Controller Walker v1** to a **typed pass-through** of `get_integrity
 
 ## Scope
 
-- Add a new **implementation PRD** under `docs/prds/phase-2/` (filename per repo convention, e.g. `PRD-4.1-data-controller-walker-v1.md`) that:
+- Add a new **implementation PRD** under `docs/prds/phase-2/` (filename per repo convention, e.g. PRD-4.1-data-controller-walker-v1.md) that:
   - Defines walker v1 responsibility as **delegation only** to the public `controls_integrity` API (`get_integrity_assessment` and its documented contracts).
   - States that the walker’s governed output type(s) are **the same** typed union as the service surface: success is `IntegrityAssessment`; failure paths use the existing typed `ServiceError` envelope (no parallel “walker trust” model).
   - Explicitly **rejects** normative use of exemplar-only concepts: no `TrustAssessment` aggregate as canonical output, no required `supporting_findings` or `recommended_next_step` fields for v1 unless PRD-2.1 / module contracts already provide them (they do not for the service — do not invent).

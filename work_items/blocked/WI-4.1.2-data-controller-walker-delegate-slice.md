@@ -6,13 +6,13 @@
 
 ## Blocker
 
-- `docs/prds/phase-2/PRD-4.1-data-controller-walker-v1.md` (or the actual merged filename from WI-4.1.1) must be merged and treated as stable implementation contract.
+- The WI-4.1.1 deliverable PRD file under docs/prds/phase-2/ (expected name PRD-4.1-data-controller-walker-v1.md unless WI-4.1.1 chooses another filename) must be merged and treated as stable implementation contract.
 
 **Owner:** PRD / Spec Author completes WI-4.1.1 → human merge → PM moves this WI to `ready/`.
 
 ## Linked PRD
 
-- **WI-4.1.1 deliverable:** `docs/prds/phase-2/PRD-4.1-data-controller-walker-v1.md` (path finalized when WI-4.1.1 lands)
+- **WI-4.1.1 deliverable:** PRD-4.1-data-controller-walker-v1.md under docs/prds/phase-2/ (exact filename finalized when WI-4.1.1 lands)
 - PRD-2.1 (`docs/prds/phase-2/PRD-2.1-controls-production-integrity-assessment-service.md`) — service semantics unchanged
 
 ## Linked ADRs
@@ -27,11 +27,11 @@
 
 ## Purpose
 
-First **coding** slice for Data Controller Walker: a **thin** implementation under `src/walkers/data_controller/` that delegates **only** to the public `controls_integrity` service API (`get_integrity_assessment`), returning the same typed `IntegrityAssessment | ServiceError` union, with unit tests proving **parity** versus calling the service directly under identical fixture/index inputs.
+First **coding** slice for Data Controller Walker: a **thin** implementation in a new **data_controller** package under `src/walkers/` (package path is created by this WI; do not cite the full path in backticks until it exists) that delegates **only** to the public `controls_integrity` service API (`get_integrity_assessment`), returning the same typed `IntegrityAssessment | ServiceError` union, with unit tests proving **parity** versus calling the service directly under identical fixture/index inputs.
 
 ## Scope
 
-- Add `src/walkers/data_controller/` package (module layout consistent with repo patterns) exposing a single clear entry point (name per WI-4.1.1 PRD — e.g. a function or small façade) that:
+- Add the **data_controller** package under `src/walkers/` (module layout consistent with repo patterns) exposing a single clear entry point (name per WI-4.1.1 PRD — e.g. a function or small façade) that:
   - Calls **only** the public API `get_integrity_assessment` from `controls_integrity` (or package export path defined in PRD-4.1 v1).
   - Does **not** duplicate trust aggregation, check ordering, reason-code logic, or evidence validation (all remain in `src/modules/controls_integrity`).
   - Passes through fixture indices / parameters exactly as the service expects (no hidden defaults beyond what the service documents).
@@ -55,8 +55,8 @@ First **coding** slice for Data Controller Walker: a **thin** implementation und
 
 ## Target area
 
-- `src/walkers/data_controller/` (new)
-- `tests/unit/walkers/data_controller/` (or repo-standard test path for walkers)
+- New package **data_controller** under `src/walkers/`
+- Matching unit tests under tests/unit/walkers/ (e.g. a data_controller test package created alongside implementation; exact layout per repo convention)
 
 ## Acceptance criteria
 
@@ -86,7 +86,7 @@ Coding Agent (after unblock)
 1. **Linked contract** — WI-4.1.1 PRD exists on `main` and is linked at top of this file (update path if filename differs).
 2. **Scope clarity** — Pass-through + parity tests only.
 3. **Dependency clarity** — WI-4.1.1 merged; service and contracts stable.
-4. **Target location** — `src/walkers/data_controller/`, tests alongside walker unit tests.
+4. **Target location** — data_controller package under `src/walkers/`, tests under tests/unit/walkers/ per convention.
 5. **Acceptance clarity** — Parity and typed union criteria above.
 6. **Test clarity** — Unit tests, parity matrix explicit in PRD/WI.
 7. **Evidence / replay** — No change to replay artifacts unless PRD requires; walker adds no new snapshot semantics.
