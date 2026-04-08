@@ -1,6 +1,6 @@
 """Public exports for controls integrity contracts."""
 
-from src.shared.evidence import EvidenceRef
+from src.shared import EvidenceRef
 
 from .enums import (
     AssessmentStatus,

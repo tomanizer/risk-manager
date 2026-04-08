@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
-from src.shared.evidence import EvidenceRef
+from src.shared import EvidenceRef
 
 from src.modules.risk_analytics.contracts import (
     HierarchyScope,

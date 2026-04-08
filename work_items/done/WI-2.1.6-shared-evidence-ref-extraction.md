@@ -20,7 +20,7 @@ Close the documented cross-module gap: implement a **repo-wide shared** typed `E
 
 ## Scope
 
-- add a small shared module under `src/shared/` (e.g. `src/shared/evidence.py` or `src/shared/contracts/evidence.py`) defining `EvidenceRef` with the **same** fields and invariants as today’s module-local model:
+- add a small shared module at `src/shared/evidence.py` defining `EvidenceRef` with the **same** fields and invariants as today’s module-local model:
   - `evidence_type`, `evidence_id`, `source_as_of_date`, `snapshot_id`
   - non-empty `evidence_type` and `evidence_id` after strip
   - `ConfigDict(extra="forbid", frozen=True, str_strip_whitespace=True)` consistent with existing patterns
