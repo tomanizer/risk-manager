@@ -191,14 +191,14 @@ This PRD is implemented by a single work item:
 
 - **WI-4.1.2** — Data Controller Walker delegate slice: thin facade + parity tests
 
-No further decomposition is needed. WI-4.1.2 is currently in `work_items/blocked/` pending acceptance of this PRD on `main`.
+No further decomposition is needed. WI-4.1.2 is complete (`work_items/done/`).
 
-Sequencing:
+Sequencing (completed):
 
-1. This PRD (WI-4.1.1) merges first
-2. WI-4.1.2 is promoted from `blocked/` to `ready/`
-3. Coding agent implements WI-4.1.2
-4. Review agent reviews against this PRD and WI-4.1.2 acceptance criteria
+1. This PRD (WI-4.1.1) merged first
+2. WI-4.1.2 was promoted from `blocked/` to `ready/`
+3. Coding agent implemented WI-4.1.2 (PR #158)
+4. Review agent reviewed against this PRD and WI-4.1.2 acceptance criteria — PASS
 
 ## Open questions (v2+ only — none block v1)
 
