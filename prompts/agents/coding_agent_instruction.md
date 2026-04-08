@@ -183,7 +183,7 @@ Print a single copy-paste-ready block for the operator to paste into a fresh age
 
 ### If the PR is open and CI is passing
 
-Print one block in this shape:
+Print one block that matches `prompts/agents/invocation_templates/review_invocation.md` in full (same sections and order). Do not drop the **Work-item lifecycle** block. Example shape:
 
 ```text
 Paste this into a FRESH Review Agent session (new chat / new Codex session):
@@ -195,6 +195,8 @@ Work from current `main`, then checkout the PR head.
 Read:
 - AGENTS.md
 - prompts/agents/review_agent_instruction.md
+- docs/shared_infra/index.md
+- [relevant shared_infra docs for this slice, or omit line if none]
 - [path to work item file]
 - [path to linked PRD]
 - [ADR paths used in this slice]
@@ -214,6 +216,9 @@ Review against:
 5. replay and evidence behavior
 6. test sufficiency
 7. Gemini and Copilot review comments if present
+
+Work-item lifecycle (PASS only):
+- If your verdict is **PASS** and you **APPROVE** the PR, you must move the linked work item from `work_items/in_progress/` to `work_items/done/` **on the PR branch**, commit, and **push to the PR** so the merge includes that lifecycle update. Follow `prompts/agents/review_agent_instruction.md` → "GitHub actions required during review" → step 4. Skip if not PASS or if the WI is already in `done/`.
 
 Return:
 1. pass or fail recommendation
