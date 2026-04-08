@@ -143,9 +143,10 @@ class ControlCheckResult(BaseModel):
                 raise ValueError("evidence_refs must be empty when check_state is PASS")
             return self
 
-        # WARN or FAIL: must have at least one evidence_ref
+        # WARN or FAIL: must have at least one evidence_ref unless evidence is
+        # explicitly flagged missing (PRD-2.1 degraded object semantics).
         if state in (CheckState.WARN, CheckState.FAIL):
-            if not self.evidence_refs:
+            if not self.evidence_refs and ReasonCode.EVIDENCE_REF_MISSING not in self.reason_codes:
                 raise ValueError(f"evidence_refs must contain at least one reference when check_state is {state}")  # fmt: skip
             return self
 
