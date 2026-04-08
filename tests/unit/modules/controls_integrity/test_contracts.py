@@ -16,6 +16,7 @@ from datetime import date, datetime, timezone
 
 from pydantic import ValidationError
 
+from src.shared import EvidenceRef as SharedEvidenceRef
 from src.modules.controls_integrity.contracts import (
     AssessmentStatus,
     CheckState,
@@ -165,6 +166,9 @@ def make_base_assessment_kwargs(
 
 
 class EvidenceRefTest(unittest.TestCase):
+    def test_evidence_ref_is_shared_canonical_class(self) -> None:
+        self.assertIs(EvidenceRef, SharedEvidenceRef)
+
     def test_valid_evidence_ref_instantiates(self) -> None:
         ref = make_evidence_ref()
         self.assertEqual(ref.evidence_type, "CONTROL_RECORD")

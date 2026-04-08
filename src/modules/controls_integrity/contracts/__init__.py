@@ -1,5 +1,7 @@
 """Public exports for controls integrity contracts."""
 
+from src.shared.evidence import EvidenceRef
+
 from .enums import (
     AssessmentStatus,
     CheckState,
@@ -11,7 +13,6 @@ from .enums import (
 from .models import (
     REQUIRED_CHECK_ORDER,
     ControlCheckResult,
-    EvidenceRef,
     IntegrityAssessment,
     NormalizedControlRecord,
 )
