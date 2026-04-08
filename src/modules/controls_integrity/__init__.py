@@ -1,6 +1,7 @@
 """Controls and Production Integrity Assessment module.
 
-Deterministic trust assessment contracts (WI-2.1.1) and replayable fixtures (WI-2.1.2).
+Deterministic trust assessment contracts (WI-2.1.1), replayable fixtures (WI-2.1.2),
+and integrity assessment service (WI-2.1.3).
 """
 
 from .contracts import (
@@ -24,6 +25,7 @@ from .fixtures import (
     load_controls_integrity_fixture_pack,
     resolve_default_controls_integrity_fixture_path,
 )
+from .service import get_integrity_assessment
 
 __all__ = [
     "AssessmentStatus",
@@ -35,6 +37,7 @@ __all__ = [
     "ControlCheckResult",
     "EvidenceRef",
     "FalseSignalRisk",
+    "get_integrity_assessment",
     "IntegrityAssessment",
     "NormalizedControlRecord",
     "ReasonCode",

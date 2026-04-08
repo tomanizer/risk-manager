@@ -295,6 +295,15 @@ class ControlCheckResultWarnTest(unittest.TestCase):
                 evidence_refs=(),
             )
 
+    def test_warn_result_allows_empty_evidence_when_evidence_ref_missing(self) -> None:
+        result = ControlCheckResult(
+            check_type=CheckType.FRESHNESS,
+            check_state=CheckState.WARN,
+            reason_codes=(ReasonCode.FRESHNESS_WARN, ReasonCode.EVIDENCE_REF_MISSING),
+            evidence_refs=(),
+        )
+        self.assertEqual(result.evidence_refs, ())
+
     def test_warn_result_valid_with_evidence_refs(self) -> None:
         result = make_warn_result(
             CheckType.FRESHNESS,
@@ -330,6 +339,15 @@ class ControlCheckResultFailTest(unittest.TestCase):
                 reason_codes=(ReasonCode.FRESHNESS_FAIL,),
                 evidence_refs=(),
             )
+
+    def test_fail_result_allows_empty_evidence_when_evidence_ref_missing(self) -> None:
+        result = ControlCheckResult(
+            check_type=CheckType.FRESHNESS,
+            check_state=CheckState.FAIL,
+            reason_codes=(ReasonCode.FRESHNESS_FAIL, ReasonCode.EVIDENCE_REF_MISSING),
+            evidence_refs=(),
+        )
+        self.assertEqual(result.evidence_refs, ())
 
     def test_fail_result_valid_with_evidence_refs(self) -> None:
         result = make_fail_result(CheckType.FRESHNESS)
@@ -369,6 +387,15 @@ class ControlCheckResultUnknownTest(unittest.TestCase):
                 reason_codes=(ReasonCode.CONTROL_ROW_DEGRADED,),
                 evidence_refs=(),
             )
+
+    def test_unknown_with_evidence_ref_missing_allows_empty_evidence(self) -> None:
+        result = ControlCheckResult(
+            check_type=CheckType.FRESHNESS,
+            check_state=CheckState.UNKNOWN,
+            reason_codes=(ReasonCode.EVIDENCE_REF_MISSING,),
+            evidence_refs=(),
+        )
+        self.assertEqual(result.evidence_refs, ())
 
     def test_unknown_with_evidence_refs_and_no_check_result_missing_is_valid(self) -> None:
         result = ControlCheckResult(
