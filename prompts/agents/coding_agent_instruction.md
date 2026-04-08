@@ -183,7 +183,7 @@ Print a single copy-paste-ready block for the operator to paste into a fresh age
 
 ### If the PR is open and CI is passing
 
-Print one block that matches `prompts/agents/invocation_templates/review_invocation.md` in full (same sections and order), through **Return** item 6. Do not drop the **Work-item lifecycle** block. Example (fill `[bracketed values]`; structure must not be shortened):
+Print one block that matches `prompts/agents/invocation_templates/review_invocation.md` in full (same sections and order), through **Return** item 6. Do not drop the **Work-item lifecycle** block. The body (after the paste header below) must be a **verbatim** copy of the template from “You are the Review Agent…” through item 6 under **Return**; only substitute the `<…>` placeholders (and `PR #<PR_NUMBER>` / `branch: <BRANCH_NAME>`) with concrete values—do not paraphrase headings or bullet labels.
 
 ```text
 Paste this into a FRESH Review Agent session (new chat / new Codex session):
@@ -196,17 +196,17 @@ Read:
 - AGENTS.md
 - prompts/agents/review_agent_instruction.md
 - docs/shared_infra/index.md
-- [relevant shared_infra docs for this slice, or omit line if none]
-- [path to work item file]
-- [path to linked PRD]
-- [ADR paths used in this slice]
+- <RELEVANT_SHARED_INFRA_DOCS>
+- <ASSIGNED_WORK_ITEM>
+- <LINKED_PRD>
+- <LINKED_ADRS>
 
 Review target:
-- PR #[PR number]
-- branch: [branch name]
+- PR #<PR_NUMBER>
+- branch: <BRANCH_NAME>
 
 Context:
-[One sentence: what this PR implements and any concerns the review agent should know]
+<CONTEXT — what the PR implements, any known concerns>
 
 Review against:
 1. scope fidelity to the linked work item
@@ -229,7 +229,7 @@ Return:
 6. required changes before merge
 ```
 
-Replace every `[bracketed value]` with the actual value before printing.
+Replace every `<…>` placeholder (and the `PR #` / `branch:` tokens) with concrete values before printing. If no extra shared-infra doc applies beyond `docs/shared_infra/index.md`, replace `<RELEVANT_SHARED_INFRA_DOCS>` with the best-matching path or follow `review_agent_instruction.md`.
 
 ### If CI is failing
 

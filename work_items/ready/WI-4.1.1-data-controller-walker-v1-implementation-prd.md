@@ -1,12 +1,10 @@
 # WI-4.1.1
 
-## Linked PRD (deliverable)
+## Linked PRD
 
-**Primary artifact (to be authored by this work item):** PRD-4.1-data-controller-walker-v1.md under docs/prds/phase-2/ (path does not exist until this WI lands; avoid backtick path literals in work items so drift reference_integrity stays green).
+PRD-4.1-data-controller-walker-v1 (primary deliverable: author the implementation PRD under docs/prds/phase-2/; do not use backtick-wrapped paths to not-yet-created files — reference_integrity flags them).
 
-**Upstream contracts (read-only, must not change semantics):**
-
-- PRD-2.1 (`docs/prds/phase-2/PRD-2.1-controls-production-integrity-assessment-service.md`)
+Upstream service contract (read-only; must not change semantics): [`docs/prds/phase-2/PRD-2.1-controls-production-integrity-assessment-service.md`](docs/prds/phase-2/PRD-2.1-controls-production-integrity-assessment-service.md) (PRD-2.1).
 
 ## Linked ADRs
 
@@ -46,9 +44,12 @@ Lock **Data Controller Walker v1** to a **typed pass-through** of `get_integrity
 
 ## Dependencies
 
-- WI-2.1.3 (integrity assessment service) — merged
-- WI-2.1.6 (shared `EvidenceRef`; module re-export) — merged
-- PRD-2.1 stable on `main`
+Merged prerequisite work items:
+
+- WI-2.1.3-integrity-assessment-service
+- WI-2.1.6-shared-evidence-ref-extraction
+
+PRD-2.1 is stable on main (not a WI dependency for runtime gating).
 
 ## Target area
 

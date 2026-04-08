@@ -12,8 +12,9 @@
 
 ## Linked PRD
 
-- **WI-4.1.1 deliverable:** PRD-4.1-data-controller-walker-v1.md under docs/prds/phase-2/ (exact filename finalized when WI-4.1.1 lands)
-- PRD-2.1 (`docs/prds/phase-2/PRD-2.1-controls-production-integrity-assessment-service.md`) — service semantics unchanged
+docs/prds/phase-2/PRD-4.1-data-controller-walker-v1.md
+
+Planned implementation PRD path (file appears after WI-4.1.1-data-controller-walker-v1-implementation-prd completes; plain text only — no backticks on this path until the file exists). Service semantics: [PRD-2.1](docs/prds/phase-2/PRD-2.1-controls-production-integrity-assessment-service.md).
 
 ## Linked ADRs
 
@@ -48,10 +49,20 @@ First **coding** slice for Data Controller Walker: a **thin** implementation in 
 
 ## Dependencies
 
-- **WI-4.1.1** — implementation PRD merged (blocking)
-- WI-2.1.3 — merged
-- WI-2.1.6 — merged
-- PRD-2.1, ADR-002, ADR-003
+Blocking (not in done/ until WI-4.1.1 merges):
+
+- WI-4.1.1-data-controller-walker-v1-implementation-prd
+
+Merged prerequisites:
+
+- WI-2.1.3-integrity-assessment-service
+- WI-2.1.6-shared-evidence-ref-extraction
+
+Canon (not WI-gated by runtime):
+
+- PRD-2.1
+- ADR-002
+- ADR-003
 
 ## Target area
 
