@@ -65,6 +65,16 @@ In these cases, flag the review as incomplete, describe the blocker, and route i
 
 Before issuing a pass/fail, the review agent must complete all of these steps using the `gh` CLI and GitHub API:
 
+### 0. Babysit the PR (merge-readiness)
+
+Run a **babysit** pass on the linked PR so it stays merge-ready, and **repeat** comment and CI hygiene until the branch is in good shape or you have handed off to coding with explicit blockers.
+
+- **Invoke babysit:** Run the **babysit** skill from this repository: `.cursor/skills/babysit/SKILL.md` (Cursor: e.g. `/babysit <PR#>`; Claude Code: `/babysit`; elsewhere: instruct the agent to read that file). Those steps are the behavioral contract. If the file cannot be read, perform the equivalent yourself: `gh pr view`, `gh pr checks`, compare head to `main` for conflicts, fix **PR-attributable** CI failures with small scoped commits, push, and re-check CI until green or clearly blocked.
+- **Review threads and conversations:** Treat inline review threads as **ongoing**, not one-shot. After triaging Copilot, Gemini, Bugbot, and human comments, **reply** where it adds signal, then **resolve** threads that are fixed, not applicable, or fully answered. **Re-query** open threads after each push or substantive change (GraphQL `pullRequest { reviewThreads { nodes { id isResolved } } }` on the repo, or equivalent). Loop until there are no remaining actionable unresolved **inline** threads, or you have documented why a thread must stay open (escalation).
+- **Ordinary PR/issue comments** (timeline, not file-attached) do not use `resolveReviewThread`; reply there when triage requires it.
+
+Babysit is **not** a substitute for the substantive review below; it ensures the PR is not left red or noisy while the verdict is issued.
+
 ### 1. Post review findings to the PR
 
 Do not only print findings locally. Submit them to GitHub so they are recorded against the PR:
@@ -81,6 +91,8 @@ Use `APPROVE` for PASS, `REQUEST_CHANGES` for CHANGES_REQUESTED, `COMMENT` for p
 
 ### 2. Triage and respond to all existing bot and human review comments
 
+This step **implements** the comment half of step 0 in detail. Do it **early** (to catch pre-existing threads), **again** after babysit fixes and pushes, and **once more** before the final verdict so the PR does not accumulate stale open threads.
+
 Read all open review threads on the PR:
 
 ```bash
@@ -88,12 +100,19 @@ gh api repos/{owner}/{repo}/pulls/{pr_number}/comments
 gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews
 ```
 
+Prefer listing **unresolved** file review threads via GraphQL so you can resolve them by `threadId`:
+
+```bash
+# Example: query reviewThreads { nodes { id isResolved comments { nodes { author { login } body } } } }
+gh api graphql -f query='query { repository(owner: "OWNER", name: "REPO") { pullRequest(number: PR_NUMBER) { reviewThreads(first: 50) { nodes { id isResolved } } } } }'
+```
+
 For each comment thread:
 - **Valid** (agrees with your own finding or raises a real issue): reply confirming it and include it in your required changes list.
 - **Partial** (raises a real point but overstates or misidentifies scope): reply with a precise correction.
 - **Not applicable** (bot hallucination, style preference outside scope, or already fixed): reply explaining why and resolve the thread.
 
-Resolve threads you have triaged as not applicable or already addressed:
+Resolve threads you have triaged as not applicable or already addressed (run after each babysit iteration as needed):
 
 ```bash
 gh api graphql -f query='mutation {
@@ -102,6 +121,8 @@ gh api graphql -f query='mutation {
   }
 }'
 ```
+
+Batch multiple `resolveReviewThread` calls in one GraphQL document when several threads clear at once.
 
 ### 3. Check CI and handle failures
 
@@ -165,6 +186,8 @@ Verdict        : PASS | CHANGES_REQUESTED | BLOCKED
 PRD fidelity   : <pass / partial / fail — one-line note>
 Scope boundary : <pass / violation — one-line note>
 CI status      : all passing | <list of failing checks>
+Babysit        : <merge-ready / fixes pushed / blocked — one-line note>
+Review threads : <inline threads resolved or left open with reason>
 Bot comments   : <count resolved / count total>
 Human comments : <count resolved / count total>
 Key findings   : <bullet list — most important issues found or confirmed clean>

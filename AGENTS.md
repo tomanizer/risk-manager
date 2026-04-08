@@ -101,8 +101,9 @@ Available skills:
 | `repo-status` | `/repo-status` | Situational awareness dashboard |
 | `run-drift` | `/run-drift` | Trigger a drift monitor pass |
 | `new-prd` | `/new-prd` | Scaffold a new PRD |
+| `babysit` | `/babysit` | Keep a PR merge-ready (CI, threads, conflicts); see `.cursor/skills/babysit/SKILL.md` |
 
-In Cursor, invoke by name in chat. In Claude Code, use the `/skill-name` slash command. In other environments (Codex, Copilot), reference by name in your prompt.
+In Cursor, invoke by name in chat. In Claude Code, use the `/skill-name` slash command: `.claude/commands/<skill>.md` symlinks to `.cursor/skills/<skill>/SKILL.md`. GitHub-oriented discovery can use `.github/skills/<skill>/SKILL.md` (same symlink). In other environments (Codex, Copilot), point the agent at `.cursor/skills/<skill>/SKILL.md` or reference the skill by name in your prompt.
 
 ## Freshness and branching rule
 
