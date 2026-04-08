@@ -104,6 +104,7 @@ Type imports needed for the signature (`NodeRef`, `MeasureType`, `IntegrityAsses
 - `from src.modules.risk_analytics.contracts import NodeRef, MeasureType`
 - `from src.modules.risk_analytics.fixtures import FixtureIndex`
 - `from src.shared import ServiceError`
+- `from datetime import date`
 
 ### Output type
 
@@ -124,7 +125,7 @@ The walker must not introduce:
 The walker propagates all error semantics from the service unchanged:
 
 - `ServiceError` with status codes `MISSING_SNAPSHOT`, `MISSING_NODE`, `MISSING_CONTROL_CONTEXT` — returned as-is
-- `RequestValidationFailure` / `ValueError` raised by the service for invalid inputs — propagated unchanged (the walker does not catch and re-wrap these)
+- `ValueError` raised by the service for invalid inputs — propagated unchanged (the walker does not catch or re-wrap this)
 
 The walker adds no new error codes, no new error types, and no fallback behavior.
 
@@ -216,4 +217,4 @@ Sequencing:
 - Acceptance criteria are sufficient for WI-4.1.2 coding without guesswork
 - Replay and evidence expectations defer to service outputs per ADR-002 and ADR-003
 - No FRTB / PLA or new check types have leaked in
-- No backtick-wrapped references to paths that do not yet exist in work items
+- Backtick-wrapped repository paths either exist on `main` (minimal scaffolds are acceptable) or are explicitly called out as planned with a linked work item in the header, consistent with reference-integrity and registry-alignment checks
