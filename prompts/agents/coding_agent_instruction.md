@@ -183,7 +183,7 @@ Print a single copy-paste-ready block for the operator to paste into a fresh age
 
 ### If the PR is open and CI is passing
 
-Print one block in this shape:
+Print one block that matches `prompts/agents/invocation_templates/review_invocation.md` in full (same sections and order), through **Return** item 6. Do not drop the **Work-item lifecycle** block. The body (after the paste header below) must be a **verbatim** copy of the template from “You are the Review Agent…” through item 6 under **Return**; only substitute the `<…>` placeholders (and `PR #<PR_NUMBER>` / `branch: <BRANCH_NAME>`) with concrete values—do not paraphrase headings or bullet labels.
 
 ```text
 Paste this into a FRESH Review Agent session (new chat / new Codex session):
@@ -195,16 +195,18 @@ Work from current `main`, then checkout the PR head.
 Read:
 - AGENTS.md
 - prompts/agents/review_agent_instruction.md
-- [path to work item file]
-- [path to linked PRD]
-- [ADR paths used in this slice]
+- docs/shared_infra/index.md
+- <RELEVANT_SHARED_INFRA_DOCS>
+- <ASSIGNED_WORK_ITEM>
+- <LINKED_PRD>
+- <LINKED_ADRS>
 
 Review target:
-- PR #[PR number]
-- branch: [branch name]
+- PR #<PR_NUMBER>
+- branch: <BRANCH_NAME>
 
 Context:
-[One sentence: what this PR implements and any concerns the review agent should know]
+<CONTEXT — what the PR implements, any known concerns>
 
 Review against:
 1. scope fidelity to the linked work item
@@ -215,6 +217,9 @@ Review against:
 6. test sufficiency
 7. Gemini and Copilot review comments if present
 
+Work-item lifecycle (PASS only):
+- If your verdict is **PASS** and you **APPROVE** the PR, you must move the linked work item from `work_items/in_progress/` or `work_items/ready/` to `work_items/done/` **on the PR branch**, commit, and **push to the PR** so the merge includes that lifecycle update. Follow `prompts/agents/review_agent_instruction.md` → "GitHub actions required during review" → step 4. Skip if not PASS or if the WI is already in `done/`.
+
 Return:
 1. pass or fail recommendation
 2. material findings with evidence
@@ -224,7 +229,7 @@ Return:
 6. required changes before merge
 ```
 
-Replace every `[bracketed value]` with the actual value before printing.
+Replace every `<…>` placeholder (and the `PR #` / `branch:` tokens) with concrete values before printing. If no extra shared-infra doc applies beyond `docs/shared_infra/index.md`, replace `<RELEVANT_SHARED_INFRA_DOCS>` with the best-matching path or follow `review_agent_instruction.md`.
 
 ### If CI is failing
 
