@@ -1,1 +1,1 @@
-../../.cursor/skills/run-drift.md
+../../.cursor/skills/run-drift/SKILL.md

@@ -90,19 +90,20 @@ Repo-visible role-specific instructions live in:
 
 ## Agent skills
 
-Reusable agent skills are defined in `.cursor/skills/` and mirrored as Claude Code slash commands in `.claude/commands/`. Each skill produces a filled invocation prompt for the correct specialist agent — skills do not implement work themselves.
+Reusable agent skills are defined in `.cursor/skills/` and mirrored as Claude Code slash commands in `.claude/commands/`. Most skills produce a filled invocation prompt for the correct specialist agent and **do not implement work themselves**. The **`babysit`** skill is the exception: it may run `git` / `gh`, triage threads, and push **small merge-readiness** commits per `.cursor/skills/babysit/SKILL.md`.
 
 Available skills:
 
 | Skill | Invoke in Claude Code | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `deliver-wi` | `/deliver-wi` | Identify next work item and produce agent handoff prompt |
 | `phase-review` | `/phase-review` | Assess phase completion against acceptance criteria |
 | `repo-status` | `/repo-status` | Situational awareness dashboard |
 | `run-drift` | `/run-drift` | Trigger a drift monitor pass |
 | `new-prd` | `/new-prd` | Scaffold a new PRD |
+| `babysit` | `/babysit` | Keep a PR merge-ready (CI, threads, conflicts); see `.cursor/skills/babysit/SKILL.md` |
 
-In Cursor, invoke by name in chat. In Claude Code, use the `/skill-name` slash command. In other environments (Codex, Copilot), reference by name in your prompt.
+In Cursor, invoke by name in chat. In Claude Code, use the `/skill-name` slash command: `.claude/commands/<skill>.md` symlinks to `.cursor/skills/<skill>/SKILL.md`. GitHub-oriented discovery can use `.github/skills/<skill>/SKILL.md` (same symlink). In other environments (Codex, Copilot), point the agent at `.cursor/skills/<skill>/SKILL.md` or reference the skill by name in your prompt.
 
 ## Freshness and branching rule
 

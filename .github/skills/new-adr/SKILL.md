@@ -1,0 +1,1 @@
+../../../.cursor/skills/new-adr/SKILL.md

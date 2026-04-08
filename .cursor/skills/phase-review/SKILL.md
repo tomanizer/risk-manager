@@ -34,7 +34,7 @@ Collect the following files. Skip archived files (any path containing `/archive/
 
 | Artefact | Where to find it |
 |----------|-----------------|
-| Phase PRD | `docs/prds/phase-N/` — read all non-archived `.md` files in that directory |
+| Phase PRD | Under `docs/prds/`, open the phase directory for your target (e.g. `docs/prds/phase-2/` when reviewing phase 2) and read all non-archived `.md` files there |
 | Done WIs for this phase | `work_items/done/` — all files matching prefix `WI-N.` where N is the phase number |
 | Ready WIs for this phase | `work_items/ready/` — all files matching prefix `WI-N.` |
 | Public API surface | `src/modules/risk_analytics/__init__.py` (or the relevant module `__init__.py` identified in the PRD) |

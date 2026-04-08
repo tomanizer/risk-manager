@@ -1,1 +1,1 @@
-../../.cursor/skills/new-prd.md
+../../.cursor/skills/new-prd/SKILL.md
