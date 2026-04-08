@@ -1,5 +1,5 @@
 version: 1
-last_updated: 2026-04-07
+last_updated: 2026-04-08
 
 components:
   modules:
@@ -67,7 +67,7 @@ components:
       contract_status: draft
     - id: WALKER-DATA-CONTROLLER
       name: Data Controller Walker
-      status: proposed
+      status: in-progress
       contract_status: draft
     - id: WALKER-CONTROLS-CHANGE
       name: Controls / Change Walker
