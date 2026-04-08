@@ -93,7 +93,7 @@ query {
 }
 ```
 
-2. For each **unresolved** thread: **valid** → fix or track in required work; **not applicable / already fixed** → reply briefly, then **resolve**:
+1. For each **unresolved** thread: **valid** → fix or track in required work; **not applicable / already fixed** → reply briefly, then **resolve**:
 
 ```graphql
 mutation {
@@ -105,7 +105,7 @@ mutation {
 
 Batch several `resolveReviewThread` fields in one `mutation { a: ... b: ... }` when GitHub allows.
 
-3. **Re-query** threads after each push that might address feedback.
+1. **Re-query** threads after each push that might address feedback.
 
 **Timeline / issue comments** (not file-attached): reply when triage needs a public answer; there is no `resolveReviewThread` for those.
 
