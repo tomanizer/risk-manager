@@ -20,8 +20,11 @@ def _validate_check_state_reason_evidence(
 ) -> None:
     """Enforce check_state ↔ reason_codes ↔ evidence_refs invariants.
 
-    Matches ``ControlCheckResult.validate_result`` semantics (including
-    ``EVIDENCE_REF_MISSING`` for WARN/FAIL and UNKNOWN empty-evidence cases).
+    Matches ``ControlCheckResult.validate_result`` semantics: ``PASS`` has empty
+    ``reason_codes`` and ``evidence_refs``; ``WARN``/``FAIL`` require at least one
+    evidence ref unless ``EVIDENCE_REF_MISSING`` is present; ``UNKNOWN`` may use
+    empty evidence only when ``CHECK_RESULT_MISSING`` or ``EVIDENCE_REF_MISSING``
+    is present in ``reason_codes``.
     """
     state = check_state
 
@@ -44,3 +47,5 @@ def _validate_check_state_reason_evidence(
                     "evidence_refs may be empty for UNKNOWN check_state only when reason_codes includes CHECK_RESULT_MISSING or EVIDENCE_REF_MISSING"
                 )
         return
+
+    raise ValueError(f"Unsupported check_state for validation: {state!r}")

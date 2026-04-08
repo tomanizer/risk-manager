@@ -301,6 +301,17 @@ class NormalizedControlRecordCheckSemanticsTest(unittest.TestCase):
                 )
             )
 
+    def test_fail_requires_evidence_or_evidence_ref_missing_code(self) -> None:
+        with self.assertRaises(ValidationError):
+            NormalizedControlRecord(
+                **_base_normalized_kwargs(
+                    check_state=CheckState.FAIL,
+                    check_type=CheckType.LINEAGE,
+                    reason_codes=(ReasonCode.LINEAGE_FAIL,),
+                    evidence_refs=(),
+                )
+            )
+
     def test_warn_allows_empty_evidence_when_evidence_ref_missing(self) -> None:
         record = NormalizedControlRecord(
             **_base_normalized_kwargs(
