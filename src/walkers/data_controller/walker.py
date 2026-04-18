@@ -12,6 +12,7 @@ from src.modules.controls_integrity import (
 from src.modules.risk_analytics.contracts import MeasureType, NodeRef
 from src.modules.risk_analytics.fixtures import FixtureIndex
 from src.shared import ServiceError
+from src.shared.telemetry import emit_operation, node_ref_log_dict, timer_start
 
 
 def assess_integrity(
@@ -24,7 +25,8 @@ def assess_integrity(
     controls_fixture_index: ControlsIntegrityFixtureIndex | None = None,
 ) -> IntegrityAssessment | ServiceError:
     """Delegate to get_integrity_assessment; return its result unchanged."""
-    return get_integrity_assessment(
+    start_time = timer_start()
+    outcome = get_integrity_assessment(
         node_ref,
         measure_type,
         as_of_date,
@@ -32,3 +34,20 @@ def assess_integrity(
         risk_fixture_index=risk_fixture_index,
         controls_fixture_index=controls_fixture_index,
     )
+    status: str
+    if isinstance(outcome, ServiceError):
+        status = outcome.status_code
+    else:
+        status = outcome.assessment_status.value
+
+    emit_operation(
+        "assess_integrity",
+        status=status,
+        start_time=start_time,
+        include_trace_context=False,
+        node_ref=node_ref_log_dict(node_ref),
+        measure_type=measure_type,
+        as_of_date=as_of_date,
+        snapshot_id=snapshot_id,
+    )
+    return outcome
