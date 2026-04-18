@@ -90,4 +90,4 @@ Before PM / coding / review / drift work: **update `main`**. Each implementation
 
 ## Skills and operator helpers
 
-`.cursor/skills/` includes e.g. **deliver-wi**, **repo-status**, **run-drift**, **new-prd** — these **generate prompts** for the right role; they do not replace the relay.
+Canonical skill content now lives under `skills/`, with generated mirrors for Cursor, Claude Code, and GitHub/Copilot. The skill set includes e.g. **deliver-wi**, **repo-status**, **run-drift**, and **new-prd** — these **generate prompts** for the right role; they do not replace the relay.

@@ -33,7 +33,7 @@ The instruction file for each role contains its own detailed reading list. Follo
 
 ## Agent skills
 
-Reusable agent skills are in `.cursor/skills/` (canonical source). See `AGENTS.md` for the full skill list and invocation reference.
+Reusable agent skills are in `skills/` (canonical source). Generated mirrors exist under `.cursor/skills/`, `.claude/commands/`, and `.github/skills/`. See `AGENTS.md` for the full skill list and invocation reference.
 
 ## Hard rules
 

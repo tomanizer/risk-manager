@@ -6,6 +6,7 @@ description: >-
   small scoped commits until checks are green. Tool-agnostic — use in Cursor,
   Claude Code, Codex, Copilot, or any agent that can run git and gh.
 ---
+<!-- GENERATED SKILL MIRROR: do not edit directly -->
 
 # babysit
 

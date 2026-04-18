@@ -2,6 +2,7 @@
 name: new-prd
 description: Produces a filled PRD/Spec Author invocation prompt when the user says things like "new PRD", "spec a new capability", "write a PRD for X", or "start phase 2". Never writes a PRD itself — only builds the copy-paste prompt for the PRD/Spec Author agent.
 ---
+<!-- GENERATED SKILL MIRROR: do not edit directly -->
 
 # new-prd
 

@@ -14,6 +14,8 @@ dev = [
     "pytest==9.0.2",
     "ruff==0.15.9",
     "mypy",
+    "PyYAML>=6.0,<7.0",
+    "types-PyYAML",
 ]
 agent = [
     "langgraph>=0.3,<1.0",

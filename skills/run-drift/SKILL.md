@@ -2,7 +2,6 @@
 name: run-drift
 description: Produces a filled Drift Monitor invocation prompt when the user says things like "run drift", "audit the repo", "check repo health", or "run the drift monitor". Does NOT run the audit itself.
 ---
-<!-- GENERATED SKILL MIRROR: do not edit directly -->
 
 # run-drift
 

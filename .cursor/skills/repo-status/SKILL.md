@@ -2,6 +2,7 @@
 name: repo-status
 description: Prints a structured, read-only situational awareness dashboard. Use when the user says things like "repo status", "what's the status", "morning check", "what's in progress", or "what should I work on".
 ---
+<!-- GENERATED SKILL MIRROR: do not edit directly -->
 
 # repo-status
 

@@ -2,7 +2,6 @@
 name: deliver-wi
 description: Drives delivery of a risk-manager work item through the PM → Coding → Review relay. Use when the user wants to work on a work item, implement a WI, run the PM agent, invoke the coding agent, invoke the review agent, advance a work item, or asks what to do next. Produces a filled invocation prompt for the correct specialist agent — does NOT implement anything itself.
 ---
-<!-- GENERATED SKILL MIRROR: do not edit directly -->
 
 # deliver-wi
 

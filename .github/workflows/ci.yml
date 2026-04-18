@@ -32,6 +32,10 @@ jobs:
             echo 'No Python files found. Skipping Ruff.'
           fi
 
+      - name: Skill mirror parity
+        run: |
+          python scripts/skills/check_skill_mirrors.py
+
       - name: Mypy
         run: |
           if git ls-files '*.py' '*.pyi' | grep . >/dev/null; then

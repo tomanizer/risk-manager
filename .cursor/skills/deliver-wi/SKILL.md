@@ -2,6 +2,7 @@
 name: deliver-wi
 description: Drives delivery of a risk-manager work item through the PM → Coding → Review relay. Use when the user wants to work on a work item, implement a WI, run the PM agent, invoke the coding agent, invoke the review agent, advance a work item, or asks what to do next. Produces a filled invocation prompt for the correct specialist agent — does NOT implement anything itself.
 ---
+<!-- GENERATED SKILL MIRROR: do not edit directly -->
 
 # deliver-wi
 
@@ -100,7 +101,7 @@ Default to **PM** when in doubt — it is always safe to run PM first.
 
 ## Step 4 — Fill the template
 
-Read the selected template file. Replace the **exact bracketed placeholder string as written in the template** — including any descriptive suffix (e.g. `<CONTEXT — what has changed>` and `<CONTEXT>` are the same placeholder; replace whichever form appears).
+Read the selected template file. Replace the **exact bracketed placeholder string as written in the template** — including any descriptive suffix. Do not assume differently worded placeholders are interchangeable across templates.
 
 ### PM placeholder mapping
 
