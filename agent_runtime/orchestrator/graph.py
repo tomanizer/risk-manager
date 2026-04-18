@@ -671,9 +671,7 @@ def main() -> int:
             empty_snapshot = _RS(work_items=(), pull_requests=(), workflow_runs=(), warnings=())
             execution = build_runner_execution(empty_snapshot, governance_decision)
             runner_result = (
-                dispatch_runner_execution(execution, state_db_path=defaults.state_db_path)
-                if args.dispatch and execution is not None
-                else None
+                dispatch_runner_execution(execution, state_db_path=defaults.state_db_path) if args.dispatch and execution is not None else None
             )
             governance_payload: dict[str, object] = {
                 "action": governance_decision.action.value,
