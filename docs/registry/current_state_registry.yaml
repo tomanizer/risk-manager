@@ -1,5 +1,5 @@
 version: 1
-last_updated: 2026-04-08
+last_updated: 2026-04-18
 
 components:
   modules:
@@ -21,8 +21,8 @@ components:
           path: src/modules/risk_analytics/service.py
           status: implemented
         - name: risk_summary_core_service
-          path: null
-          status: not-started
+          path: src/modules/risk_analytics/service.py
+          status: implemented
     - id: MOD-CONTROLS-INTEGRITY
       name: Controls Integrity
       status: in-progress

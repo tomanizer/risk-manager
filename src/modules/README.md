@@ -2,11 +2,16 @@
 
 Each module owns deterministic truth for a bounded domain.
 
-Planned module roots:
+Current module roots:
 - risk_analytics/
+- controls_integrity/
+
+The `controls_integrity/` package is the current implementation root for the
+Controls & Production Integrity slice.
+
+Planned additional module roots:
 - frtb_pla_controls/
 - limits_approvals/
-- controls_production_integrity/
 - governance_reporting/
 - capital_desk_status/
 - model_inventory_usage_registry/
