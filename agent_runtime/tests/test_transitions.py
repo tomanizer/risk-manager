@@ -10,6 +10,8 @@ import tempfile
 from typing import Any
 from unittest.mock import patch
 
+import pytest
+
 from agent_runtime.orchestrator.github_sync import (
     _extract_pull_request_page,
     build_pull_request_snapshots,
@@ -856,6 +858,39 @@ def test_dispatch_runner_execution_audits_without_run_id() -> None:
     assert len(events) == 1
     assert events[0].run_id is None
     assert events[0].work_item_id == execution.work_item_id
+
+
+def test_dispatch_runner_execution_writes_failed_audit_event_on_exception() -> None:
+    snapshot = RuntimeSnapshot(
+        work_items=(
+            WorkItemSnapshot(
+                id="WI-1.1.4-risk-summary-core-service",
+                title="WI-1.1.4",
+                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
+                stage=WorkItemStage.READY,
+            ),
+        )
+    )
+
+    decision = decide_next_action(snapshot)
+    execution = build_runner_execution(snapshot, decision)
+
+    assert execution is not None
+    execution = replace(execution, metadata={**execution.metadata, "run_id": "pm-wi-1-1-4-test-run"})
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "runtime" / "state.db"
+        with patch("agent_runtime.runners.dispatch.dispatch_pm_execution", side_effect=RuntimeError("boom")):
+            with pytest.raises(RuntimeError, match="boom"):
+                dispatch_runner_execution(execution, state_db_path=db_path)
+
+        events = load_telemetry_events(db_path, run_id="pm-wi-1-1-4-test-run", limit=10)
+
+    assert [event.event_type for event in events] == ["runner.dispatch.failed", "runner.dispatch.started"]
+    assert events[0].level == "ERROR"
+    assert events[0].payload["runner_name"] == "pm"
+    assert events[0].payload["exception_type"] == "RuntimeError"
+    assert isinstance(events[0].payload["duration_seconds"], float)
 
 
 def test_completed_review_changes_requested_routes_to_coding_when_pr_is_unchanged() -> None:

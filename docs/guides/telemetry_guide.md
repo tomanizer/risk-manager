@@ -118,8 +118,9 @@ OTLP HTTP export      SQLite telemetry_events
 ## Audit events reference
 
 Current audit-table coverage is intentionally narrow: the runtime persists
-runner dispatch start/completion events, and additional event families should be
-documented only after they are wired in code.
+runner dispatch start/completion events plus a failure event when dispatch
+raises, and additional event families should be documented only after they are
+wired in code.
 
 Audit events are written to:
 
@@ -132,6 +133,7 @@ Audit events are written to:
 |------------|-----------|------|
 | `runner.dispatch.started` | `agent_runtime.runners.dispatch` | Immediately before each runner execution |
 | `runner.dispatch.completed` | `agent_runtime.runners.dispatch` | After each runner execution, with `runner_name`, `status`, `outcome_status`, `duration_seconds` |
+| `runner.dispatch.failed` | `agent_runtime.runners.dispatch` | When runner dispatch raises, with `runner_name`, `exception_type`, `duration_seconds` |
 
 ### Querying audit events
 
