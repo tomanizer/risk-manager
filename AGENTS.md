@@ -90,21 +90,25 @@ Repo-visible role-specific instructions live in:
 
 ## Agent skills
 
-Reusable agent skills are defined in `.cursor/skills/` and mirrored as Claude Code slash commands in `.claude/commands/`. Most skills produce a filled invocation prompt for the correct specialist agent and **do not implement work themselves**. The **`babysit`** skill is the exception: it may run `git` / `gh`, triage threads, and push **small merge-readiness** commits per `.cursor/skills/babysit/SKILL.md`.
+<!-- BEGIN GENERATED SKILLS SECTION -->
+
+Reusable agent skills are defined in `skills/` and generated into `.cursor/skills/`, `.claude/commands/`, and `.github/skills/` for platform-native discovery. Edit only `skills/<name>/SKILL.md`, then run `python scripts/skills/sync_skill_mirrors.py`. Most skills produce a filled invocation prompt for the correct specialist agent and **do not implement work themselves**. The **`babysit`** skill is the exception: it may run `git` / `gh`, triage threads, and push **small merge-readiness** commits per `skills/babysit/SKILL.md`.
 
 Available skills:
 
 | Skill | Invoke in Claude Code | Purpose |
 | --- | --- | --- |
-| `deliver-wi` | `/deliver-wi` | Identify next work item and produce agent handoff prompt |
-| `phase-review` | `/phase-review` | Assess phase completion against acceptance criteria |
-| `repo-status` | `/repo-status` | Situational awareness dashboard |
-| `run-drift` | `/run-drift` | Trigger a drift monitor pass |
-| `new-prd` | `/new-prd` | Scaffold a new PRD |
-| `babysit` | `/babysit` | Keep a PR merge-ready (CI, threads, conflicts); see `.cursor/skills/babysit/SKILL.md` |
+| `babysit` | `/babysit` | Keep a GitHub PR merge-ready: triage review comments, resolve inline threads, fix merge conflicts when intent is clear, and repair merge-blocking CI with small scoped commits until checks are green. Tool-agnostic — use in Cursor, Claude Code, Codex, Copilot, or any agent that can run git and gh. |
+| `deliver-wi` | `/deliver-wi` | Drives delivery of a risk-manager work item through the PM → Coding → Review relay. Use when the user wants to work on a work item, implement a WI, run the PM agent, invoke the coding agent, invoke the review agent, advance a work item, or asks what to do next. Produces a filled invocation prompt for the correct specialist agent — does NOT implement anything itself. |
+| `new-adr` | `/new-adr` | Drafts a pre-filled Architectural Decision Record for the operator to review and save. Use when the user says things like "new ADR", "record an architecture decision", "we need an ADR for X", or "create an ADR". Produces a fenced markdown draft — does NOT commit files, create files in the repo, or run git operations. |
+| `new-prd` | `/new-prd` | Produces a filled PRD/Spec Author invocation prompt when the user says things like "new PRD", "spec a new capability", "write a PRD for X", or "start phase 2". Never writes a PRD itself — only builds the copy-paste prompt for the PRD/Spec Author agent. |
+| `phase-review` | `/phase-review` | Produces a go/no-go gate-check checklist for a delivery phase. Use when the user says "phase review", "check if phase N is done", "are we ready for phase N+1", or "review the phase". Reads and reports only — never edits files or creates work items. |
+| `repo-status` | `/repo-status` | Prints a structured, read-only situational awareness dashboard. Use when the user says things like "repo status", "what's the status", "morning check", "what's in progress", or "what should I work on". |
+| `run-drift` | `/run-drift` | Produces a filled Drift Monitor invocation prompt when the user says things like "run drift", "audit the repo", "check repo health", or "run the drift monitor". Does NOT run the audit itself. |
 
-In Cursor, invoke by name in chat. In Claude Code, use the `/skill-name` slash command: `.claude/commands/<skill>.md` symlinks to `.cursor/skills/<skill>/SKILL.md`. GitHub-oriented discovery can use `.github/skills/<skill>/SKILL.md` (same symlink). In other environments (Codex, Copilot), point the agent at `.cursor/skills/<skill>/SKILL.md` or reference the skill by name in your prompt.
+In Cursor, invoke by name in chat using the generated mirrors under `.cursor/skills/`. In Claude Code, use the `/skill-name` slash command from `.claude/commands/<skill>.md`. GitHub-oriented discovery can use `.github/skills/<skill>/SKILL.md`. In Codex, Copilot, VSCode, and other environments, point the agent at `skills/<skill>/SKILL.md` or reference the skill by name in your prompt.
 
+<!-- END GENERATED SKILLS SECTION -->
 ## Freshness and branching rule
 
 Before any PM, coding, review, or drift-monitor pass:
