@@ -58,7 +58,7 @@ secrets/
 presentation/deck.md
 
 # Sync-conflict markdown duplicates (e.g. "file 2.md")
-.claude/commands/* [0-9].md
+.claude/commands/**/* [0-9].md
 .cursor/skills/**/* [0-9].md
 .github/skills/**/* [0-9].md
 work_items/**/* [0-9].md

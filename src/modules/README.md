@@ -7,7 +7,7 @@ Current module roots:
 - controls_integrity/
 
 The `controls_integrity/` package is the current implementation root for the
-Controls & Production Integrity slice.
+Controls Integrity module tracked in the registry.
 
 Planned additional module roots:
 - frtb_pla_controls/
