@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import time
+from pathlib import Path
 
-from agent_runtime.telemetry import record_runner_dispatch, runner_span
+from agent_runtime.telemetry import emit_audit_event, record_runner_dispatch, runner_span
 
 from .coding_runner import dispatch_coding_execution
 from .contracts import RunnerExecution, RunnerName, RunnerResult
@@ -15,10 +16,21 @@ from .review_runner import dispatch_review_execution
 from .spec_runner import dispatch_spec_execution
 
 
-def dispatch_runner_execution(execution: RunnerExecution) -> RunnerResult:
+def dispatch_runner_execution(execution: RunnerExecution, *, state_db_path: Path | None = None) -> RunnerResult:
     runner_name = execution.runner_name.value
     run_id = execution.metadata.get("run_id")
     start = time.monotonic()
+    component = "agent_runtime.runners.dispatch"
+
+    if state_db_path is not None:
+        emit_audit_event(
+            state_db_path,
+            event_type="runner.dispatch.started",
+            component=component,
+            payload={"runner_name": runner_name},
+            run_id=run_id,
+            work_item_id=execution.work_item_id,
+        )
 
     with runner_span(runner_name, execution.work_item_id, run_id=run_id) as span:
         if execution.runner_name is RunnerName.PM:
@@ -41,5 +53,19 @@ def dispatch_runner_execution(execution: RunnerExecution) -> RunnerResult:
             span.set_attribute("runner.outcome_status", outcome)
 
     duration = time.monotonic() - start
+    if state_db_path is not None:
+        emit_audit_event(
+            state_db_path,
+            event_type="runner.dispatch.completed",
+            component=component,
+            payload={
+                "runner_name": runner_name,
+                "status": result.status.value,
+                "outcome_status": result.outcome_status,
+                "duration_seconds": duration,
+            },
+            run_id=run_id,
+            work_item_id=execution.work_item_id,
+        )
     record_runner_dispatch(runner_name, outcome, duration)
     return result

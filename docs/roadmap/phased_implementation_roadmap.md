@@ -1,5 +1,7 @@
 # Phased Implementation Roadmap
 
+> Note on numbering: the PRD ID prefix, the roadmap phase number, and the containing folder name are different tracking schemes. `PRD-1.1` does not mean "Phase 1.1," and a file living under a phase-numbered folder does not redefine its roadmap phase.
+
 ## Delivery principles
 
 - implement in vertical slices

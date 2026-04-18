@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 import os
 from pathlib import Path
 import sqlite3
@@ -33,6 +34,7 @@ from agent_runtime.storage.sqlite import (
     EXPECTED_WORKTREE_LEASE_COLUMNS,
     WorkflowRunRecord,
     initialize_database,
+    load_telemetry_events,
     load_workflow_run_by_run_id,
     load_workflow_run,
     load_workflow_runs,
@@ -786,6 +788,74 @@ def test_dispatch_runner_execution_returns_prepared_result() -> None:
     assert "Prepared PM readiness handoff" in result.summary
     assert result.details["target_path"].endswith("WI-1.1.4-risk-summary-core-service.md")
     assert result.outcome_status is None
+
+
+def test_dispatch_runner_execution_writes_audit_events() -> None:
+    snapshot = RuntimeSnapshot(
+        work_items=(
+            WorkItemSnapshot(
+                id="WI-1.1.4-risk-summary-core-service",
+                title="WI-1.1.4",
+                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
+                stage=WorkItemStage.READY,
+            ),
+        )
+    )
+
+    decision = decide_next_action(snapshot)
+    execution = build_runner_execution(snapshot, decision)
+
+    assert execution is not None
+    execution = replace(execution, metadata={**execution.metadata, "run_id": "pm-wi-1-1-4-test-run"})
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "runtime" / "state.db"
+        with patch.dict(os.environ, {"AGENT_RUNTIME_PM_BACKEND": "prepared"}, clear=False):
+            result = dispatch_runner_execution(execution, state_db_path=db_path)
+
+        events = load_telemetry_events(db_path, run_id="pm-wi-1-1-4-test-run", limit=10)
+
+    assert result.runner_name is RunnerName.PM
+    assert [event.event_type for event in events] == ["runner.dispatch.completed", "runner.dispatch.started"]
+    assert all(event.component == "agent_runtime.runners.dispatch" for event in events)
+    assert all(event.work_item_id == execution.work_item_id for event in events)
+
+    completed_event = events[0]
+    started_event = events[1]
+    assert completed_event.payload["runner_name"] == "pm"
+    assert completed_event.payload["status"] == RunnerDispatchStatus.PREPARED.value
+    assert completed_event.payload["outcome_status"] is None
+    assert isinstance(completed_event.payload["duration_seconds"], float)
+    assert started_event.payload == {"runner_name": "pm"}
+
+
+def test_dispatch_runner_execution_audits_without_run_id() -> None:
+    snapshot = RuntimeSnapshot(
+        work_items=(
+            WorkItemSnapshot(
+                id="WI-1.1.4-risk-summary-core-service",
+                title="WI-1.1.4",
+                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
+                stage=WorkItemStage.READY,
+            ),
+        )
+    )
+
+    decision = decide_next_action(snapshot)
+    execution = build_runner_execution(snapshot, decision)
+
+    assert execution is not None
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "runtime" / "state.db"
+        with patch.dict(os.environ, {"AGENT_RUNTIME_PM_BACKEND": "prepared"}, clear=False):
+            dispatch_runner_execution(execution, state_db_path=db_path)
+
+        events = load_telemetry_events(db_path, event_type="runner.dispatch.completed", limit=5)
+
+    assert len(events) == 1
+    assert events[0].run_id is None
+    assert events[0].work_item_id == execution.work_item_id
 
 
 def test_completed_review_changes_requested_routes_to_coding_when_pr_is_unchanged() -> None:

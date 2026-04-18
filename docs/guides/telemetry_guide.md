@@ -14,7 +14,7 @@ stack, and how to extend the system with new instrumentation.
 |--------|-------|---------|
 | **Distributed traces** (spans) | OTel → Jaeger | Reconstruct the exact sequence of operations for a workflow run — supervisor tick, runner dispatch, drift scan |
 | **Metrics** (counters + histograms) | OTel → Prometheus | Track aggregate health: step rate, runner latency, risk call outcomes, supervisor liveness |
-| **Structured audit log** | SQLite `telemetry_events` + structlog | Append-only, queryable record of every significant event; correlated with active OTel trace/span |
+| **Structured audit log** | SQLite `telemetry_events` + structlog | Append-only, queryable record of instrumented runtime events such as runner dispatches; correlated with active OTel trace/span |
 
 All three signals are optional. The runtime degrades gracefully when the
 `telemetry` extras are not installed — all wrappers become no-ops and stdlib
@@ -117,6 +117,10 @@ OTLP HTTP export      SQLite telemetry_events
 
 ## Audit events reference
 
+Current audit-table coverage is intentionally narrow: the runtime persists
+runner dispatch start/completion events, and additional event families should be
+documented only after they are wired in code.
+
 Audit events are written to:
 
 1. **`telemetry_events` table** in `state.db` — queryable with DuckDB or any SQLite client;
@@ -126,8 +130,8 @@ Audit events are written to:
 
 | Event type | Component | When |
 |------------|-----------|------|
-| `runner.dispatch.started` | `agent_runtime.orchestrator` | Before each runner execution |
-| `runner.dispatch.completed` | `agent_runtime.orchestrator` | After each runner execution, with `runner_name`, `status`, `outcome_status`, `duration_seconds` |
+| `runner.dispatch.started` | `agent_runtime.runners.dispatch` | Immediately before each runner execution |
+| `runner.dispatch.completed` | `agent_runtime.runners.dispatch` | After each runner execution, with `runner_name`, `status`, `outcome_status`, `duration_seconds` |
 
 ### Querying audit events
 
