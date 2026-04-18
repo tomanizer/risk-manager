@@ -8,7 +8,6 @@ description: >-
 ---
 <!-- GENERATED SKILL MIRROR: do not edit directly -->
 
-
 # babysit
 
 ## Mandatory first output

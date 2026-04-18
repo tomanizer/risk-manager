@@ -4,7 +4,6 @@ description: Prints a structured, read-only situational awareness dashboard. Use
 ---
 <!-- GENERATED SKILL MIRROR: do not edit directly -->
 
-
 # repo-status
 
 > **HARD CONSTRAINT — read this before anything else.**

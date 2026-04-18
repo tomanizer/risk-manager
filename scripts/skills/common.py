@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import re
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 
 
 CANONICAL_SKILLS_DIR = Path("skills")
@@ -323,8 +323,9 @@ def render_mirror_content(content: str) -> str:
     if len(lines) >= 3 and lines[0].strip() == "---":
         for index in range(1, len(lines)):
             if lines[index].strip() == "---":
-                return "".join(lines[: index + 1]) + GENERATED_MIRROR_MARKER + "\n\n" + "".join(lines[index + 1 :])
-    return GENERATED_MIRROR_MARKER + "\n\n" + content
+                remainder = "".join(lines[index + 1 :]).lstrip("\n")
+                return "".join(lines[: index + 1]) + GENERATED_MIRROR_MARKER + "\n\n" + remainder
+    return GENERATED_MIRROR_MARKER + "\n\n" + content.lstrip("\n")
 
 
 def _is_generated_mirror_file(path: Path) -> bool:

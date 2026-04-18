@@ -4,7 +4,6 @@ description: Produces a filled Drift Monitor invocation prompt when the user say
 ---
 <!-- GENERATED SKILL MIRROR: do not edit directly -->
 
-
 # run-drift
 
 > **HARD CONSTRAINT — read this before anything else.**

@@ -4,7 +4,6 @@ description: Drives delivery of a risk-manager work item through the PM → Codi
 ---
 <!-- GENERATED SKILL MIRROR: do not edit directly -->
 
-
 # deliver-wi
 
 > **HARD CONSTRAINT — read this before anything else.**

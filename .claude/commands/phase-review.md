@@ -4,7 +4,6 @@ description: Produces a go/no-go gate-check checklist for a delivery phase. Use 
 ---
 <!-- GENERATED SKILL MIRROR: do not edit directly -->
 
-
 # phase-review
 
 > **HARD CONSTRAINT — read this before anything else.**

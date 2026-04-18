@@ -4,7 +4,6 @@ description: Produces a filled PRD/Spec Author invocation prompt when the user s
 ---
 <!-- GENERATED SKILL MIRROR: do not edit directly -->
 
-
 # new-prd
 
 > **HARD CONSTRAINT — read this before anything else.**

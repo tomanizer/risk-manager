@@ -4,7 +4,6 @@ description: Drafts a pre-filled Architectural Decision Record for the operator 
 ---
 <!-- GENERATED SKILL MIRROR: do not edit directly -->
 
-
 # new-adr
 
 > **HARD CONSTRAINT — read this before anything else.**
