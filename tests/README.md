@@ -2,8 +2,11 @@
 
 Current visible test tree:
 - `tests/unit/` for deterministic service and small wrapper tests
+- `tests/replay/` for fixture-backed replay coverage of implemented services
 
-Future slices may add integration, replay, and golden-case test directories when those test types are introduced. They are not part of the current visible test tree and should be created in-slice rather than assumed to already exist.
+Future slices may add integration and golden-case test directories when those
+test types are introduced. They should be created in-slice rather than assumed
+to already exist.
 
 Repo-level `pytest` configuration already exists in `pyproject.toml`, so `pytest` is the default test entrypoint.
 
