@@ -35,7 +35,7 @@ Remove documented drift: `docs/shared_infra/adoption_matrix.md` lists `src/modul
 
 ## Dependencies
 
-- WI-1.1.11 (done) — establishes `risk_analytics` → `src.shared.telemetry` adoption
+- WI-1.1.11-risk-service-structured-logging
 
 ## Target area
 
