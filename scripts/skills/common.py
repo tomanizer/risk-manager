@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 import re
 
+import yaml  # type: ignore[import-untyped]
+
 
 CANONICAL_SKILLS_DIR = Path("skills")
 CURSOR_SKILLS_DIR = Path(".cursor/skills")
@@ -17,6 +19,7 @@ AGENTS_SKILLS_START = "<!-- BEGIN GENERATED SKILLS SECTION -->"
 AGENTS_SKILLS_END = "<!-- END GENERATED SKILLS SECTION -->"
 AGENTS_SKILLS_HEADER = "## Agent skills"
 AGENTS_SKILLS_NEXT_HEADER = "## Freshness and branching rule"
+GENERATED_MIRROR_MARKER = "<!-- GENERATED SKILL MIRROR: do not edit directly -->"
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,9 +65,10 @@ def expected_mirror_contents(repo_root: Path, skills: tuple[SkillDefinition, ...
         GITHUB_README_PATH: render_github_readme(skills),
     }
     for skill in skills:
-        expected[skill.cursor_mirror_path] = skill.content
-        expected[skill.claude_mirror_path] = skill.content
-        expected[skill.github_mirror_path] = skill.content
+        mirror_content = render_mirror_content(skill.content)
+        expected[skill.cursor_mirror_path] = mirror_content
+        expected[skill.claude_mirror_path] = mirror_content
+        expected[skill.github_mirror_path] = mirror_content
     existing_agents = (repo_root / AGENTS_PATH).read_text(encoding="utf-8")
     expected[AGENTS_PATH] = replace_agents_skills_section(existing_agents, skills)
     return expected
@@ -78,15 +82,15 @@ def stale_generated_paths(repo_root: Path, skills: tuple[SkillDefinition, ...]) 
     stale: list[Path] = []
     for path in sorted((repo_root / CURSOR_SKILLS_DIR).glob("*/SKILL.md")):
         rel = path.relative_to(repo_root).as_posix()
-        if rel not in expected_cursor:
+        if rel not in expected_cursor and _is_generated_mirror_file(path):
             stale.append(path.relative_to(repo_root))
     for path in sorted((repo_root / CLAUDE_COMMANDS_DIR).glob("*.md")):
         rel = path.relative_to(repo_root).as_posix()
-        if rel not in expected_claude:
+        if rel not in expected_claude and _is_generated_mirror_file(path):
             stale.append(path.relative_to(repo_root))
     for path in sorted((repo_root / GITHUB_SKILLS_DIR).glob("*/SKILL.md")):
         rel = path.relative_to(repo_root).as_posix()
-        if rel not in expected_github:
+        if rel not in expected_github and _is_generated_mirror_file(path):
             stale.append(path.relative_to(repo_root))
     return tuple(stale)
 
@@ -144,7 +148,7 @@ def render_canonical_readme(skills: tuple[SkillDefinition, ...]) -> str:
         "| --- | --- | --- |",
     ]
     for skill in skills:
-        lines.append(f"| [{skill.slug}]({skill.slug}/SKILL.md) | `{skill.claude_command}` | {skill.description} |")
+        lines.append(f"| [{skill.slug}]({skill.slug}/SKILL.md) | `{skill.claude_command}` | {_escape_markdown_table_cell(skill.description)} |")
     lines.extend(
         [
             "",
@@ -186,7 +190,7 @@ def render_cursor_readme(skills: tuple[SkillDefinition, ...]) -> str:
         "| --- | --- | --- |",
     ]
     for skill in skills:
-        lines.append(f"| [{skill.slug}]({skill.slug}/SKILL.md) | `{skill.slug}` | {skill.description} |")
+        lines.append(f"| [{skill.slug}]({skill.slug}/SKILL.md) | `{skill.slug}` | {_escape_markdown_table_cell(skill.description)} |")
     lines.extend(
         [
             "",
@@ -217,7 +221,7 @@ def render_github_readme(skills: tuple[SkillDefinition, ...]) -> str:
         "| --- | --- | --- |",
     ]
     for skill in skills:
-        lines.append(f"| `{skill.slug}` | `{skill.github_mirror_path.as_posix()}` | {skill.description} |")
+        lines.append(f"| `{skill.slug}` | `{skill.github_mirror_path.as_posix()}` | {_escape_markdown_table_cell(skill.description)} |")
     lines.extend(
         [
             "",
@@ -260,7 +264,7 @@ def render_agents_skills_section(skills: tuple[SkillDefinition, ...]) -> str:
         "| --- | --- | --- |",
     ]
     for skill in skills:
-        lines.append(f"| `{skill.slug}` | `{skill.claude_command}` | {skill.description} |")
+        lines.append(f"| `{skill.slug}` | `{skill.claude_command}` | {_escape_markdown_table_cell(skill.description)} |")
     lines.extend(
         [
             "",
@@ -300,40 +304,37 @@ def _parse_frontmatter(content: str, path: Path) -> dict[str, str]:
     except ValueError as exc:
         raise ValueError(f"Skill file `{path.as_posix()}` has an unterminated YAML frontmatter block.") from exc
 
-    metadata_lines = lines[1:closing_index]
-    metadata: dict[str, str] = {}
-    index = 0
-    while index < len(metadata_lines):
-        raw_line = metadata_lines[index]
-        stripped = raw_line.strip()
-        if not stripped:
-            index += 1
-            continue
-        if stripped.startswith("name:"):
-            metadata["name"] = stripped.split(":", 1)[1].strip()
-            index += 1
-            continue
-        if stripped.startswith("description:"):
-            remainder = stripped.split(":", 1)[1].strip()
-            if remainder in {">", ">-", "|", "|-"}:
-                index += 1
-                parts: list[str] = []
-                while index < len(metadata_lines):
-                    continuation = metadata_lines[index]
-                    if continuation and not continuation.startswith(" "):
-                        break
-                    parts.append(continuation.strip())
-                    index += 1
-                metadata["description"] = " ".join(part for part in parts if part).strip()
-                continue
-            metadata["description"] = remainder
-            index += 1
-            continue
-        index += 1
+    metadata_block = "\n".join(lines[1:closing_index])
+    payload = yaml.safe_load(metadata_block)
+    if not isinstance(payload, dict):
+        raise ValueError(f"Skill file `{path.as_posix()}` frontmatter must decode to a mapping.")
 
-    if "name" not in metadata or "description" not in metadata or not metadata["description"]:
-        raise ValueError(f"Skill file `{path.as_posix()}` must define `name` and `description` in frontmatter.")
-    return metadata
+    name = payload.get("name")
+    description = payload.get("description")
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError(f"Skill file `{path.as_posix()}` must define a non-empty string `name` in frontmatter.")
+    if not isinstance(description, str) or not description.strip():
+        raise ValueError(f"Skill file `{path.as_posix()}` must define a non-empty string `description` in frontmatter.")
+    return {"name": name.strip(), "description": description.strip()}
+
+
+def render_mirror_content(content: str) -> str:
+    lines = content.splitlines(keepends=True)
+    if len(lines) >= 3 and lines[0].strip() == "---":
+        for index in range(1, len(lines)):
+            if lines[index].strip() == "---":
+                return "".join(lines[: index + 1]) + GENERATED_MIRROR_MARKER + "\n\n" + "".join(lines[index + 1 :])
+    return GENERATED_MIRROR_MARKER + "\n\n" + content
+
+
+def _is_generated_mirror_file(path: Path) -> bool:
+    if not path.is_file():
+        return False
+    return GENERATED_MIRROR_MARKER in path.read_text(encoding="utf-8")
+
+
+def _escape_markdown_table_cell(value: str) -> str:
+    return value.replace("|", "\\|")
 
 
 def _remove_empty_parent_directories(repo_root: Path, start_dir: Path) -> None:

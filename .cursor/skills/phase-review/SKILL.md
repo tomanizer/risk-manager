@@ -2,6 +2,8 @@
 name: phase-review
 description: Produces a go/no-go gate-check checklist for a delivery phase. Use when the user says "phase review", "check if phase N is done", "are we ready for phase N+1", or "review the phase". Reads and reports only — never edits files or creates work items.
 ---
+<!-- GENERATED SKILL MIRROR: do not edit directly -->
+
 
 # phase-review
 

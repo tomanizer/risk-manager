@@ -2,6 +2,8 @@
 name: new-adr
 description: Drafts a pre-filled Architectural Decision Record for the operator to review and save. Use when the user says things like "new ADR", "record an architecture decision", "we need an ADR for X", or "create an ADR". Produces a fenced markdown draft — does NOT commit files, create files in the repo, or run git operations.
 ---
+<!-- GENERATED SKILL MIRROR: do not edit directly -->
+
 
 # new-adr
 

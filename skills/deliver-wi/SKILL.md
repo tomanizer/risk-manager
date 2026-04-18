@@ -100,7 +100,7 @@ Default to **PM** when in doubt — it is always safe to run PM first.
 
 ## Step 4 — Fill the template
 
-Read the selected template file. Replace the **exact bracketed placeholder string as written in the template** — including any descriptive suffix (e.g. `<CONTEXT — what has changed>` and `<CONTEXT>` are the same placeholder; replace whichever form appears).
+Read the selected template file. Replace the **exact bracketed placeholder string as written in the template** — including any descriptive suffix. Do not assume differently worded placeholders are interchangeable across templates.
 
 ### PM placeholder mapping
 
