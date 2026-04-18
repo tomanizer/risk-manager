@@ -48,6 +48,13 @@
       "rationale": "pytest is declared in [project.optional-dependencies].dev. The agent_runtime/tests/ directory is a test surface co-located with the runtime package; its imports of pytest are expected and intentional.",
       "issue": null,
       "expires_on": null
+    },
+    {
+      "scan_name": "dependency_hygiene",
+      "signature": "dependency_hygiene|kind=\"undeclared_dev_dependency\"|dependency_name=\"yaml\"|source_path=\"scripts/skills/common.py\"",
+      "rationale": "PyYAML is declared in [project.optional-dependencies].dev, but its import namespace is `yaml`. The skills sync/check tooling is repository maintenance code under scripts/, so allowing the namespace-package mismatch in the drift baseline keeps dependency hygiene focused on net-new undeclared tooling imports.",
+      "issue": null,
+      "expires_on": null
     }
   ],
   "version": 1
