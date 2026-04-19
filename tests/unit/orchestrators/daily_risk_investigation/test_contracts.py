@@ -75,9 +75,7 @@ _PINNED_NODE_REF = NodeRef(
 #   as_of_date=2024-01-15, snapshot_id="snap-001", measure_type=VAR_1D_99,
 #   candidate_targets=(DESK-001/DESK/TOP_OF_HOUSE), orchestrator_version="1.0.0"
 # Do NOT recompute at test execution time.
-_PINNED_EXPECTED_RUN_ID = (
-    "drun_a8a300f67269080abd5bb319e8c491a9b843d8ef2ddb35509531db454dddb61d"
-)
+_PINNED_EXPECTED_RUN_ID = "drun_a8a300f67269080abd5bb319e8c491a9b843d8ef2ddb35509531db454dddb61d"
 
 
 def _make_integrity_assessment(node_ref: NodeRef) -> IntegrityAssessment:
@@ -331,6 +329,7 @@ class DailyRunResultShapeTest(unittest.TestCase):
 class PublicSurfaceTest(unittest.TestCase):
     def test_start_daily_run_importable(self) -> None:
         from src.orchestrators.daily_risk_investigation import start_daily_run as sdr
+
         self.assertTrue(callable(sdr))
 
     def test_all_types_importable(self) -> None:

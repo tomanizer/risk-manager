@@ -157,9 +157,7 @@ def _derive_run_id(
 
     Wall-clock values are excluded; equal inputs always produce equal run_id.
     """
-    candidate_log_dicts: list[dict[str, Any]] = [
-        node_ref_log_dict(ref) for ref in candidate_targets
-    ]
+    candidate_log_dicts: list[dict[str, Any]] = [node_ref_log_dict(ref) for ref in candidate_targets]
     components: list[Any] = [
         as_of_date.isoformat(),
         snapshot_id,
@@ -190,6 +188,4 @@ def start_daily_run(
 
     Stage execution (Stages 1–9) is implemented in WI-5.1.2.
     """
-    raise NotImplementedError(
-        "start_daily_run stage execution is not yet implemented (WI-5.1.2)"
-    )
+    raise NotImplementedError("start_daily_run stage execution is not yet implemented (WI-5.1.2)")
