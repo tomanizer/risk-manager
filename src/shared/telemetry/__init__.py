@@ -8,6 +8,7 @@ See ``docs/shared_infra/telemetry.md``.
 from __future__ import annotations
 
 from .operation_log import (
+    canonical_terminal_run_status_status,
     EVENT_NAME,
     LOGGER_NAME,
     StdlibLoggerAdapter,
@@ -23,6 +24,7 @@ from .operation_log import (
 )
 
 __all__ = [
+    "canonical_terminal_run_status_status",
     "EVENT_NAME",
     "LOGGER_NAME",
     "StdlibLoggerAdapter",

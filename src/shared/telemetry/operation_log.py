@@ -108,6 +108,22 @@ def status_string(outcome: Any) -> str:
     return cast(str, outcome.status.value)
 
 
+def canonical_terminal_run_status_status(terminal_status: str | Enum) -> str:
+    """Map PRD terminal run statuses to shared canonical telemetry statuses."""
+    terminal_status_value = terminal_status.value if isinstance(terminal_status, Enum) else terminal_status
+    mapping = {
+        "COMPLETED": "OK",
+        "COMPLETED_WITH_CAVEATS": "DEGRADED",
+        "COMPLETED_WITH_FAILURES": "PARTIAL",
+        "FAILED_ALL_TARGETS": "DEGRADED",
+        "BLOCKED_READINESS": "DEGRADED",
+    }
+    try:
+        return mapping[terminal_status_value]
+    except KeyError as exc:
+        raise RuntimeError(f"unhandled terminal_status for telemetry: {terminal_status_value!r}") from exc
+
+
 def node_ref_log_dict(node_ref: Any) -> dict[str, str | None]:
     """Serialize a scope-aware node reference for structured logs (risk analytics shape)."""
     return {

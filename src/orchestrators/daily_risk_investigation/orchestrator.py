@@ -2,8 +2,8 @@
 
 Slice ownership:
 - WI-5.1.1: typed enums, typed models, entry-point signature, run_id derivation.
-- WI-5.1.2: end-to-end Stages 1–9 implementation in start_daily_run (this slice).
-- WI-5.1.3: telemetry adoption + adoption-matrix flip (deferred).
+- WI-5.1.2: end-to-end Stages 1–9 implementation in start_daily_run.
+- WI-5.1.3: telemetry adoption + adoption-matrix flip.
 - WI-5.1.4: replay determinism test set (deferred).
 """
 
@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import time as _time_module
 from datetime import date, datetime, time, timezone
 from enum import StrEnum
 from typing import Any
@@ -29,7 +28,12 @@ from src.modules.risk_analytics import get_risk_summary
 from src.modules.risk_analytics.contracts import MeasureType, NodeRef
 from src.modules.risk_analytics.fixtures import FixtureIndex
 from src.shared import ServiceError
-from src.shared.telemetry import node_ref_log_dict
+from src.shared.telemetry import (
+    canonical_terminal_run_status_status,
+    emit_operation,
+    node_ref_log_dict,
+    timer_start,
+)
 from src.walkers.data_controller import assess_integrity
 
 orchestrator_version: str = "1.0.0"
@@ -292,6 +296,23 @@ def _derive_generated_at(
     return datetime.combine(as_of_date, _GENERATED_AT_FALLBACK_TIME)
 
 
+def _emit_daily_run_operation(
+    operation: str,
+    *,
+    status: str,
+    start_time: float,
+    **context: Any,
+) -> None:
+    """Emit one orchestrator operation event via the shared telemetry contract."""
+    emit_operation(
+        operation,
+        status=status,
+        start_time=start_time,
+        include_trace_context=False,
+        **context,
+    )
+
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
@@ -309,23 +330,28 @@ def start_daily_run(
     """Run one daily risk investigation end-to-end and return a typed DailyRunResult.
 
     Implements Stages 1–9 per PRD-5.1 §"Workflow stages".
-    No telemetry in this slice (deferred to WI-5.1.3).
     """
     # Stage 1 — intake
+    intake_start = timer_start()
     if snapshot_id is None or not snapshot_id.strip():
         raise ValueError("snapshot_id must be a non-empty string")
     if not candidate_targets:
         raise ValueError("candidate_targets must be a non-empty tuple")
 
     run_id = _derive_run_id(as_of_date, snapshot_id, measure_type, candidate_targets)
-    # Internal monotonic anchor for stage-internal bookkeeping; not part of the
-    # returned model. Telemetry adoption (WI-5.1.3) will consume this anchor for
-    # operation duration accounting; v1 exists deliberately to keep the surface
-    # symmetric with the planned telemetry slice.
-    _started_at_monotonic: float = _time_module.monotonic()
-    del _started_at_monotonic
+    _emit_daily_run_operation(
+        "daily_run.intake",
+        status="OK",
+        start_time=intake_start,
+        run_id=run_id,
+        as_of_date=as_of_date,
+        snapshot_id=snapshot_id,
+        measure_type=measure_type,
+        candidate_count=len(candidate_targets),
+    )
 
     # Stage 2 — readiness_gate (canary call against first candidate)
+    readiness_start = timer_start()
     canary_outcome = get_risk_summary(
         node_ref=candidate_targets[0],
         measure_type=measure_type,
@@ -346,12 +372,24 @@ def start_daily_run(
         readiness_state = ReadinessState.READY
         readiness_reason_codes = ()
 
+    readiness_status = "OK" if readiness_state is ReadinessState.READY else canary_outcome.status_code
+    _emit_daily_run_operation(
+        "daily_run.readiness_gate",
+        status=readiness_status,
+        start_time=readiness_start,
+        run_id=run_id,
+        as_of_date=as_of_date,
+        snapshot_id=snapshot_id,
+        readiness_state=readiness_state,
+        readiness_reason_codes=readiness_reason_codes,
+    )
+
     if readiness_state is ReadinessState.BLOCKED:
         # Stages 3–8 are skipped; Stage 9 still runs (terminal-state derivation).
         empty_target_results: tuple[TargetInvestigationResult, ...] = ()
         empty_handoff: tuple[TargetHandoffEntry, ...] = ()
         empty_selected: tuple[NodeRef, ...] = ()
-        return DailyRunResult(
+        blocked_result = DailyRunResult(
             run_id=run_id,
             as_of_date=as_of_date,
             snapshot_id=snapshot_id,
@@ -368,9 +406,27 @@ def start_daily_run(
             orchestrator_version=orchestrator_version,
             generated_at=_derive_generated_at(empty_target_results, as_of_date),
         )
+        complete_start = timer_start()
+        _emit_daily_run_operation(
+            "daily_run_complete",
+            status=canonical_terminal_run_status_status(blocked_result.terminal_status),
+            start_time=complete_start,
+            run_id=run_id,
+            as_of_date=as_of_date,
+            snapshot_id=snapshot_id,
+            terminal_status=blocked_result.terminal_status,
+            degraded=blocked_result.degraded,
+            partial=blocked_result.partial,
+            selected_count=0,
+            assessment_count=0,
+            service_error_count=0,
+        )
+        return blocked_result
 
     # Stage 3 — target_selection (pass-through with MISSING_NODE filter)
+    selection_start = timer_start()
     selected_list: list[NodeRef] = []
+    excluded_missing_node_count = 0
     for node_ref in candidate_targets:
         selection_outcome = get_risk_summary(
             node_ref=node_ref,
@@ -381,15 +437,27 @@ def start_daily_run(
         )
         if isinstance(selection_outcome, ServiceError):
             if selection_outcome.status_code == "MISSING_NODE":
+                excluded_missing_node_count += 1
                 continue
             raise RuntimeError("readiness invariant violated after gate passed")
         selected_list.append(node_ref)
     selected_targets = tuple(selected_list)
+    _emit_daily_run_operation(
+        "daily_run.target_selection",
+        status="OK",
+        start_time=selection_start,
+        run_id=run_id,
+        candidate_count=len(candidate_targets),
+        selected_count=len(selected_targets),
+        excluded_missing_node_count=excluded_missing_node_count,
+    )
 
     # Stage 4 — target_routing (constant: every selected target → data_controller)
-    # No telemetry in this slice; routing is implicit in the Stage 5 call shape.
+    # Routing is implicit in the Stage 5 call shape. PRD-5.1 intentionally
+    # forbids a standalone target_routing telemetry event in v1.
 
     # Stage 5 — investigation (one walker call per selected target, sequentially)
+    investigation_start = timer_start()
     raw_outcomes: list[IntegrityAssessment | ServiceError] = []
     for node_ref in selected_targets:
         # Per PRD-4.1: walker may raise ValueError for invalid inputs; that
@@ -403,6 +471,17 @@ def start_daily_run(
             controls_fixture_index=controls_fixture_index,
         )
         raw_outcomes.append(walker_outcome)
+    assessment_count = sum(1 for outcome in raw_outcomes if isinstance(outcome, IntegrityAssessment))
+    service_error_count = len(raw_outcomes) - assessment_count
+    _emit_daily_run_operation(
+        "daily_run.investigation",
+        status="OK",
+        start_time=investigation_start,
+        run_id=run_id,
+        selected_count=len(selected_targets),
+        assessment_count=assessment_count,
+        service_error_count=service_error_count,
+    )
 
     # Stage 6 — synthesis (structural collation; upstream object propagated by reference)
     target_results = tuple(
@@ -417,11 +496,39 @@ def start_daily_run(
     )
 
     # Stage 7 — challenge (per-target gate; reason codes propagated unchanged)
+    challenge_start = timer_start()
     handoff = tuple(_build_handoff_entry(r) for r in target_results)
+    ready_for_handoff_count = sum(1 for entry in handoff if entry.handoff_status is HandoffStatus.READY_FOR_HANDOFF)
+    proceed_with_caveat_count = sum(1 for entry in handoff if entry.handoff_status is HandoffStatus.PROCEED_WITH_CAVEAT)
+    hold_blocking_trust_count = sum(1 for entry in handoff if entry.handoff_status is HandoffStatus.HOLD_BLOCKING_TRUST)
+    hold_unresolved_trust_count = sum(1 for entry in handoff if entry.handoff_status is HandoffStatus.HOLD_UNRESOLVED_TRUST)
+    hold_investigation_failed_count = sum(
+        1 for entry in handoff if entry.handoff_status is HandoffStatus.HOLD_INVESTIGATION_FAILED
+    )
+    _emit_daily_run_operation(
+        "daily_run.challenge",
+        status="OK",
+        start_time=challenge_start,
+        run_id=run_id,
+        ready_for_handoff_count=ready_for_handoff_count,
+        proceed_with_caveat_count=proceed_with_caveat_count,
+        hold_blocking_trust_count=hold_blocking_trust_count,
+        hold_unresolved_trust_count=hold_unresolved_trust_count,
+        hold_investigation_failed_count=hold_investigation_failed_count,
+    )
 
     # Stage 8 — handoff (structural assembly only; no I/O)
+    handoff_start = timer_start()
+    _emit_daily_run_operation(
+        "daily_run.handoff",
+        status="OK",
+        start_time=handoff_start,
+        run_id=run_id,
+        handoff_count=len(handoff),
+    )
 
     # Stage 9 — persist
+    complete_start = timer_start()
     terminal_status = _derive_terminal_status(selected_targets, target_results, handoff)
     degraded = any(
         r.outcome_kind is OutcomeKind.ASSESSMENT and r.assessment is not None and r.assessment.assessment_status is AssessmentStatus.DEGRADED
@@ -432,7 +539,7 @@ def start_daily_run(
     partial = has_service_error and has_assessment
     generated_at = _derive_generated_at(target_results, as_of_date)
 
-    return DailyRunResult(
+    result = DailyRunResult(
         run_id=run_id,
         as_of_date=as_of_date,
         snapshot_id=snapshot_id,
@@ -449,3 +556,18 @@ def start_daily_run(
         orchestrator_version=orchestrator_version,
         generated_at=generated_at,
     )
+    _emit_daily_run_operation(
+        "daily_run_complete",
+        status=canonical_terminal_run_status_status(result.terminal_status),
+        start_time=complete_start,
+        run_id=run_id,
+        as_of_date=as_of_date,
+        snapshot_id=snapshot_id,
+        terminal_status=result.terminal_status,
+        degraded=result.degraded,
+        partial=result.partial,
+        selected_count=len(selected_targets),
+        assessment_count=assessment_count,
+        service_error_count=service_error_count,
+    )
+    return result
