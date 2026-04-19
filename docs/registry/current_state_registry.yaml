@@ -97,7 +97,7 @@ components:
   orchestrators:
     - id: ORCH-DAILY-RISK-INVESTIGATION
       name: Daily Risk Investigation
-      status: proposed
+      status: in-progress
       contract_status: draft
     - id: ORCH-LIMIT-BREACH
       name: Limit Breach
