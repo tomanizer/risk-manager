@@ -1,6 +1,5 @@
 version: 2
 last_updated: 2026-04-19
-# PM boundary decisions recorded inline; see closed_decisions at module dashboard level.
 
 module_dashboards:
   - id: MODULE-1-VAR
@@ -28,13 +27,12 @@ module_dashboards:
       - Quant Walker v2 contract is not yet defined.
       - Time Series Walker v1 PRD is missing.
       - Daily Risk Investigation Orchestrator v2 multi-walker routing is missing.
+      - Governance / Reporting Walker v1 PRD is missing.
     not_required_for_mvp:
       - Market Context Walker
       - Critic / Challenge Walker
       - Human workflow / UX layer
       - Advanced production scheduling
-      - Live-data integration and production database adapter (PM decision 2026-04-19 — post-MVP; near-term priority)
-      - Governance / Reporting Walker v1 (PM decision 2026-04-19 — typed handoff sufficient for MVP; near-term post-MVP)
     journey_stages:
       - id: deterministic_foundation
         label: Deterministic foundation
@@ -76,11 +74,12 @@ module_dashboards:
           - get_risk_history
           - get_risk_change_profile
           - fixture loader and business-day resolver
-        missing_for_mvp: []
+        missing_for_mvp:
+          - Decide whether production data integration is inside MVP scope.
         missing_prds: []
         needs_new_prd_version: false
         next_version_reason: ""
-        next_slice: "No MVP gap. Production data integration is post-MVP (PM decision 2026-04-19 — DECISION-MVP-01)."
+        next_slice: Decide whether a production adapter PRD is required for MVP.
       - component_ref: MOD-CONTROLS-INTEGRITY
         layer: module
         current_state: implemented
@@ -153,27 +152,26 @@ module_dashboards:
         layer: walker
         current_state: not_started
         implemented_now: []
-        missing_for_mvp: []
+        missing_for_mvp:
+          - governance-ready output
         missing_prds:
           - PRD-TBD-Governance-Reporting-Walker-v1
         needs_new_prd_version: true
-        next_version_reason: >-
-          Post-MVP (PM decision 2026-04-19). Typed DailyRunResult handoff is sufficient
-          for MVP. Governance Walker input types depend on Quant Walker v2 and Time
-          Series Walker v1 output contracts, which are not yet defined.
-        next_slice: Post-MVP (near-term) — author Governance / Reporting Walker v1 PRD after Quant Walker v2 and Time Series Walker v1 PRDs are settled.
+        next_version_reason: Capability has no v1 implementation PRD yet.
+        next_slice: Author Governance / Reporting Walker v1 PRD.
       - name: Production integration
         layer: cross-cutting
         current_state: not_started
         implemented_now: []
-        missing_for_mvp: []
+        missing_for_mvp:
+          - explicit live execution / persistence decision
         missing_prds:
           - PRD-TBD-Module-1-Production-Integration
         needs_new_prd_version: true
         next_version_reason: >-
-          Post-MVP (PM decision 2026-04-19). MVP is fixture-backed and operator-invoked.
-          Live-data integration and database persistence are a near-term post-MVP priority.
-        next_slice: Post-MVP — author production integration PRD after the analytical interpretation layer (Quant Walker v2, Time Series Walker v1) is contracted.
+          Module 1 does not yet define whether MVP is fixture-backed only or
+          requires live execution semantics.
+        next_slice: Decide whether production integration is inside or after MVP, then author the required PRD.
     prd_lineage:
       - capability: Risk Analytics
         active_prd: PRD-1.1-v2
@@ -216,59 +214,23 @@ module_dashboards:
         status: missing
         supersedes: ""
         next_needed_prd: PRD-TBD-Governance-Reporting-Walker-v1
-        why: Post-MVP (near-term). Typed handoff sufficient for MVP per PM decision 2026-04-19; PRD to be authored after Quant Walker v2 and Time Series Walker v1 are contracted.
+        why: Capability required for MVP but no implementation PRD exists.
     in_progress_items: []
     next_recommended_slices:
-      - "Deliver WI-5.1.4 (replay determinism tests) — Coding Agent, no blockers."
-      - "Author PRD-4.2-v2 for interpretive Quant Walker output — PRD / Spec Author."
-      - "Author Time Series Walker v1 PRD — PRD / Spec Author (can run in parallel with PRD-4.2-v2)."
-      - "Author PRD-5.1-v2 for multi-walker orchestration — PRD / Spec Author (after Quant Walker v2 output types are defined)."
-      - "[Post-MVP] Author Governance / Reporting Walker v1 PRD after Quant v2 and Time Series v1 are contracted."
-      - "[Post-MVP near-term priority] Author production integration PRD for live-data and database persistence."
+      - Author PRD-4.2-v2 for interpretive Quant Walker output.
+      - Author Time Series Walker v1 PRD.
+      - Author PRD-5.1-v2 for multi-walker orchestration.
+      - Author Governance / Reporting Walker v1 PRD.
     post_mvp_enhancements:
-      - Live-data integration and production database adapter (near-term priority — see closed decision DECISION-MVP-01)
-      - Governance / Reporting Walker v1 (near-term — see closed decision DECISION-MVP-02)
       - Market Context Walker
       - Critic / Challenge Walker
       - Human workflow and UX layer
-      - richer production operations and scheduling
-    open_questions: []
-    closed_decisions:
-      - id: DECISION-MVP-01
-        date: "2026-04-19"
-        question: "Is live-data integration inside Module 1 MVP or immediately post-MVP?"
-        decision: >-
-          Post-MVP. MVP is fixture-backed, operator-invoked execution only.
-          Live-data integration and database persistence are explicitly deferred
-          to the post-MVP production operations stage.
-        rationale: >-
-          Narrowest path consistent with ADR-002 replay-first discipline. The
-          analytical interpretation layer (Quant Walker v2, Time Series Walker v1)
-          can be fully contracted and delivered without a live-data adapter.
-        note: >-
-          Live-data and database persistence must be implemented as a near-term
-          post-MVP priority. Do not delay this indefinitely after MVP closes.
-      - id: DECISION-MVP-02
-        date: "2026-04-19"
-        question: "Is Governance / Reporting Walker required for MVP or can typed handoff suffice?"
-        decision: >-
-          Typed handoff is sufficient for MVP. The DailyRunResult with
-          TargetHandoffEntry objects (handoff_status, blocking_reason_codes,
-          cautionary_reason_codes) constitutes a machine-readable governance-ready
-          handoff. Governance / Reporting Walker is deferred to near-term post-MVP.
-        rationale: >-
-          Governance Walker input types depend on Quant Walker v2 and Time Series
-          Walker v1 typed outputs, which are not yet contracted. Authoring its PRD
-          before those contracts exist would require speculating on input types.
-          Defer until Quant v2 and Time Series v1 PRDs are settled.
-        note: >-
-          Governance / Reporting Walker v1 PRD should be authored immediately after
-          Quant Walker v2 and Time Series Walker v1 PRDs are in draft, not after
-          their implementations are complete.
+      - richer production operations
+    open_questions:
+      - Is live-data integration inside Module 1 MVP or immediately post-MVP?
+      - Is Governance / Reporting Walker required for MVP or can typed handoff suffice?
     change_log:
       - "2026-04-19: Initial Module 1 dashboard seed added to the registry."
-      - "2026-04-19: PM decision DECISION-MVP-01 — MVP is fixture-backed only; live-data is post-MVP near-term priority."
-      - "2026-04-19: PM decision DECISION-MVP-02 — typed handoff sufficient for MVP; Governance Walker deferred to near-term post-MVP."
 
 components:
   modules:
@@ -421,14 +383,14 @@ components:
       missing_prds:
         - PRD-TBD-Governance-Reporting-Walker-v1
       needs_new_prd_version: true
-      next_version_reason: >-
-        Post-MVP (PM decision 2026-04-19). Typed handoff sufficient for MVP.
-        PRD to be authored after Quant Walker v2 and Time Series Walker v1 are contracted.
+      next_version_reason: Capability does not yet have a v1 implementation PRD.
       delivery_stage: not_started
-      mvp_relevance: []
-      missing_for_mvp: []
+      mvp_relevance:
+        - MODULE-1-VAR
+      missing_for_mvp:
+        - governance-ready output
       next_recommended_slices:
-        - Post-MVP (near-term) — author Governance / Reporting Walker v1 PRD after Quant v2 and Time Series v1 PRDs are settled.
+        - Author Governance / Reporting Walker v1 PRD.
     - id: WALKER-CRITIC-CHALLENGE
       name: Critic / Challenge Walker
       status: proposed
