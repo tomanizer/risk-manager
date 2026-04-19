@@ -56,6 +56,10 @@ These tests must use the existing fixture infrastructure and must not add new fi
 
 ## Dependencies
 
+Runtime-gated prerequisite:
+
+- WI-5.1.3-telemetry-adoption-and-adoption-matrix-flip
+
 Canon (not WI-gated):
 
 - PRD-5.1

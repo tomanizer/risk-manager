@@ -2,11 +2,11 @@
 
 ## Status
 
-**DONE (draft state transition)** — verified against `origin/main` on 2026-04-19. The Quant Walker delegate slice is implemented on `main`; the remaining issue is work-item state hygiene.
+**ARCHIVED TRANSITION NOTE** — verified against `origin/main` on 2026-04-19. The Quant Walker delegate slice is implemented on `main`; this note is archived outside scanned stage directories so it does not create a duplicate canonical WI.
 
 ## Blocker
 
-- None. This local file is a draft to move the canonical WI from `work_items/in_progress/` to `work_items/done/`.
+- None. This archived note records the recommended state correction for the canonical WI tracked on `main`.
 
 ## Linked PRD
 
