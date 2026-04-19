@@ -59,7 +59,7 @@ components:
   walkers:
     - id: WALKER-QUANT
       name: Quant Walker
-      status: proposed
+      status: in-progress
       contract_status: draft
     - id: WALKER-TIME-SERIES
       name: Time Series Walker
