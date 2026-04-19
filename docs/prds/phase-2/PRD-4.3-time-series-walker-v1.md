@@ -17,7 +17,7 @@
 - **Related canon:** `docs/05_walker_charters.md` (Time Series Walker charter), `docs/roadmap/module_1_var_dashboard.md` (Module 1 MVP scope and closed decisions DECISION-MVP-01 / DECISION-MVP-02)
 - **Related components (existing on `main`):** `src/modules/risk_analytics/` (service), `src/modules/risk_analytics/contracts/` (typed contracts: `RiskChangeProfile`, `VolatilityRegime`, `VolatilityChangeFlag`, `SummaryStatus`, `MeasureType`, `NodeRef`), `src/modules/risk_analytics/fixtures/` (`FixtureIndex`, `build_fixture_index`), `src/walkers/data_controller/` and `src/walkers/quant/` (sibling walkers; structural reference only), `src/walkers/README.md` (walker package conventions), `src/shared/` (`ServiceError`), `src/shared/telemetry/` (`emit_operation`, `node_ref_log_dict`, `timer_start`)
 - **Planned components (created by the implementation WIs, not yet on `main`):** `src/walkers/time_series/` package (created by WI-4.3.2) <!-- drift-ignore -->
-- **Exemplar:** none. No `docs/prd_exemplars/PRD-4.3-time-series-walker.md` exists for v1; alignment with any future Time Series Walker exemplar is registered as a v2+ Open Question.
+- **Exemplar:** `docs/prd_exemplars/PRD-4.3-time-series-walker.md` (minimal sketch; non-normative for v1 — the Phase 2 PRD is the contract)
 
 ## Purpose
 
@@ -54,7 +54,7 @@ Richer behavior (multi-target, multi-measure, raw-history-series exposure, narra
 
 - New `time_series` package under `src/walkers/`, created by WI-4.3.2 <!-- drift-ignore -->
 - Single public entry point `assess_time_series` over the public `get_risk_change_profile` API
-- New typed wrapper output `TimeSeriesAssessment` plus five supporting `StrEnum` vocabularies (`TrendAssessment`, `OutlierFlag`, `RegimeChangeSignal`, `TimeSeriesConfidence`, `TimeSeriesCaveatCode`) — defined under `src/walkers/time_series/contracts/` (or equivalent module layout per existing walker conventions)
+- New typed wrapper output `TimeSeriesAssessment` plus five supporting `StrEnum` vocabularies (`TrendAssessment`, `OutlierFlag`, `RegimeChangeSignal`, `TimeSeriesConfidence`, `TimeSeriesCaveatCode`) — defined under `src/walkers/time_series/contracts/` (or equivalent module layout per existing walker conventions) <!-- drift-ignore -->
 - Deterministic walker-owned classification rules over `RiskChangeProfile` typed fields (current value, rolling mean/std/min/max, history points used, volatility regime, volatility change flag, status), fully enumerated in this PRD
 - Confidence-level inference deterministically derived from upstream typed fields (`history_points_used`, `status`, `volatility_regime`)
 - Caveat-code emission deterministically derived from upstream typed fields and from the walker's own classification outcomes
@@ -718,7 +718,7 @@ This PRD is implemented by four bounded work items. The PM / Issue Planner deriv
 - **Telemetry of interpretive outcomes.** The `assess_time_series` event in v1 emits only minimal context. A future telemetry slice could add `trend_assessment`, `confidence`, and `caveat_codes_count` as low-cardinality counters or labels. Requires adoption matrix coordination and follow-on shared-telemetry design (e.g., metrics adapters per `docs/shared_infra/telemetry.md` recommended layout).
 - **Narrative caveats.** The `caveat_codes` vocabulary is structured and closed. Free-text narrative caveats remain a Governance / Reporting Walker concern (post-MVP near-term). If a downstream consumer requires walker-authored prose, a v2+ PRD must add it explicitly with a new field and associated typed contract.
 - **Walker-emitted recommended-next-step.** The walker does not emit recommended next steps. Whether to add a structured `recommended_next_step: NextStep | None` field tied to a closed vocabulary (e.g., `INVESTIGATE_OUTLIER`, `MONITOR_REGIME_SHIFT`, `NO_ACTION`) is a v2+ design choice with downstream-routing implications; defer until orchestrator / governance consumption patterns are clearer.
-- **Time Series Walker exemplar alignment.** No exemplar exists at `docs/prd_exemplars/PRD-4.3-time-series-walker.md`. If one is authored, this PRD should be reviewed for alignment before any v2+ behavior is added. The exemplar must be treated as non-normative for v1 unless and until a future PRD update adopts it.
+- **Time Series Walker exemplar alignment.** A minimal sketch lives at `docs/prd_exemplars/PRD-4.3-time-series-walker.md`. If the exemplar grows materially, this PRD should be reviewed for alignment before any v2+ behavior is added. The exemplar remains non-normative for v1 unless and until a future PRD update adopts it.
 
 ## Reviewer checklist
 
@@ -736,7 +736,7 @@ This PRD is implemented by four bounded work items. The PM / Issue Planner deriv
 - Adoption matrix `src/walkers/` row Notes are extended to reflect Time Series Walker telemetry coverage when WI-4.3.4 lands (no row status change required since `src/walkers/` is already `adopted`)
 - Acceptance criteria, classification truth-table tests, parity tests, and replay tests are sufficient for WI-4.3.2 / WI-4.3.3 / WI-4.3.4 coding without guesswork
 - No new ADR-level concept, no new shared-infra contract, no schema change to PRD-1.1-v2 contracts has leaked in
-- Backtick-wrapped repository paths in this PRD either exist on `main` (`src/modules/risk_analytics/`, `src/modules/risk_analytics/contracts/`, `src/modules/risk_analytics/fixtures/`, `src/walkers/data_controller/`, `src/walkers/quant/`, `src/walkers/README.md`, `src/shared/`, `src/shared/telemetry/`, all `docs/...` paths) or are explicitly called out as planned with a linked work item in the header (`src/walkers/time_series/` — created by WI-4.3.2), consistent with reference-integrity and registry-alignment checks
+- Backtick-wrapped repository paths in this PRD either exist on `main` (`src/modules/risk_analytics/`, `src/modules/risk_analytics/contracts/`, `src/modules/risk_analytics/fixtures/`, `src/walkers/data_controller/`, `src/walkers/quant/`, `src/walkers/README.md`, `src/shared/`, `src/shared/telemetry/`, all `docs/...` paths) or are explicitly called out as planned with a linked work item in the header (src/walkers/time_series/ — created by WI-4.3.2), consistent with reference-integrity and registry-alignment checks
 - Out-of-scope items have not silently leaked into v1 (`get_risk_history`, raw-series exposure, narrative prose, recommended-next-step, hierarchy localization, multi-target loop, multi-measure synthesis, Data Controller trust gate inside the walker, materiality logic, live-data integration, durable persistence, governance pack assembly)
 - Downstream consumer contract section is unambiguous enough that PRD-5.1-v2 and the future Governance / Reporting Walker v1 PRD authors can specify their inputs against this walker's surface without further negotiation
 
