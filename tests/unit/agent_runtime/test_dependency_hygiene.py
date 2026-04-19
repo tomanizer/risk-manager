@@ -176,6 +176,21 @@ def test_dependency_hygiene_skips_non_utf8_instruction_files(tmp_path: Path) -> 
     assert report.findings == ()
 
 
+def test_dependency_hygiene_maps_yaml_import_to_pyyaml_distribution(tmp_path: Path) -> None:
+    _write_pyproject(
+        tmp_path,
+        project_dependencies=["pydantic>=2.0,<3.0"],
+        optional_dependencies={"dev": ["PyYAML>=6.0,<7.0"]},
+    )
+    script_path = tmp_path / "scripts" / "render.py"
+    script_path.parent.mkdir(parents=True)
+    script_path.write_text("import yaml\n", encoding="utf-8")
+
+    report = build_dependency_hygiene_report(tmp_path)
+
+    assert report.findings == ()
+
+
 def test_check_dependency_hygiene_cli_writes_json_report(tmp_path: Path) -> None:
     _write_pyproject(
         tmp_path,

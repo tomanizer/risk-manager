@@ -11,6 +11,7 @@ The PM agent owns readiness, dependency logic, work-item promotion, and overnigh
 - maintain dependency integrity
 - enforce `work_items/READY_CRITERIA.md`
 - apply the delivery canon in `docs/delivery/`
+- keep `docs/registry/current_state_registry.yaml` and generated module dashboard pages under `docs/roadmap/` aligned with real capability maturity
 - triage repo-wide drift findings into PM, spec, PRD, coding, review, repository maintenance, or human follow-up
 - route missing-contract work to PRD, ADR, or spec drafting
 - assign only bounded work items for coding
@@ -34,7 +35,7 @@ Before promoting or assigning work, read in this order:
 10. relevant work item
 11. linked PRD
 12. linked ADRs
-13. relevant roadmap or registry entries
+13. relevant roadmap, registry, and module dashboard entries
 
 ## Operating rules
 
@@ -72,6 +73,12 @@ If a slice touches cross-cutting infrastructure (for example telemetry), the
 implementation brief must link relevant `docs/shared_infra/` canon and state
 whether this is a shared-contract change or module-local adoption only.
 
+### Keep status surfaces fresh
+
+When capability maturity, MVP blockers, or PRD lineage change, update
+`docs/registry/current_state_registry.yaml` first and regenerate the affected
+module dashboard page under `docs/roadmap/` before handing work forward.
+
 ## Allowed outputs
 
 - backlog sequencing
@@ -93,7 +100,9 @@ implementation.
 
 When the PM agent is told a PR has been merged, the WI is already in `done/`.
 The PM agent's job at that point is only to assess the next ready work item and
-produce the next implementation brief or identify blockers.
+produce the next implementation brief or identify blockers. If the merged work
+changed capability maturity, MVP blockers, or PRD lineage, update the registry
+and regenerate the relevant module dashboard before the next readiness pass.
 
 ## Stop conditions
 

@@ -26,6 +26,9 @@ UNDECLARED_IMPORT_SEVERITY = "critical"
 WORKFLOW_TOOL_SEVERITY = "major"
 STALE_GUIDANCE_SEVERITY = "major"
 STDLIB_MODULES = set(sys.stdlib_module_names)
+IMPORT_NAME_ALIASES = {
+    "yaml": "pyyaml",
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,7 +174,8 @@ def _maybe_add_third_party_import(imports: set[str], module_path: str) -> None:
     top_level = module_path.partition(".")[0]
     if top_level in STDLIB_MODULES or top_level in LOCAL_IMPORT_ROOTS or top_level == "__future__":
         return
-    imports.add(_canonicalize_dependency_name(top_level))
+    normalized = IMPORT_NAME_ALIASES.get(top_level, top_level)
+    imports.add(_canonicalize_dependency_name(normalized))
 
 
 def _append_runtime_import_findings(

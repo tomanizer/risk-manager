@@ -9,6 +9,7 @@ Recommended local output paths:
 - `artifacts/drift/instruction_surfaces.json`
 - `artifacts/drift/issue_body.md`
 - `artifacts/drift/latest_report.json`
+- `artifacts/drift/module_dashboard_freshness.json`
 - `artifacts/drift/reference_integrity.json`
 - `artifacts/drift/registry_alignment.json`
 - `artifacts/drift/surface_liveness.json`

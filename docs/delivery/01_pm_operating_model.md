@@ -20,6 +20,7 @@ The PM agent is responsible for deciding whether work is truly ready, whether it
 - overnight sequencing and morning handoff summaries
 - escalation when canon is incomplete
 - triage of drift-monitor findings into the correct owner queue
+- freshness of registry-backed module dashboard state when capability maturity, PRD lineage, or MVP blockers change
 
 ## What the PM agent does not own
 
@@ -74,3 +75,4 @@ Every PM readiness pass should produce:
 6. explicit out-of-scope reminders
 7. implementation brief
 8. stop conditions for the coding agent
+9. any required updates to `docs/registry/current_state_registry.yaml` and generated module dashboard pages under `docs/roadmap/`

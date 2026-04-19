@@ -13,8 +13,9 @@ The review agent is not a style enforcer first. Its main job is to detect wrong 
 3. linked PRD
 4. linked ADRs
 5. `docs/shared_infra/index.md` (when shared infra is touched)
-6. relevant changed files
-7. relevant tests
+6. relevant roadmap / registry / module dashboard entries when the PR changes capability maturity or PRD lineage
+7. relevant changed files
+8. relevant tests
 
 ## Review priorities
 
@@ -45,7 +46,13 @@ If the PR affects deterministic or governed outputs, are replay and evidence hoo
 
 Do tests cover positive, negative, edge, and degraded cases required by the PRD?
 
-### 7. Work-item lifecycle
+### 7. Status-surface freshness
+
+If the PR changes capability maturity, MVP blockers, or PRD lineage, were
+`docs/registry/current_state_registry.yaml` and any affected generated module
+dashboard pages under `docs/roadmap/` updated to reflect that new reality?
+
+### 8. Work-item lifecycle
 
 Not a review check — the review agent performs this action itself after
 issuing PASS (see "GitHub actions required during review", step 4).

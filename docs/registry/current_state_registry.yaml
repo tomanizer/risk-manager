@@ -1,12 +1,257 @@
-version: 1
-last_updated: 2026-04-18
+version: 2
+last_updated: 2026-04-19
+
+module_dashboards:
+  - id: MODULE-1-VAR
+    name: "Module 1 Dashboard: End-to-End VaR Workflow"
+    owner_role: PM / Coordination Agent
+    dashboard_path: docs/roadmap/module_1_var_dashboard.md
+    overall_state: MVP_PARTIAL
+    delivery_phase: Phase 5
+    mission: >-
+      Deliver a replayable, deterministic, explainable daily VaR investigation
+      workflow for Module 1 using governed deterministic services, specialist
+      walkers, and bounded orchestration.
+    mvp_definition:
+      - deterministic VaR retrieval and change-profile analysis
+      - trust / readiness assessment
+      - quantitative interpretation
+      - time-series interpretation
+      - orchestrated investigation flow
+      - governance-ready handoff output
+    summary: >-
+      Deterministic risk analytics and controls-integrity foundations are
+      implemented. The bounded daily orchestrator exists. Multi-walker
+      analytical interpretation and governance-ready output are still missing.
+    current_mvp_blockers:
+      - Quant Walker v2 contract is not yet defined.
+      - Time Series Walker v1 PRD is missing.
+      - Daily Risk Investigation Orchestrator v2 multi-walker routing is missing.
+      - Governance / Reporting Walker v1 PRD is missing.
+    not_required_for_mvp:
+      - Market Context Walker
+      - Critic / Challenge Walker
+      - Human workflow / UX layer
+      - Advanced production scheduling
+    journey_stages:
+      - id: deterministic_foundation
+        label: Deterministic foundation
+        goal: canonical deterministic VaR analytics
+        status: done
+        notes: Risk Analytics and Controls Integrity deterministic services are implemented.
+      - id: trust_gate
+        label: Trust / controls gate
+        goal: determine whether data is safe to interpret
+        status: done
+        notes: Data Controller Walker and bounded trust-gate orchestration exist.
+      - id: analytical_interpretation
+        label: Analytical interpretation
+        goal: explain quantitative movement and historical context
+        status: partial
+        notes: Quant Walker exists as a delegate only; Time Series Walker is missing.
+      - id: workflow_orchestration
+        label: Workflow orchestration
+        goal: route, synthesize, challenge, and hand off the investigation
+        status: partial
+        notes: Daily orchestrator exists but is single-walker only.
+      - id: governance_handoff
+        label: Governance-ready handoff
+        goal: produce management-ready conclusions and actions
+        status: not_started
+        notes: Governance / Reporting Walker is not implemented.
+      - id: production_operation
+        label: Production operation
+        goal: durable, repeatable, live execution
+        status: not_started
+        notes: Durable persistence and live execution contracts are not yet implemented.
+    capabilities:
+      - component_ref: MOD-RISK-ANALYTICS
+        layer: module
+        current_state: implemented
+        implemented_now:
+          - get_risk_summary
+          - get_risk_delta
+          - get_risk_history
+          - get_risk_change_profile
+          - fixture loader and business-day resolver
+        missing_for_mvp:
+          - Decide whether production data integration is inside MVP scope.
+        missing_prds: []
+        needs_new_prd_version: false
+        next_version_reason: ""
+        next_slice: Decide whether a production adapter PRD is required for MVP.
+      - component_ref: MOD-CONTROLS-INTEGRITY
+        layer: module
+        current_state: implemented
+        implemented_now:
+          - IntegrityAssessment service
+          - shared evidence refs
+          - replay and validation coverage
+        missing_for_mvp:
+          - none
+        missing_prds: []
+        needs_new_prd_version: false
+        next_version_reason: ""
+        next_slice: No immediate MVP gap; extend only if new control families are required.
+      - component_ref: WALKER-DATA-CONTROLLER
+        layer: walker
+        current_state: implemented
+        implemented_now:
+          - assess_integrity delegate
+          - walker telemetry
+        missing_for_mvp:
+          - none
+        missing_prds: []
+        needs_new_prd_version: false
+        next_version_reason: ""
+        next_slice: Keep stable unless downstream consumers require richer walker-owned output.
+      - component_ref: WALKER-QUANT
+        layer: walker
+        current_state: delegate_only
+        implemented_now:
+          - summarize_change delegate over get_risk_change_profile
+        missing_for_mvp:
+          - interpretive quantitative walker output
+        missing_prds: []
+        needs_new_prd_version: true
+        next_version_reason: >-
+          Current PRD covers delegation-only v1. Module 1 MVP needs actual
+          walker inference over deterministic risk change output.
+        next_slice: Author PRD-4.2-v2 for interpretive Quant Walker output.
+      - component_ref: WALKER-TIME-SERIES
+        layer: walker
+        current_state: not_started
+        implemented_now: []
+        missing_for_mvp:
+          - full time-series interpretation capability
+        missing_prds:
+          - PRD-TBD-Time-Series-Walker-v1
+        needs_new_prd_version: true
+        next_version_reason: Capability has no v1 implementation PRD yet.
+        next_slice: Author Time Series Walker v1 PRD.
+      - component_ref: ORCH-DAILY-RISK-INVESTIGATION
+        layer: orchestrator
+        current_state: partial
+        implemented_now:
+          - bounded single-walker daily run
+          - target selection
+          - challenge gate
+          - typed handoff
+          - shared telemetry
+        missing_for_mvp:
+          - multi-walker routing
+          - multi-walker synthesis
+          - governance-ready downstream path
+        missing_prds: []
+        needs_new_prd_version: true
+        next_version_reason: >-
+          PRD-5.1 intentionally excludes quant/time-series routing and richer
+          orchestration behavior required for Module 1 MVP.
+        next_slice: Author PRD-5.1-v2 for multi-walker orchestration.
+      - component_ref: WALKER-GOVERNANCE-REPORTING
+        layer: walker
+        current_state: not_started
+        implemented_now: []
+        missing_for_mvp:
+          - governance-ready output
+        missing_prds:
+          - PRD-TBD-Governance-Reporting-Walker-v1
+        needs_new_prd_version: true
+        next_version_reason: Capability has no v1 implementation PRD yet.
+        next_slice: Author Governance / Reporting Walker v1 PRD.
+      - name: Production integration
+        layer: cross-cutting
+        current_state: not_started
+        implemented_now: []
+        missing_for_mvp:
+          - explicit live execution / persistence decision
+        missing_prds:
+          - PRD-TBD-Module-1-Production-Integration
+        needs_new_prd_version: true
+        next_version_reason: >-
+          Module 1 does not yet define whether MVP is fixture-backed only or
+          requires live execution semantics.
+        next_slice: Decide whether production integration is inside or after MVP, then author the required PRD.
+    prd_lineage:
+      - capability: Risk Analytics
+        active_prd: PRD-1.1-v2
+        status: active
+        supersedes: PRD-1.1-v1
+        next_needed_prd: ""
+        why: Current deterministic bounded scope is stable.
+      - capability: Controls Integrity
+        active_prd: PRD-2.1
+        status: active
+        supersedes: ""
+        next_needed_prd: ""
+        why: Current bounded trust-assessment scope is stable.
+      - capability: Data Controller Walker
+        active_prd: PRD-4.1
+        status: active
+        supersedes: ""
+        next_needed_prd: ""
+        why: v1 delegate is sufficient for the current trust-gate role.
+      - capability: Quant Walker
+        active_prd: PRD-4.2
+        status: active
+        supersedes: ""
+        next_needed_prd: PRD-4.2-v2
+        why: v1 is delegation-only; Module 1 MVP needs interpretive walker output.
+      - capability: Time Series Walker
+        active_prd: ""
+        status: missing
+        supersedes: ""
+        next_needed_prd: PRD-TBD-Time-Series-Walker-v1
+        why: Capability required for MVP but no implementation PRD exists.
+      - capability: Daily Risk Investigation Orchestrator
+        active_prd: PRD-5.1
+        status: active
+        supersedes: ""
+        next_needed_prd: PRD-5.1-v2
+        why: Current orchestrator is bounded to a single-walker flow.
+      - capability: Governance / Reporting Walker
+        active_prd: ""
+        status: missing
+        supersedes: ""
+        next_needed_prd: PRD-TBD-Governance-Reporting-Walker-v1
+        why: Capability required for MVP but no implementation PRD exists.
+    in_progress_items: []
+    next_recommended_slices:
+      - Author PRD-4.2-v2 for interpretive Quant Walker output.
+      - Author Time Series Walker v1 PRD.
+      - Author PRD-5.1-v2 for multi-walker orchestration.
+      - Author Governance / Reporting Walker v1 PRD.
+    post_mvp_enhancements:
+      - Market Context Walker
+      - Critic / Challenge Walker
+      - Human workflow and UX layer
+      - richer production operations
+    open_questions:
+      - Is live-data integration inside Module 1 MVP or immediately post-MVP?
+      - Is Governance / Reporting Walker required for MVP or can typed handoff suffice?
+    change_log:
+      - "2026-04-19: Initial Module 1 dashboard seed added to the registry."
 
 components:
   modules:
     - id: MOD-RISK-ANALYTICS
       name: Risk Analytics
-      status: in-progress
+      status: implemented
       contract_status: implemented
+      active_prds:
+        - PRD-1.1-v2
+      superseded_prds:
+        - PRD-1.1-v1
+      missing_prds: []
+      needs_new_prd_version: false
+      next_version_reason: ""
+      delivery_stage: foundation_implemented
+      mvp_relevance:
+        - MODULE-1-VAR
+      missing_for_mvp:
+        - Decide whether production integration belongs in MVP scope.
+      next_recommended_slices:
+        - Decide whether a production adapter PRD is required for MVP.
       sub_components:
         - name: contracts
           path: src/modules/risk_analytics/contracts/
@@ -25,8 +270,20 @@ components:
           status: implemented
     - id: MOD-CONTROLS-INTEGRITY
       name: Controls Integrity
-      status: in-progress
+      status: implemented
       contract_status: implemented
+      active_prds:
+        - PRD-2.1
+      superseded_prds: []
+      missing_prds: []
+      needs_new_prd_version: false
+      next_version_reason: ""
+      delivery_stage: foundation_implemented
+      mvp_relevance:
+        - MODULE-1-VAR
+      missing_for_mvp: []
+      next_recommended_slices:
+        - No immediate MVP gap; extend only if new control families are required.
       sub_components:
         - name: contracts
           path: src/modules/controls_integrity/contracts/
@@ -59,16 +316,56 @@ components:
   walkers:
     - id: WALKER-QUANT
       name: Quant Walker
-      status: in-progress
-      contract_status: draft
+      status: implemented
+      contract_status: implemented
+      active_prds:
+        - PRD-4.2
+      superseded_prds: []
+      missing_prds: []
+      needs_new_prd_version: true
+      next_version_reason: >-
+        Current PRD is delegation-only; richer interpretive output is needed
+        for Module 1 MVP.
+      delivery_stage: delegate_implemented
+      mvp_relevance:
+        - MODULE-1-VAR
+      missing_for_mvp:
+        - interpretive quantitative output
+      next_recommended_slices:
+        - Author PRD-4.2-v2.
     - id: WALKER-TIME-SERIES
       name: Time Series Walker
       status: proposed
       contract_status: draft
+      active_prds: []
+      superseded_prds: []
+      missing_prds:
+        - PRD-TBD-Time-Series-Walker-v1
+      needs_new_prd_version: true
+      next_version_reason: Capability does not yet have a v1 implementation PRD.
+      delivery_stage: not_started
+      mvp_relevance:
+        - MODULE-1-VAR
+      missing_for_mvp:
+        - full time-series interpretation capability
+      next_recommended_slices:
+        - Author Time Series Walker v1 PRD.
     - id: WALKER-DATA-CONTROLLER
       name: Data Controller Walker
-      status: in-progress
-      contract_status: draft
+      status: implemented
+      contract_status: implemented
+      active_prds:
+        - PRD-4.1
+      superseded_prds: []
+      missing_prds: []
+      needs_new_prd_version: false
+      next_version_reason: ""
+      delivery_stage: delegate_implemented
+      mvp_relevance:
+        - MODULE-1-VAR
+      missing_for_mvp: []
+      next_recommended_slices:
+        - Keep stable unless downstream consumers require richer output.
     - id: WALKER-CONTROLS-CHANGE
       name: Controls / Change Walker
       status: proposed
@@ -81,6 +378,19 @@ components:
       name: Governance / Reporting Walker
       status: proposed
       contract_status: draft
+      active_prds: []
+      superseded_prds: []
+      missing_prds:
+        - PRD-TBD-Governance-Reporting-Walker-v1
+      needs_new_prd_version: true
+      next_version_reason: Capability does not yet have a v1 implementation PRD.
+      delivery_stage: not_started
+      mvp_relevance:
+        - MODULE-1-VAR
+      missing_for_mvp:
+        - governance-ready output
+      next_recommended_slices:
+        - Author Governance / Reporting Walker v1 PRD.
     - id: WALKER-CRITIC-CHALLENGE
       name: Critic / Challenge Walker
       status: proposed
@@ -97,8 +407,25 @@ components:
   orchestrators:
     - id: ORCH-DAILY-RISK-INVESTIGATION
       name: Daily Risk Investigation
-      status: in-progress
-      contract_status: draft
+      status: implemented
+      contract_status: implemented
+      active_prds:
+        - PRD-5.1
+      superseded_prds: []
+      missing_prds: []
+      needs_new_prd_version: true
+      next_version_reason: >-
+        Current orchestrator is bounded to a single-walker v1 flow; Module 1
+        MVP requires multi-walker routing and synthesis.
+      delivery_stage: workflow_partial
+      mvp_relevance:
+        - MODULE-1-VAR
+      missing_for_mvp:
+        - multi-walker routing
+        - multi-walker synthesis
+        - governance-ready downstream path
+      next_recommended_slices:
+        - Author PRD-5.1-v2.
     - id: ORCH-LIMIT-BREACH
       name: Limit Breach
       status: proposed
