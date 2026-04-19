@@ -13,7 +13,7 @@
 - **Upstream service PRD:** PRD-1.1-v2 (Risk Summary Service v2) — typed outputs the walker interprets
 - **Sibling walker reference (pattern only):** PRD-4.1 (Data Controller Walker v1) — same `src/walkers/` package layout and telemetry pattern
 - **Downstream consumer (gated by this PRD):** PRD-5.1-v2 (Daily Risk Investigation Orchestrator multi-walker routing) — orchestrator routing and synthesis depend on the typed output named in this PRD
-- **Downstream consumer (post-MVP, near-term):** Governance / Reporting Walker v1 PRD — deferred until Quant v2 and Time Series v1 typed outputs are contracted (per closed decision DECISION-MVP-02 in `docs/roadmap/module_1_var_dashboard.md`)
+- **Downstream consumer (post-MVP, near-term):** Governance / Reporting Walker v1 PRD — deferred until Time Series Walker v1 typed outputs are contracted; Quant v2 is contracted by this PRD (per closed decision DECISION-MVP-02 in `docs/roadmap/module_1_var_dashboard.md`)
 - **Related ADRs:** ADR-001 (schema and typing), ADR-002 (replay and snapshot model), ADR-003 (evidence and trace model)
 - **Related shared infra:** `docs/shared_infra/index.md`, `docs/shared_infra/adoption_matrix.md`, `docs/shared_infra/telemetry.md`
 - **Related charters:** `docs/05_walker_charters.md` (Quant Walker — mission, core questions, confidence model)
@@ -44,12 +44,12 @@ Walker v2 does **not** introduce new quantitative semantics. All deterministic r
 
 ## Why this is the v2 slice
 
-The v1 delegate boundary is now established and tested on `main` (WI-4.2.2). Per Module 1 MVP definition (`docs/roadmap/module_1_var_dashboard.md`), Module 1 MVP requires actual walker inference over the deterministic risk change output, not bare delegation. The current Quant Walker capability state is `delegate_only`, and the dashboard names "Quant Walker v2 contract is not yet defined" as the first MVP blocker.
+The v1 delegate boundary is now established and tested on `main` (WI-4.2.2). Per Module 1 MVP definition (`docs/roadmap/module_1_var_dashboard.md`, generated from `docs/registry/current_state_registry.yaml`), Module 1 MVP requires actual walker inference over the deterministic risk change output, not bare delegation. The Quant Walker **implementation** on `main` is still **delegate-only** until WI-4.2.4–4.2.7 land; the registry names the first MVP blocker as **interpretive implementation** (this PRD’s contract plus those coding slices), not a missing v2 specification.
 
-PRD-4.2-v2 is also a critical-path blocker for two downstream PRDs:
+With **PRD-4.2-v2** merged, this document is the authoritative contract for Quant Walker v2 output. Downstream work depends on it as follows:
 
-1. **PRD-5.1-v2 (multi-walker orchestration)** — the orchestrator must name the concrete Quant Walker v2 output type to specify routing and per-target synthesis. Without that contract, PRD-5.1-v2 cannot specify how to consume Quant Walker output.
-2. **Governance / Reporting Walker v1 PRD** (post-MVP, near-term per DECISION-MVP-02) — deferred precisely until Quant v2 and Time Series v1 output types are contracted.
+1. **PRD-5.1-v2 (multi-walker orchestration)** — must name the concrete Quant Walker v2 output type for routing and per-target synthesis. Drafting can reference this PRD in parallel; wiring and consumption remain gated on **typed output existing on `main`** (WI-4.2.4–4.2.7).
+2. **Governance / Reporting Walker v1 PRD** (post-MVP, near-term per DECISION-MVP-02 in the same dashboard) — deferred until **Time Series Walker v1** output types are contracted; Quant v2 is contracted here (PRD-4.2-v2).
 
 This PRD closes every Open Question from PRD-4.2 v1 that is required for Module 1 MVP, defines the typed downstream contract that PRD-5.1-v2 will reference verbatim, and provides issue decomposition guidance for the Issue Planner.
 
