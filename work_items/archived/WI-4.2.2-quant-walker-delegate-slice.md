@@ -80,16 +80,17 @@ First **coding** slice for Quant Walker: a **thin** implementation in `src/walke
 
 ## Correct state transition
 
-The canonical file currently tracked on `main` is:
+The canonical WI file is:
 
-- [work_items/in_progress/WI-4.2.2-quant-walker-delegate-slice.md](work_items/in_progress/WI-4.2.2-quant-walker-delegate-slice.md)
+- [work_items/done/WI-4.2.2-quant-walker-delegate-slice.md](work_items/done/WI-4.2.2-quant-walker-delegate-slice.md)
 
-Based on the implementation and tests already present on `main`, the correct transition is:
+(An earlier draft of this archived note linked `work_items/in_progress/`; that path is invalid once the WI is complete.)
 
-1. Move the canonical WI from `work_items/in_progress/` to `work_items/done/`.
-2. Update the status from `READY` / `in_progress` wording to `DONE`.
-3. Add a short completion-evidence section referencing the quant walker package and parity tests.
-4. Do not reopen implementation scope; this is a bookkeeping correction, not a new coding WI.
+Based on the implementation and tests already present on `main`, the correct bookkeeping is:
+
+1. Keep the canonical WI under `work_items/done/` (not `in_progress/`).
+2. Status `DONE` with completion-evidence section referencing the quant walker package and parity tests.
+3. Do not reopen implementation scope; this is a bookkeeping correction, not a new coding WI.
 
 ## Suggested verification commands
 
