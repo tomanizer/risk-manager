@@ -184,8 +184,8 @@ module_dashboards:
           Live-data integration and database persistence are a near-term post-MVP priority.
         next_slice: >-
           Post-MVP — author production integration PRD after Module 1 analytical
-          interpretation implementations land (Quant WI-4.2.4–4.2.7 per PRD-4.2-v2;
-          Time Series WI-4.3.x per PRD-4.3).
+          interpretation layer is contracted (Quant Walker v2 per PRD-4.2-v2;
+          Time Series Walker v1 per PRD-4.3).
     prd_lineage:
       - capability: Risk Analytics
         active_prd: PRD-1.1-v2
@@ -444,12 +444,13 @@ components:
       needs_new_prd_version: true
       next_version_reason: >-
         Post-MVP (PM decision 2026-04-19). Typed handoff sufficient for MVP.
-        PRD to be authored after Time Series Walker v1 is contracted (Quant v2 PRD is merged).
+        Upstream contracts are PRD-4.2-v2 and PRD-4.3; author Governance PRD after interpretive
+        implementations are on main for handoff design.
       delivery_stage: not_started
       mvp_relevance: []
       missing_for_mvp: []
       next_recommended_slices:
-        - Post-MVP (near-term) — author Governance / Reporting Walker v1 PRD after Quant v2 and Time Series v1 PRDs are settled.
+        - Post-MVP (near-term) — author Governance / Reporting Walker v1 PRD once Quant (WI-4.2.4–4.2.7) and Time Series (WI-4.3.x) interpretive outputs exist on main.
     - id: WALKER-CRITIC-CHALLENGE
       name: Critic / Challenge Walker
       status: proposed
