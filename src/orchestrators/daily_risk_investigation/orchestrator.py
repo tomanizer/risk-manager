@@ -363,16 +363,17 @@ def start_daily_run(
         if canary_outcome.status_code in _READINESS_BLOCKING_STATUS_CODES:
             readiness_state = ReadinessState.BLOCKED
             readiness_reason_codes: tuple[str, ...] = (canary_outcome.status_code,)
+            readiness_status = canary_outcome.status_code
         elif canary_outcome.status_code == "MISSING_NODE":
             readiness_state = ReadinessState.READY
             readiness_reason_codes = (_READINESS_CANARY_MISSING_NODE_REASON,)
+            readiness_status = "OK"
         else:
             raise RuntimeError(f"readiness gate received unexpected ServiceError status_code={canary_outcome.status_code!r}")
     else:
         readiness_state = ReadinessState.READY
         readiness_reason_codes = ()
-
-    readiness_status = "OK" if readiness_state is ReadinessState.READY else canary_outcome.status_code
+        readiness_status = "OK"
     _emit_daily_run_operation(
         "daily_run.readiness_gate",
         status=readiness_status,
@@ -502,9 +503,7 @@ def start_daily_run(
     proceed_with_caveat_count = sum(1 for entry in handoff if entry.handoff_status is HandoffStatus.PROCEED_WITH_CAVEAT)
     hold_blocking_trust_count = sum(1 for entry in handoff if entry.handoff_status is HandoffStatus.HOLD_BLOCKING_TRUST)
     hold_unresolved_trust_count = sum(1 for entry in handoff if entry.handoff_status is HandoffStatus.HOLD_UNRESOLVED_TRUST)
-    hold_investigation_failed_count = sum(
-        1 for entry in handoff if entry.handoff_status is HandoffStatus.HOLD_INVESTIGATION_FAILED
-    )
+    hold_investigation_failed_count = sum(1 for entry in handoff if entry.handoff_status is HandoffStatus.HOLD_INVESTIGATION_FAILED)
     _emit_daily_run_operation(
         "daily_run.challenge",
         status="OK",
