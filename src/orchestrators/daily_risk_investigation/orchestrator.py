@@ -188,4 +188,5 @@ def start_daily_run(
 
     Stage execution (Stages 1–9) is implemented in WI-5.1.2.
     """
+    _derive_run_id(as_of_date, snapshot_id, measure_type, candidate_targets)
     raise NotImplementedError("start_daily_run stage execution is not yet implemented (WI-5.1.2)")

@@ -4,6 +4,7 @@ Coverage:
 - Enum vocabulary exactness (count and values, no extras)
 - Pydantic model field shapes (required fields, correct types, optionality)
 - start_daily_run importability and NotImplementedError raise
+- start_daily_run calls _derive_run_id before raising (wiring test)
 - run_id derivation determinism (equal inputs → equal run_id, starts with "drun_")
 - Pinned digest regression guard (fixed input → hardcoded expected hex)
 """
@@ -12,6 +13,7 @@ from __future__ import annotations
 
 import unittest
 from datetime import date, datetime, timezone
+from unittest.mock import patch
 
 from src.modules.controls_integrity import (
     AssessmentStatus,
@@ -361,6 +363,24 @@ class PublicSurfaceTest(unittest.TestCase):
                 measure_type=MeasureType.VAR_1D_99,
                 risk_fixture_index=None,
                 controls_fixture_index=None,
+            )
+
+    def test_start_daily_run_calls_derive_run_id(self) -> None:
+        """start_daily_run must invoke _derive_run_id before raising NotImplementedError."""
+        target = "src.orchestrators.daily_risk_investigation.orchestrator._derive_run_id"
+        with patch(target, return_value="drun_stub") as mock_derive:
+            with self.assertRaises(NotImplementedError):
+                start_daily_run(
+                    as_of_date=_AS_OF_DATE,
+                    snapshot_id=_SNAPSHOT_ID,
+                    candidate_targets=(_NODE_REF_TOH,),
+                    measure_type=MeasureType.VAR_1D_99,
+                )
+            mock_derive.assert_called_once_with(
+                _AS_OF_DATE,
+                _SNAPSHOT_ID,
+                MeasureType.VAR_1D_99,
+                (_NODE_REF_TOH,),
             )
 
 
