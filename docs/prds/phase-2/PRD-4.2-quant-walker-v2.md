@@ -9,7 +9,7 @@
 - **Layer:** Walker
 - **Type:** Interpretive walker (typed wrapper output over deterministic upstream)
 - **Primary owner:** Technical Owner, Quant Walker
-- **Supersedes:** Open Questions section of `docs/prds/phase-2/PRD-4.2-quant-walker-v1.md` (PRD-4.2 v1 delegate-only contract remains the v1 implementation contract; v2 extends it). The v1 PRD remains the historical record of the delegation-only slice merged via WI-4.2.2 (PR #168).
+- **Supersedes:** `archive/PRD-4.2-quant-walker-v1-archived.md` for implementation planning; v2 extends the delegate-only v1 contract (historical record: WI-4.2.2, PR #168) and closes its Open Questions required for Module 1 MVP.
 - **Upstream service PRD:** PRD-1.1-v2 (Risk Summary Service v2) — typed outputs the walker interprets
 - **Sibling walker reference (pattern only):** PRD-4.1 (Data Controller Walker v1) — same `src/walkers/` package layout and telemetry pattern
 - **Downstream consumer (gated by this PRD):** PRD-5.1-v2 (Daily Risk Investigation Orchestrator multi-walker routing) — orchestrator routing and synthesis depend on the typed output named in this PRD
@@ -27,7 +27,7 @@
   - `src/walkers/README.md` (walker package conventions)
   - `src/shared/` (`ServiceError`, `EvidenceRef`)
   - `src/shared/telemetry/` (`emit_operation`, `node_ref_log_dict`, `timer_start`)
-- **Exemplar:** none. No `docs/prd_exemplars/PRD-4.2-quant-walker.md` exists. Alignment with any future Quant Walker exemplar remains an Open Question.
+- **Exemplar:** none. No docs/prd_exemplars/PRD-4.2-quant-walker.md exists; alignment with any future Quant Walker exemplar remains an Open Question.
 
 ## Purpose
 
@@ -130,7 +130,7 @@ The walker must not mutate, reshape, or re-derive any field on `RiskChangeProfil
 
 ### Output type — `QuantInterpretation`
 
-Defined in `src/walkers/quant/contracts.py` (new module created by the typed-contracts WI; see "Issue decomposition guidance"). Frozen Pydantic model with `extra="forbid"`, consistent with `_RiskContractBase` in `src/modules/risk_analytics/contracts/summary.py` and ADR-001.
+Defined in src/walkers/quant/contracts.py (new module created by the typed-contracts WI; see "Issue decomposition guidance"; path is the planned WI-4.2.4 deliverable, not yet on `main`). Frozen Pydantic model with `extra="forbid"`, consistent with `_RiskContractBase` in `src/modules/risk_analytics/contracts/summary.py` and ADR-001.
 
 Fields (ordered as the model should declare them):
 
@@ -503,7 +503,7 @@ The walker preserves all v1 replay and evidence guarantees. New v2 consideration
 
 - Quant logic remains in `src/modules/risk_analytics/`; the walker is interpretive-only over typed upstream output
 - Walker package location remains `src/walkers/quant/` per `src/walkers/README.md`
-- New file `src/walkers/quant/contracts.py` (or equivalent module per repo convention) hosts `QuantInterpretation` and the five enums; the existing `src/walkers/quant/walker.py` is updated in-place to import them and emit telemetry
+- New file src/walkers/quant/contracts.py (or equivalent module per repo convention) hosts `QuantInterpretation` and the five enums; the existing `src/walkers/quant/walker.py` is updated in-place to import them and emit telemetry (contracts path is planned by WI-4.2.4, not yet on `main`)
 - No coupling to PRD-5.1 orchestrator code; no coupling to any other walker; no coupling to `agent_runtime`
 
 ### Test
@@ -535,7 +535,7 @@ This PRD decomposes into a small ordered slice sequence. Each slice is a bounded
 
 1. **WI-4.2.3 — Quant Walker v2 implementation PRD** (this document; mirrors the WI-4.1.1 / WI-4.2.1 PRD-merge slice). Merges this PRD to `main` so downstream WIs can cite a stable contract.
 
-2. **WI-4.2.4 — Quant Walker v2 typed contracts.** Add `src/walkers/quant/contracts.py` (or equivalent module) defining `QuantInterpretation`, `ChangeKind`, `SignificanceLevel`, `ConfidenceLevel`, `QuantCaveatCode`, `InvestigationHint`, and the `QUANT_WALKER_VERSION` constant. Add typed-contract construction tests (frozen, `extra="forbid"`, enum membership). No behavior change to `summarize_change` in this slice; the walker still imports the new types but `summarize_change` continues to return `RiskChangeProfile | ServiceError` until WI-4.2.5. (This separation lets the typed contract review happen before the inference-rule review.)
+2. **WI-4.2.4 — Quant Walker v2 typed contracts.** Add src/walkers/quant/contracts.py (or equivalent module) defining `QuantInterpretation`, `ChangeKind`, `SignificanceLevel`, `ConfidenceLevel`, `QuantCaveatCode`, `InvestigationHint`, and the `QUANT_WALKER_VERSION` constant. Add typed-contract construction tests (frozen, `extra="forbid"`, enum membership). No behavior change to `summarize_change` in this slice; the walker still imports the new types but `summarize_change` continues to return `RiskChangeProfile | ServiceError` until WI-4.2.5. (This separation lets the typed contract review happen before the inference-rule review.) Planned path only until WI-4.2.4 merges.
 
 3. **WI-4.2.5 — Quant Walker v2 interpretive logic.** Update `src/walkers/quant/walker.py` to compute `QuantInterpretation` per the inference rules in this PRD; widen the return type annotation; update existing v1 parity tests to dereference `.risk_change_profile`. Add the full inference-rule test matrix per "Test intent". Telemetry is added in the next slice to keep this slice reviewable.
 
@@ -556,7 +556,7 @@ The following are explicitly deferred to v3+ with stated triggers. They are **no
 - **Hierarchy localization (v3):** see "Hierarchy localization decision". v3 trigger: PRD-5.1-v2 hierarchy fan-out, OR a `risk_analytics` API for child-node retrieval, OR a documented Governance / Reporting Walker need.
 - **Multi-function delegation (v3):** see "Multi-function delegation decision". v3 trigger: a downstream consumer PRD documents a concrete contract requirement for `summarize_summary`, `summarize_delta`, or `summarize_history`.
 - **Multi-target / batch invocation (orchestrator concern, not walker):** Single-target single-measure remains the walker contract. Batch and fan-out are PRD-5.1-v2+ orchestrator concerns and are outside the Quant Walker remit per `docs/05_walker_charters.md` (walkers answer bounded questions; orchestrators own routing).
-- **Quant Walker exemplar alignment (no exemplar exists):** No `docs/prd_exemplars/PRD-4.2-quant-walker.md` exists. If one is authored, this PRD should be reviewed for alignment before any v3+ behavior is added. Non-blocking for v2.
+- **Quant Walker exemplar alignment (no exemplar exists):** No docs/prd_exemplars/PRD-4.2-quant-walker.md exists. If one is authored, this PRD should be reviewed for alignment before any v3+ behavior is added. Non-blocking for v2.
 - **Extending `QuantCaveatCode` and `InvestigationHint` vocabularies:** the v2 vocabularies are closed. Any addition (e.g., a future `STALE_DATA_SUSPECTED` caveat from a Time Series Walker integration) requires a `walker_version` bump and a PRD update; cross-walker integration is the orchestrator's concern.
 - **Confidence input expansion (cross-walker):** the task brief mentions `trust_state` and `assessment_status` as confidence inputs; those live on `IntegrityAssessment` and are outside the Quant Walker's remit. If a future Module 1 capability requires a unified per-target confidence (combining Quant `confidence`, Data Controller `trust_state`, and Time Series confidence), that synthesis is an orchestrator-side concern (PRD-5.1-v2 or v3) and must not be embedded inside the Quant Walker.
 
@@ -586,4 +586,4 @@ The following are **not** open questions because they are explicitly closed in t
 - The downstream consumer contract section is sufficient for the PRD-5.1-v2 author to specify Quant Walker routing without further negotiation with this PRD's author.
 - Hierarchy localization, multi-function delegation, batch invocation, and narrative output remain explicitly out of scope; the deferral rationale and v3 trigger are recorded.
 - Single entry point preserved: `summarize_change` over `get_risk_change_profile` — no `summarize_summary` / `summarize_delta` / `summarize_history` added in v2.
-- Backtick-wrapped repository paths in this PRD all exist on `main` as of WI-4.2.2 merge (PR #168) — `src/walkers/quant/`, `src/walkers/quant/walker.py`, `src/walkers/quant/__init__.py`, `src/walkers/data_controller/`, `src/walkers/README.md`, `src/modules/risk_analytics/`, `src/modules/risk_analytics/contracts/`, `src/modules/risk_analytics/fixtures/`, `src/shared/`, `src/shared/telemetry/`, all `docs/...` paths — consistent with reference-integrity and registry-alignment checks. The newly planned `src/walkers/quant/contracts.py` is referenced as the WI-4.2.4 deliverable, not as an existing path.
+- Backtick-wrapped repository paths in this PRD all exist on `main` as of WI-4.2.2 merge (PR #168) — `src/walkers/quant/`, `src/walkers/quant/walker.py`, `src/walkers/quant/__init__.py`, `src/walkers/data_controller/`, `src/walkers/README.md`, `src/modules/risk_analytics/`, `src/modules/risk_analytics/contracts/`, `src/modules/risk_analytics/fixtures/`, `src/shared/`, `src/shared/telemetry/`, all `docs/...` paths — consistent with reference-integrity and registry-alignment checks. The planned src/walkers/quant/contracts.py module (WI-4.2.4) is named in prose only where it does not yet exist on `main` (no backticks), matching PRD-4.2 v1 planned-component discipline.

@@ -6,7 +6,7 @@
 
 Upstream service contract (read-only; must not change semantics): [`docs/prds/phase-1/PRD-1.1-risk-summary-service-v2.md`](docs/prds/phase-1/PRD-1.1-risk-summary-service-v2.md) (PRD-1.1-v2).
 
-v1 walker delegate PRD (superseded Open Questions section, retained as historical record): [`docs/prds/phase-2/PRD-4.2-quant-walker-v1.md`](docs/prds/phase-2/PRD-4.2-quant-walker-v1.md).
+v1 walker delegate PRD is archived on the same merge as this WI (historical text; filename PRD-4.2-quant-walker-v1-archived.md under docs/prds/phase-2/archive/). For linking, use PRD-4.2-v2 **Supersedes** and the archive copy — do not backtick the archived path here (canon-lineage execution-surface rule).
 
 ## Linked ADRs
 
@@ -27,7 +27,7 @@ Close all PRD-4.2 v1 Open Questions required for Module 1 MVP by authoring **PRD
 ## Scope
 
 - New PRD file `docs/prds/phase-2/PRD-4.2-quant-walker-v2.md` authored and merged to `main`.
-- No changes to `src/`, `tests/`, or `docs/prds/phase-2/PRD-4.2-quant-walker-v1.md`.
+- No changes to `src/` or `tests/`. This WI moves the v1 PRD into docs/prds/phase-2/archive/ as PRD-4.2-quant-walker-v1-archived.md alongside merging v2 (see PRD-4.2-v2 **Supersedes** line).
 
 ## Out of scope
 

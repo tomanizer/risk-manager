@@ -23,7 +23,7 @@ Lock **Quant Walker v1** to a **typed pass-through** of `get_risk_change_profile
 
 ## Scope
 
-- Add a new **implementation PRD** under `docs/prds/phase-2/` (filename per repo convention, PRD-4.2-quant-walker-v1.md) that:
+- Add a new **implementation PRD** under `docs/prds/phase-2/` (filename per repo convention; v1 text later archived when PRD-4.2-v2 lands) that:
   - Defines walker v1 responsibility as **delegation only** to the public `risk_analytics` API (`get_risk_change_profile` and its documented contracts).
   - States that the walker's governed output type(s) are **the same** typed union as the service surface: success is `RiskChangeProfile`; failure paths use the existing typed `ServiceError` envelope (no parallel walker model).
   - Cross-references PRD-1.1-v2 for service semantics and keeps those semantics unchanged.
