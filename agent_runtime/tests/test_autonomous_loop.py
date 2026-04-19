@@ -143,9 +143,10 @@ def test_dispatch_with_timeout_returns_timed_out_on_timeout() -> None:
     )
     defaults = _defaults(runner_timeout_seconds_default=1)
 
-    def slow_dispatch(_exec: RunnerExecution) -> RunnerResult:
+    def slow_dispatch(_exec: RunnerExecution, *, state_db_path: Path | None = None) -> RunnerResult:
         # Sleep longer than the 1s timeout but short enough that the background
         # thread clears before the test suite exits (shutdown(wait=False) abandons it).
+        assert state_db_path is not None
         time.sleep(3)
         raise AssertionError("should not reach here")
 

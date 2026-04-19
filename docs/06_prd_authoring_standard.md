@@ -1,5 +1,7 @@
 # PRD Authoring Standard
 
+> Note on numbering: the PRD ID prefix, the roadmap phase number, and the containing folder name are different tracking schemes. `PRD-1.1` does not mean "Phase 1.1," and a file living under a phase-numbered folder does not redefine its roadmap phase.
+
 ## Purpose
 
 This standard explains how PRDs in this repo should be written so they remain specific to the AI-supported risk manager and do not drift into generic software boilerplate.

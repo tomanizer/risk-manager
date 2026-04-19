@@ -167,7 +167,7 @@ def _dispatch_node(decision_payload: dict[str, object], *, defaults: RuntimeDefa
     decision = TransitionDecision(action=action, work_item_id=work_item_id, reason=reason)
     snapshot = build_runtime_snapshot(defaults.repo_root, defaults.state_db_path)
     execution = build_runner_execution(snapshot, decision)
-    runner_result = dispatch_runner_execution(execution) if execution is not None else None
+    runner_result = dispatch_runner_execution(execution, state_db_path=defaults.state_db_path) if execution is not None else None
 
     result_dict = (
         {

@@ -58,7 +58,7 @@ def _dispatch_with_timeout(execution: RunnerExecution, defaults: RuntimeDefaults
     # shutdown(wait=False) and return immediately without blocking until the thread
     # finishes — which could be minutes for a long-running agent.
     executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-    future = executor.submit(dispatch_runner_execution, execution)
+    future = executor.submit(dispatch_runner_execution, execution, state_db_path=defaults.state_db_path)
     try:
         result = future.result(timeout=timeout_seconds)
         executor.shutdown(wait=False)
@@ -569,7 +569,7 @@ def main() -> int:
 
                         _empty = _RS(work_items=(), pull_requests=(), workflow_runs=(), warnings=())
                         _exec = _bre(_empty, governance_decision)
-                        _result = dispatch_runner_execution(_exec) if _exec is not None else None
+                        _result = dispatch_runner_execution(_exec, state_db_path=defaults.state_db_path) if _exec is not None else None
                         payload: dict[str, object] = {
                             "action": governance_decision.action.value,
                             "reason": governance_decision.reason,
@@ -670,7 +670,9 @@ def main() -> int:
 
             empty_snapshot = _RS(work_items=(), pull_requests=(), workflow_runs=(), warnings=())
             execution = build_runner_execution(empty_snapshot, governance_decision)
-            runner_result = dispatch_runner_execution(execution) if args.dispatch and execution is not None else None
+            runner_result = (
+                dispatch_runner_execution(execution, state_db_path=defaults.state_db_path) if args.dispatch and execution is not None else None
+            )
             governance_payload: dict[str, object] = {
                 "action": governance_decision.action.value,
                 "reason": governance_decision.reason,
