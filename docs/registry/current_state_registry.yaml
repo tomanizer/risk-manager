@@ -180,8 +180,8 @@ module_dashboards:
           Live-data integration and database persistence are a near-term post-MVP priority.
         next_slice: >-
           Post-MVP — author production integration PRD after Module 1 analytical
-          interpretation is in place (Quant Walker v2 implementation per PRD-4.2-v2;
-          Time Series Walker v1 contracted and implemented).
+          interpretation layer is contracted (Quant Walker v2 per PRD-4.2-v2;
+          Time Series Walker v1 contracted).
     prd_lineage:
       - capability: Risk Analytics
         active_prd: PRD-1.1-v2
@@ -232,7 +232,7 @@ module_dashboards:
       - "Deliver WI-5.1.4 (replay determinism tests) — Coding Agent, no blockers."
       - "Deliver WI-4.2.4–4.2.7 (Quant Walker v2 implementation per PRD-4.2-v2) — Coding Agent / Issue Planner."
       - "Author Time Series Walker v1 PRD — PRD / Spec Author."
-      - "Author PRD-5.1-v2 for multi-walker orchestration — PRD / Spec Author (after Quant Walker v2 typed output is implemented per PRD-4.2-v2)."
+      - "Author PRD-5.1-v2 for multi-walker orchestration — PRD / Spec Author (after Quant Walker v2 typed output is contracted per PRD-4.2-v2)."
       - "[Post-MVP] Author Governance / Reporting Walker v1 PRD after Time Series Walker v1 is contracted (Quant v2 PRD is merged)."
       - "[Post-MVP near-term priority] Author production integration PRD for live-data and database persistence."
     post_mvp_enhancements:

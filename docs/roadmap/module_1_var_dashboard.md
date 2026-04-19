@@ -51,7 +51,7 @@ Deliver a replayable, deterministic, explainable daily VaR investigation workflo
 | Time Series Walker | walker | `not_started` | none | full time-series interpretation capability | PRD-TBD-Time-Series-Walker-v1 | `yes` | Capability has no v1 implementation PRD yet. | Author Time Series Walker v1 PRD. |
 | Daily Risk Investigation | orchestrator | `partial` | bounded single-walker daily run<br>target selection<br>challenge gate<br>typed handoff<br>shared telemetry | multi-walker routing<br>multi-walker synthesis<br>governance-ready downstream path | none | `yes` | PRD-5.1 intentionally excludes quant/time-series routing and richer orchestration behavior required for Module 1 MVP. | Author PRD-5.1-v2 for multi-walker orchestration. |
 | Governance / Reporting Walker | walker | `not_started` | none | none | PRD-TBD-Governance-Reporting-Walker-v1 | `yes` | Post-MVP (PM decision 2026-04-19). Typed DailyRunResult handoff is sufficient for MVP. Governance Walker input types depend on Quant Walker v2 and Time Series Walker v1 output contracts; Quant v2 is contracted (PRD-4.2-v2); Time Series v1 is not yet contracted. | Post-MVP (near-term) — author Governance / Reporting Walker v1 PRD after Time Series Walker v1 is contracted (Quant v2 PRD is merged). |
-| Production integration | cross-cutting | `not_started` | none | none | PRD-TBD-Module-1-Production-Integration | `yes` | Post-MVP (PM decision 2026-04-19). MVP is fixture-backed and operator-invoked. Live-data integration and database persistence are a near-term post-MVP priority. | Post-MVP — author production integration PRD after Module 1 analytical interpretation is in place (Quant Walker v2 implementation per PRD-4.2-v2; Time Series Walker v1 contracted and implemented). |
+| Production integration | cross-cutting | `not_started` | none | none | PRD-TBD-Module-1-Production-Integration | `yes` | Post-MVP (PM decision 2026-04-19). MVP is fixture-backed and operator-invoked. Live-data integration and database persistence are a near-term post-MVP priority. | Post-MVP — author production integration PRD after Module 1 analytical interpretation layer is contracted (Quant Walker v2 per PRD-4.2-v2; Time Series Walker v1 contracted). |
 
 ## MVP Gap Summary
 
@@ -91,7 +91,7 @@ None recorded.
 1. Deliver WI-5.1.4 (replay determinism tests) — Coding Agent, no blockers.
 2. Deliver WI-4.2.4–4.2.7 (Quant Walker v2 implementation per PRD-4.2-v2) — Coding Agent / Issue Planner.
 3. Author Time Series Walker v1 PRD — PRD / Spec Author.
-4. Author PRD-5.1-v2 for multi-walker orchestration — PRD / Spec Author (after Quant Walker v2 typed output is implemented per PRD-4.2-v2).
+4. Author PRD-5.1-v2 for multi-walker orchestration — PRD / Spec Author (after Quant Walker v2 typed output is contracted per PRD-4.2-v2).
 5. [Post-MVP] Author Governance / Reporting Walker v1 PRD after Time Series Walker v1 is contracted (Quant v2 PRD is merged).
 6. [Post-MVP near-term priority] Author production integration PRD for live-data and database persistence.
 
