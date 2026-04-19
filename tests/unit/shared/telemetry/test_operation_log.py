@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import logging
 from datetime import date
-from enum import Enum
+from enum import Enum, StrEnum
 
 import pytest
 
 from src.shared.telemetry import operation_log as tel
-from src.shared.telemetry.operation_log import emit_operation, reset_operation_logging_to_defaults
+from src.shared.telemetry.operation_log import (
+    canonical_terminal_run_status_status,
+    emit_operation,
+    reset_operation_logging_to_defaults,
+)
 
 
 class _SampleEnum(Enum):
@@ -147,6 +151,56 @@ def test_emit_context_normalization_and_unserializable_fallback(caplog: pytest.L
     assert payload["sample_enum"] == "alpha"
     assert payload["nested"] == {"k": 1}
     assert payload["bad_obj"] == "<unserializable:object>"
+
+
+class _TerminalRunStatus(StrEnum):
+    """Replica of TerminalRunStatus used to verify exhaustive mapping without an orchestrator import."""
+
+    COMPLETED = "COMPLETED"
+    COMPLETED_WITH_CAVEATS = "COMPLETED_WITH_CAVEATS"
+    COMPLETED_WITH_FAILURES = "COMPLETED_WITH_FAILURES"
+    FAILED_ALL_TARGETS = "FAILED_ALL_TARGETS"
+    BLOCKED_READINESS = "BLOCKED_READINESS"
+
+
+_EXPECTED_TERMINAL_STATUS_MAPPING = {
+    "COMPLETED": "OK",
+    "COMPLETED_WITH_CAVEATS": "DEGRADED",
+    "COMPLETED_WITH_FAILURES": "PARTIAL",
+    "FAILED_ALL_TARGETS": "DEGRADED",
+    "BLOCKED_READINESS": "DEGRADED",
+}
+
+
+def test_canonical_terminal_run_status_covers_all_known_values() -> None:
+    """Every TerminalRunStatus value must map to a canonical shared-telemetry status.
+
+    This test pins the exhaustive mapping so that adding a new TerminalRunStatus
+    member surfaces here rather than falling through to the graceful-degradation path
+    at runtime.
+    """
+    for member in _TerminalRunStatus:
+        result = canonical_terminal_run_status_status(member)
+        assert result == _EXPECTED_TERMINAL_STATUS_MAPPING[member.value], f"unexpected telemetry status for {member!r}: got {result!r}"
+
+
+def test_canonical_terminal_run_status_accepts_plain_string() -> None:
+    assert canonical_terminal_run_status_status("COMPLETED") == "OK"
+    assert canonical_terminal_run_status_status("COMPLETED_WITH_FAILURES") == "PARTIAL"
+
+
+def test_canonical_terminal_run_status_degrades_gracefully_on_unknown(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    tel.configure_operation_logging(enabled=True, logger=tel.StdlibLoggerAdapter(tel.LOGGER_NAME))
+    caplog.set_level(logging.WARNING, logger=tel.LOGGER_NAME)
+
+    result = canonical_terminal_run_status_status("UNKNOWN_FUTURE_STATUS")
+
+    assert result == "DEGRADED"
+    assert len(caplog.records) == 1
+    payload = getattr(caplog.records[0], "structured_event")
+    assert payload.get("unrecognised_terminal_status") == "UNKNOWN_FUTURE_STATUS"
 
 
 def test_stdlib_logger_adapter_bind_merges_context(caplog: pytest.LogCaptureFixture) -> None:

@@ -17,7 +17,7 @@ Track shared-infrastructure usage, owners, and rollout state by layer.
 | `src/modules/controls_integrity/` | shared evidence contract (`EvidenceRef` in `src/shared/evidence.py`) | adopted | Module imports canonical type from `src.shared`; re-exported via `controls_integrity.contracts` for stable public API (WI-2.1.6) |
 | `src/modules/risk_analytics/` | telemetry contract | adopted | Uses `src.shared.telemetry.emit_operation` (and shared helpers) for PRD minimum operation logs per WI-1.1.11; no module-local duplicate status mapping |
 | `src/walkers/` | telemetry contract | adopted | `data_controller` walker emits via `src.shared.telemetry.emit_operation` (WI-4.1.4) |
-| `src/orchestrators/` | telemetry contract | planned | Keep orchestration concerns separate from deterministic services |
+| `src/orchestrators/` | telemetry contract | adopted | Telemetry uses `src.shared.telemetry.emit_operation`; daily-run operation-log slice is WI-5.1.3; no module-local duplicate status mapping |
 | `agent_runtime/` | telemetry framework | adopted | Canonical runtime implementation; design reference only for `src/` |
 
 ## Governance
