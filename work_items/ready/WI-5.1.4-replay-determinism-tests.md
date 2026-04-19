@@ -28,9 +28,9 @@ Residual replay/determinism slice for the Daily Risk Investigation Orchestrator:
 
 Current state on `main`:
 
-- pinned `run_id` regression coverage already exists in [tests/unit/orchestrators/daily_risk_investigation/test_contracts.py](/Users/thomas/Documents/Projects/risk-manager/tests/unit/orchestrators/daily_risk_investigation/test_contracts.py:490)
-- `generated_at` determinism helper coverage already exists in [tests/unit/orchestrators/daily_risk_investigation/test_generated_at.py](/Users/thomas/Documents/Projects/risk-manager/tests/unit/orchestrators/daily_risk_investigation/test_generated_at.py:107)
-- telemetry is already included in the implementation and covered separately by [tests/unit/orchestrators/daily_risk_investigation/test_telemetry.py](/Users/thomas/Documents/Projects/risk-manager/tests/unit/orchestrators/daily_risk_investigation/test_telemetry.py:1)
+- pinned `run_id` regression coverage already exists in [tests/unit/orchestrators/daily_risk_investigation/test_contracts.py](tests/unit/orchestrators/daily_risk_investigation/test_contracts.py)
+- `generated_at` determinism helper coverage already exists in [tests/unit/orchestrators/daily_risk_investigation/test_generated_at.py](tests/unit/orchestrators/daily_risk_investigation/test_generated_at.py)
+- telemetry is already included in the implementation and covered separately by [tests/unit/orchestrators/daily_risk_investigation/test_telemetry.py](tests/unit/orchestrators/daily_risk_investigation/test_telemetry.py)
 
 The missing replay guard is an end-to-end equality assertion over the full `DailyRunResult` returned by `start_daily_run`.
 

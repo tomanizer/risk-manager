@@ -40,9 +40,9 @@ First **coding** slice for Quant Walker: a **thin** implementation in `src/walke
 
 ## Completion evidence on `main`
 
-- [src/walkers/quant/__init__.py](/Users/thomas/Documents/Projects/risk-manager/src/walkers/quant/__init__.py:1) exports `summarize_change` from the package root.
-- [src/walkers/quant/walker.py](/Users/thomas/Documents/Projects/risk-manager/src/walkers/quant/walker.py:1) implements the thin delegate and returns `RiskChangeProfile | ServiceError` directly from `get_risk_change_profile`.
-- [tests/unit/walkers/quant/test_summarize_change_parity.py](/Users/thomas/Documents/Projects/risk-manager/tests/unit/walkers/quant/test_summarize_change_parity.py:1) covers:
+- [src/walkers/quant/__init__.py](src/walkers/quant/__init__.py) exports `summarize_change` from the package root.
+- [src/walkers/quant/walker.py](src/walkers/quant/walker.py) implements the thin delegate and returns `RiskChangeProfile | ServiceError` directly from `get_risk_change_profile`.
+- [tests/unit/walkers/quant/test_summarize_change_parity.py](tests/unit/walkers/quant/test_summarize_change_parity.py) covers:
   - successful change profile parity
   - `UNSUPPORTED_MEASURE`
   - `MISSING_SNAPSHOT`
@@ -62,7 +62,7 @@ First **coding** slice for Quant Walker: a **thin** implementation in `src/walke
 
 ### Contract
 
-- Return type in [walker.py](/Users/thomas/Documents/Projects/risk-manager/src/walkers/quant/walker.py:27) is exactly `RiskChangeProfile | ServiceError`.
+- Return type in [walker.py](src/walkers/quant/walker.py) is exactly `RiskChangeProfile | ServiceError`.
 - The walker imports only public `risk_analytics` surfaces and approved typed contract/fixture imports.
 - No walker-local wrapper types or extra package surfaces were introduced.
 - Signature defaults match the upstream service defaults.
@@ -82,7 +82,7 @@ First **coding** slice for Quant Walker: a **thin** implementation in `src/walke
 
 The canonical file currently tracked on `main` is:
 
-- [work_items/in_progress/WI-4.2.2-quant-walker-delegate-slice.md](/Users/thomas/Documents/Projects/risk-manager/work_items/in_progress/WI-4.2.2-quant-walker-delegate-slice.md:1)
+- [work_items/in_progress/WI-4.2.2-quant-walker-delegate-slice.md](work_items/in_progress/WI-4.2.2-quant-walker-delegate-slice.md)
 
 Based on the implementation and tests already present on `main`, the correct transition is:
 
