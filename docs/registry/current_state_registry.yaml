@@ -208,7 +208,7 @@ module_dashboards:
       - capability: Quant Walker
         active_prd: PRD-4.2-v2
         status: active
-        supersedes: PRD-4.2-v1
+        supersedes: PRD-4.2
         next_needed_prd: ""
         why: >-
           v2 defines interpretive QuantInterpretation output; v1 is archived.
@@ -288,7 +288,7 @@ module_dashboards:
       - "2026-04-19: Initial Module 1 dashboard seed added to the registry."
       - "2026-04-19: PM decision DECISION-MVP-01 — MVP is fixture-backed only; live-data is post-MVP near-term priority."
       - "2026-04-19: PM decision DECISION-MVP-02 — typed handoff sufficient for MVP; Governance Walker deferred to near-term post-MVP."
-      - "2026-04-20: Quant Walker lineage — active PRD PRD-4.2-v2 (supersedes PRD-4.2-v1); MVP blockers and slices updated for merged contract vs implementation gap."
+      - "2026-04-20: Quant Walker lineage — active PRD PRD-4.2-v2 (supersedes PRD-4.2); MVP blockers and slices updated for merged contract vs implementation gap."
       - "2026-04-20: Time Series Walker v1 contract recorded as PRD-4.3; registry lineage replaces PRD-TBD-Time-Series-Walker-v1; dashboard regenerated."
 
 components:
@@ -380,7 +380,7 @@ components:
       active_prds:
         - PRD-4.2-v2
       superseded_prds:
-        - PRD-4.2-v1
+        - PRD-4.2
       missing_prds: []
       needs_new_prd_version: false
       next_version_reason: >-

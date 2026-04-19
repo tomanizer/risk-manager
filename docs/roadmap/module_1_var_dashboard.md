@@ -77,7 +77,7 @@ The following items are explicitly not required for Module 1 MVP:
 | Risk Analytics | PRD-1.1-v2 | `active` | PRD-1.1-v1 | none | Current deterministic bounded scope is stable. |
 | Controls Integrity | PRD-2.1 | `active` | none | none | Current bounded trust-assessment scope is stable. |
 | Data Controller Walker | PRD-4.1 | `active` | none | none | v1 delegate is sufficient for the current trust-gate role. |
-| Quant Walker | PRD-4.2-v2 | `active` | PRD-4.2-v1 | none | v2 defines interpretive QuantInterpretation output; v1 is archived. Module 1 MVP still needs the WI-4.2.4–4.2.7 implementation on main. |
+| Quant Walker | PRD-4.2-v2 | `active` | PRD-4.2 | none | v2 defines interpretive QuantInterpretation output; v1 is archived. Module 1 MVP still needs the WI-4.2.4–4.2.7 implementation on main. |
 | Time Series Walker | PRD-4.3 | `active` | none | none | v1 contract is PRD-4.3; implementation (WI-4.3.x) is outstanding on main. |
 | Daily Risk Investigation Orchestrator | PRD-5.1 | `active` | none | PRD-5.1-v2 | Current orchestrator is bounded to a single-walker flow. |
 | Governance / Reporting Walker | none | `missing` | none | PRD-TBD-Governance-Reporting-Walker-v1 | Post-MVP (near-term). Typed handoff sufficient for MVP per PM decision 2026-04-19; PRD to be authored after interpretive outputs exist on main (PRD-4.2-v2 Quant, PRD-4.3 Time Series). |
@@ -135,5 +135,5 @@ None — all open questions have been closed.
 - 2026-04-19: Initial Module 1 dashboard seed added to the registry.
 - 2026-04-19: PM decision DECISION-MVP-01 — MVP is fixture-backed only; live-data is post-MVP near-term priority.
 - 2026-04-19: PM decision DECISION-MVP-02 — typed handoff sufficient for MVP; Governance Walker deferred to near-term post-MVP.
-- 2026-04-20: Quant Walker lineage — active PRD PRD-4.2-v2 (supersedes PRD-4.2-v1); MVP blockers and slices updated for merged contract vs implementation gap.
+- 2026-04-20: Quant Walker lineage — active PRD PRD-4.2-v2 (supersedes PRD-4.2); MVP blockers and slices updated for merged contract vs implementation gap.
 - 2026-04-20: Time Series Walker v1 contract recorded as PRD-4.3; registry lineage replaces PRD-TBD-Time-Series-Walker-v1; dashboard regenerated.
