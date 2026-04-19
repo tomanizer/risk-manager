@@ -183,8 +183,27 @@ def render_module_dashboard(payload: dict[str, Any], *, module_id: str) -> str:
     lines.extend(["", "## Post-MVP Enhancements", ""])
     lines.extend(_render_bullets(_string_list(dashboard_entry.get("post_mvp_enhancements"))))
     lines.extend(["", "## Open Questions", ""])
-    lines.extend(_render_bullets(_string_list(dashboard_entry.get("open_questions"))))
-    lines.extend(["", "## Change Log", ""])
+    open_questions = _string_list(dashboard_entry.get("open_questions"))
+    lines.extend(_render_bullets(open_questions) if open_questions else ["None — all open questions have been closed."])
+
+    closed_decisions = _mapping_list(dashboard_entry.get("closed_decisions"))
+    if closed_decisions:
+        lines.extend(["", "## Closed Decisions", ""])
+        for decision in closed_decisions:
+            lines.append(f"### {decision.get('id', 'DECISION')} — {decision.get('date', '')}")
+            lines.append("")
+            lines.append(f"**Question:** {_normalize_text(decision.get('question'))}")
+            lines.append("")
+            lines.append(f"**Decision:** {_normalize_text(decision.get('decision'))}")
+            lines.append("")
+            lines.append(f"**Rationale:** {_normalize_text(decision.get('rationale'))}")
+            note = decision.get("note")
+            if note:
+                lines.append("")
+                lines.append(f"**Note:** {_normalize_text(note)}")
+            lines.append("")
+
+    lines.extend(["## Change Log", ""])
     lines.extend(_render_bullets(_string_list(dashboard_entry.get("change_log"))))
     lines.append("")
     return "\n".join(lines)
