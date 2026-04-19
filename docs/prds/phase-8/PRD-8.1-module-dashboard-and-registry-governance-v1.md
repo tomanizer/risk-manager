@@ -5,7 +5,7 @@
 - **PRD ID:** PRD-8.1
 - **Title:** Module Dashboard And Registry Governance v1
 - **Phase:** Phase 8
-- **Status:** Ready for implementation
+- **Status:** Implemented — WI-8.1.1 DONE; dashboard live on main as of 2026-04-19
 - **Layer:** Delivery governance / shared status surfaces
 - **Type:** Registry-backed documentation and workflow governance
 - **Primary owner:** PM / Coordination Agent
