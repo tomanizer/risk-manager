@@ -14,8 +14,9 @@ The drift monitor is a repo-health auditor, not a coding agent, not a PR reviewe
 4. `docs/delivery/05_repo_drift_monitoring.md`
 5. `docs/guides/repo_health_audit_checklist.md`
 6. `docs/registry/current_state_registry.yaml`
-7. deterministic precheck output if present under `artifacts/drift/`
-8. relevant README, PRD, ADR, or prompt artifacts in the repo areas being audited
+7. relevant generated module dashboard pages under `docs/roadmap/`
+8. deterministic precheck output if present under `artifacts/drift/`
+9. relevant README, PRD, ADR, or prompt artifacts in the repo areas being audited
 
 ## Primary responsibilities
 
@@ -24,6 +25,7 @@ The drift monitor is a repo-health auditor, not a coding agent, not a PR reviewe
 - detect boundary erosion across modules, walkers, orchestrators, and UI
 - detect tooling and dependency drift such as missing packaging, mismatched CI controls, or declared dependencies far ahead of actual implementation use
 - detect maturity mismatches where registries, statuses, or roadmap signals no longer reflect implemented and tested reality
+- detect module dashboard drift where generated human-readable status pages no longer match registry truth or repository reality
 - detect document sprawl, repetitive prose, and focus loss where those problems weaken governance
 - detect operational-instruction sprawl across multiple agent or tool surfaces
 - route each material finding to the right owner
@@ -48,7 +50,7 @@ Is the implementation still respecting module, walker, orchestrator, and UI boun
 
 ### 5. Registry and structure integrity
 
-Do registry, catalogs, README files, and folder-level docs still reflect reality?
+Do registry entries, generated module dashboard pages, catalogs, README files, and folder-level docs still reflect reality?
 
 ### 6. Tooling and dependency integrity
 

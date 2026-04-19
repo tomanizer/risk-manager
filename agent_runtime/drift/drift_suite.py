@@ -12,6 +12,7 @@ from .architecture_boundaries import ArchitectureBoundaryReport, build_architect
 from .canon_lineage import CanonLineageReport, build_canon_lineage_report
 from .dependency_hygiene import DependencyHygieneReport, build_dependency_hygiene_report
 from .instruction_surfaces import InstructionSurfaceReport, build_instruction_surface_report
+from .module_dashboard_freshness import ModuleDashboardFreshnessReport, build_module_dashboard_freshness_report
 from .reference_integrity import ReferenceScanReport, build_reference_scan_report
 from .registry_alignment import RegistryAlignmentReport, build_registry_alignment_report
 from .surface_liveness import SurfaceLivenessReport, build_surface_liveness_report
@@ -27,6 +28,7 @@ _ReportT = (
     | CanonLineageReport
     | DependencyHygieneReport
     | InstructionSurfaceReport
+    | ModuleDashboardFreshnessReport
     | ReferenceScanReport
     | RegistryAlignmentReport
     | SurfaceLivenessReport
@@ -210,6 +212,12 @@ _SCANNERS: tuple[_ScannerSpec, ...] = (
         build_report=build_instruction_surface_report,
     ),
     _ScannerSpec(
+        scan_name="module_dashboard_freshness",
+        title="Module Dashboard Freshness",
+        artifact_name="module_dashboard_freshness.json",
+        build_report=build_module_dashboard_freshness_report,
+    ),
+    _ScannerSpec(
         scan_name="reference_integrity",
         title="Reference Integrity",
         artifact_name="reference_integrity.json",
@@ -234,6 +242,7 @@ _SIGNATURE_FIELDS: dict[str, tuple[str, ...]] = {
     "canon_lineage": ("kind", "source_path", "related_paths"),
     "dependency_hygiene": ("kind", "dependency_name", "source_path"),
     "instruction_surfaces": ("kind", "source_path", "related_paths"),
+    "module_dashboard_freshness": ("kind", "module_id", "dashboard_path", "registry_path"),
     "reference_integrity": ("kind", "source_file", "source_line", "reference"),
     "registry_alignment": ("kind", "component_id", "implementation_path", "registry_path"),
     "surface_liveness": ("kind", "source_path", "source_line", "related_path"),

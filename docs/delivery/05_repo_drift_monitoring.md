@@ -137,6 +137,20 @@ Checks:
 
 Does not check prompt quality, global minimality, or whether semantically aligned overlap should be deduplicated.
 
+### Module dashboard freshness
+
+**Implementation:** `agent_runtime/drift/module_dashboard_freshness.py`
+**CLI:** `scripts/drift/check_module_dashboard_freshness.py`
+**Drift class:** maturity or status drift
+**Typical owner:** PM
+
+Checks:
+- Missing generated module dashboard pages declared in `docs/registry/current_state_registry.yaml`
+- Generated module dashboard pages that no longer match the current registry-backed render output
+- Registry changes that were not followed by rerendering the governed dashboard page
+
+Does not check whether the registry status itself is correct; it only checks whether the generated dashboard page is present and fresh relative to the registry.
+
 ### Reference integrity
 
 **Implementation:** `agent_runtime/drift/reference_integrity.py`
@@ -190,6 +204,7 @@ Per-scanner JSON:
 - `artifacts/drift/canon_lineage.json`
 - `artifacts/drift/dependency_hygiene.json`
 - `artifacts/drift/instruction_surfaces.json`
+- `artifacts/drift/module_dashboard_freshness.json`
 - `artifacts/drift/reference_integrity.json`
 - `artifacts/drift/registry_alignment.json`
 - `artifacts/drift/surface_liveness.json`
@@ -276,7 +291,7 @@ Whether duplication is sanctioned (labeled summary, index, exemplar, or local ad
 Whether prompt instructions match governed delivery canon, work-item standards match PM and review expectations, role boundaries remain explicit, and the agent relay is preserved.
 
 ### Registry and catalog coherence
-Whether catalogs, registries, README files, and status markers still reflect actual state well enough to guide future work safely.
+Whether catalogs, registries, generated module dashboard pages under `docs/roadmap/`, README files, and status markers still reflect actual state well enough to guide future work safely.
 
 ### Tooling and operational hygiene
 Whether packaging, dependency declarations, lint/format/type-check/test controls, and CI checks match real implementation state.
