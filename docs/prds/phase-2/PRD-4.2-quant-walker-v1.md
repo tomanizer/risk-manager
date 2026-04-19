@@ -15,7 +15,7 @@
 - **Related ADRs:** ADR-001 (schema and typing), ADR-002 (replay and snapshot model), ADR-003 (evidence and trace model)
 - **Related shared infra:** `docs/shared_infra/index.md`, `docs/shared_infra/adoption_matrix.md`
 - **Related components (existing on `main`):** `src/modules/risk_analytics/` (service), `src/modules/risk_analytics/contracts/` (typed contracts), `src/modules/risk_analytics/fixtures/` (fixture index), `src/walkers/data_controller/` (sibling walker reference), `src/walkers/README.md` (walker package conventions), `src/shared/` (`ServiceError`)
-- **Planned components (created by the implementation WI, not yet on `main`):** src/walkers/quant/ package (created by WI-4.2.2)
+- **Planned components (created by the implementation WI, not yet on `main`):** `src/walkers/quant/` package (created by WI-4.2.2) <!-- drift-ignore -->
 - **Exemplar:** none. No docs/prd_exemplars/PRD-4.2-quant-walker.md exists for v1; alignment with any future Quant Walker exemplar is an Open Question.
 
 ## Purpose
@@ -57,7 +57,7 @@ This is also the highest-leverage spec gap currently blocking the relay: without
 - Concentration metrics, drill-down navigation, or other hierarchy-aware aggregations
 - Walker-originated rolling-statistics, volatility classification, regime detection, or change-flag logic of any kind (these remain inside `get_risk_change_profile`)
 - Recomputation, transformation, or interpretation of any field on `RiskChangeProfile` or `ServiceError`
-- Telemetry adoption for the Quant Walker layer (defer to shared-infra adoption matrix; tracked separately as a future WI consistent with how the Data Controller Walker received telemetry post-v1)
+- Telemetry emission for the Quant Walker package/component in v1 (the shared-infra adoption matrix already marks `src/walkers/` telemetry as adopted via the `data_controller` walker; Quant Walker-specific coverage is out of scope here and tracked separately as a future WI)
 - Orchestrator routing, daily-run integration, or any coupling to PRD-5.1 (PRD-5.1 v1 explicitly excludes quant walker integration; orchestrator routing is a PRD-5.1 v2+ concern)
 - UI rendering, analyst review console, dashboard surfaces, governance sign-off
 - Replay harness changes (walker adds no new snapshot, version, or evidence semantics; service outputs already carry replay context)
