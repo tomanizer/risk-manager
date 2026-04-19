@@ -15,8 +15,8 @@
 - **Related ADRs:** ADR-001 (schema and typing), ADR-002 (replay and snapshot model), ADR-003 (evidence and trace model)
 - **Related shared infra:** `docs/shared_infra/index.md`, `docs/shared_infra/adoption_matrix.md`
 - **Related components (existing on `main`):** `src/modules/risk_analytics/` (service), `src/modules/risk_analytics/contracts/` (typed contracts), `src/modules/risk_analytics/fixtures/` (fixture index), `src/walkers/data_controller/` (sibling walker reference), `src/walkers/README.md` (walker package conventions), `src/shared/` (`ServiceError`)
-- **Planned components (created by the implementation WI, not yet on `main`):** `src/walkers/quant/` package (created by WI-4.2.2)
-- **Exemplar:** none. No `docs/prd_exemplars/PRD-4.2-quant-walker.md` exists for v1; alignment with any future Quant Walker exemplar is an Open Question.
+- **Planned components (created by the implementation WI, not yet on `main`):** src/walkers/quant/ package (created by WI-4.2.2)
+- **Exemplar:** none. No docs/prd_exemplars/PRD-4.2-quant-walker.md exists for v1; alignment with any future Quant Walker exemplar is an Open Question.
 
 ## Purpose
 
@@ -82,7 +82,7 @@ The walker exposes a single function as its public entry point.
 
 **Function name:** `summarize_change`
 
-**Location:** `src/walkers/quant/` package (created by WI-4.2.2; module layout per existing walker conventions, exported via package `__init__.py` mirroring `src/walkers/data_controller/__init__.py`)
+**Location:** src/walkers/quant/ package (created by WI-4.2.2; module layout per existing walker conventions, exported via package `__init__.py` mirroring `src/walkers/data_controller/__init__.py`)
 
 **Signature:**
 
@@ -199,7 +199,7 @@ The walker does not strip, modify, or supplement any of these fields. The walker
 ### Architecture
 
 - Quant logic remains in `src/modules/risk_analytics/`; the walker is a facade only
-- Walker package location is `src/walkers/quant/` per `src/walkers/README.md`
+- Walker package location is src/walkers/quant/ per `src/walkers/README.md`
 - Package layout mirrors `src/walkers/data_controller/` (single `walker.py` module exporting one entry point via `__init__.py`)
 - No coupling to PRD-5.1 orchestrator code, no coupling to any other walker, no coupling to `agent_runtime`
 
@@ -242,7 +242,7 @@ Optional secondary parity rows (cover when fixtures already exist; do not block 
 This PRD is implemented by at most two work items:
 
 - **WI-4.2.1** — Quant Walker v1 implementation PRD (this document; mirrors WI-4.1.1)
-- **WI-4.2.2** — Quant Walker delegate slice: thin facade in a new `src/walkers/quant/` package + parity tests (mirrors WI-4.1.2)
+- **WI-4.2.2** — Quant Walker delegate slice: thin facade in a new src/walkers/quant/ package + parity tests (mirrors WI-4.1.2)
 
 Sequencing:
 
@@ -261,7 +261,7 @@ No further decomposition is needed for v1. Telemetry adoption, multi-delegate ex
 - **Multi-measure or batch invocation:** v1 is single-target, single-measure only. Batch and multi-measure synthesis (e.g., combined VaR + ES walker output) are deferred. Multi-target fan-out is an orchestrator concern, not a walker v1 concern.
 - **Multi-function delegation:** v1 exposes only `summarize_change` over `get_risk_change_profile`. Whether to add walker-level delegates for `get_risk_summary`, `get_risk_delta`, or `get_risk_history` should be driven by a concrete downstream consumer requirement (e.g., a PRD-5.1 v2+ quant routing slice that needs a fast first-order delta path). Pre-exposing them in v1 would push contract decisions ahead of any concrete requirement.
 - **Telemetry adoption:** The shared-infra adoption matrix lists `src/walkers/` telemetry as adopted only for the Data Controller Walker (WI-4.1.4). A separate WI should add telemetry to the Quant Walker once that pattern is being applied across walkers; v1 does not require it. When that WI lands, the adoption matrix row for `src/walkers/` should be updated to reflect Quant Walker coverage.
-- **Quant Walker exemplar alignment:** No exemplar exists at `docs/prd_exemplars/PRD-4.2-quant-walker.md`. If one is authored, this PRD should be reviewed for alignment before any v2+ behavior is added. The exemplar must be treated as non-normative for v1 unless and until a future PRD update adopts it.
+- **Quant Walker exemplar alignment:** No exemplar exists at docs/prd_exemplars/PRD-4.2-quant-walker.md. If one is authored, this PRD should be reviewed for alignment before any v2+ behavior is added. The exemplar must be treated as non-normative for v1 unless and until a future PRD update adopts it.
 
 ## Reviewer checklist
 
@@ -278,4 +278,4 @@ No further decomposition is needed for v1. Telemetry adoption, multi-delegate ex
 - Acceptance criteria and parity matrix are sufficient for WI-4.2.2 coding without guesswork
 - No new ADR-level concept, no new shared-infra contract, no schema change to PRD-1.1-v2 contracts has leaked in
 - Telemetry remains out of scope for v1; if telemetry is added in the implementation PR, the reviewer should require either (a) a separate, explicit walker-telemetry WI linked from the PR, or (b) removal of the telemetry from v1 — consistent with PRD-4.1's original v1 scope discipline
-- Backtick-wrapped repository paths in this PRD either exist on `main` (`src/modules/risk_analytics/`, `src/modules/risk_analytics/contracts/`, `src/modules/risk_analytics/fixtures/`, `src/walkers/data_controller/`, `src/walkers/README.md`, `src/shared/`, all `docs/...` paths) or are explicitly called out as planned with a linked work item in the header (`src/walkers/quant/` — created by WI-4.2.2), consistent with reference-integrity and registry-alignment checks
+- Backtick-wrapped repository paths in this PRD either exist on `main` (`src/modules/risk_analytics/`, `src/modules/risk_analytics/contracts/`, `src/modules/risk_analytics/fixtures/`, `src/walkers/data_controller/`, `src/walkers/README.md`, `src/shared/`, all `docs/...` paths) or are explicitly called out as planned with a linked work item in the header (src/walkers/quant/ — created by WI-4.2.2), consistent with reference-integrity and registry-alignment checks
