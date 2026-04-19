@@ -109,7 +109,13 @@ def status_string(outcome: Any) -> str:
 
 
 def canonical_terminal_run_status_status(terminal_status: str | Enum) -> str:
-    """Map PRD terminal run statuses to shared canonical telemetry statuses."""
+    """Map PRD terminal run statuses to shared canonical telemetry statuses.
+
+    Degrades gracefully on unrecognised values: logs a warning and returns
+    ``"DEGRADED"`` so that a future TerminalRunStatus addition never crashes
+    an otherwise complete orchestrator run.  Contract coverage is verified by
+    the exhaustive test in ``tests/unit/shared/telemetry/test_operation_log.py``.
+    """
     terminal_status_value = terminal_status.value if isinstance(terminal_status, Enum) else terminal_status
     mapping = {
         "COMPLETED": "OK",
@@ -118,10 +124,17 @@ def canonical_terminal_run_status_status(terminal_status: str | Enum) -> str:
         "FAILED_ALL_TARGETS": "DEGRADED",
         "BLOCKED_READINESS": "DEGRADED",
     }
-    try:
-        return mapping[terminal_status_value]
-    except KeyError as exc:
-        raise RuntimeError(f"unhandled terminal_status for telemetry: {terminal_status_value!r}") from exc
+    result = mapping.get(terminal_status_value)
+    if result is None:
+        _log.warning(
+            EVENT_NAME,
+            operation="canonical_terminal_run_status_status",
+            status="DEGRADED",
+            duration_ms=0,
+            unrecognised_terminal_status=terminal_status_value,
+        )
+        return "DEGRADED"
+    return result
 
 
 def node_ref_log_dict(node_ref: Any) -> dict[str, str | None]:
