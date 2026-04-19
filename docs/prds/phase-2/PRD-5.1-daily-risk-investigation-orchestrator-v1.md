@@ -15,7 +15,7 @@
 - **Upstream walker PRDs:** PRD-4.1 (Data Controller Walker v1)
 - **Related ADRs:** ADR-001 (schema and typing), ADR-002 (replay and snapshot model), ADR-003 (evidence and trace model), ADR-004 (business-day and calendar handling)
 - **Related shared infra:** `docs/shared_infra/index.md`, `docs/shared_infra/telemetry.md`, `docs/shared_infra/adoption_matrix.md`
-- **Related components (planned scaffolding, created by WI-5.1.1):** `src/orchestrators/daily_risk_investigation/`
+- **Related components (planned scaffolding, created by WI-5.1.1):** `src/orchestrators/daily_risk_investigation/` <!-- drift-ignore -->
 - **Existing components consumed:** `src/modules/risk_analytics/` (`get_risk_summary`), `src/modules/controls_integrity/` (`IntegrityAssessment`, `ServiceError`), `src/walkers/data_controller/` (`assess_integrity`)
 - **Exemplar (non-normative background only):** `docs/prd_exemplars/PRD-5.1-daily-risk-investigation-orchestrator.md`
 
@@ -360,7 +360,7 @@ These rules read only `trust_state` and `assessment_status` from the upstream ty
   - `snapshot_id`
   - `measure_type.value`
   - the tuple of `candidate_targets`, each serialized as the canonical `node_ref_log_dict` shape from `src.shared.telemetry.operation_log`
-  - `orchestrator_version` (module-level constant pinned in `src/orchestrators/daily_risk_investigation/`)
+  - `orchestrator_version` (module-level constant pinned in `src/orchestrators/daily_risk_investigation/`) <!-- drift-ignore -->
 - the components are JSON-serialized with sorted keys at every dict level
 - `run_id = "drun_" + sha256(serialized_components_utf8).hexdigest()`
 
@@ -488,7 +488,7 @@ This is part of the v1 PRD's required outcome and must not be deferred to a foll
 
 ### Architecture
 
-- orchestrator package lives at `src/orchestrators/daily_risk_investigation/` and exposes only the public entry point and result types via its `__init__.py`
+- orchestrator package lives at `src/orchestrators/daily_risk_investigation/` and exposes only the public entry point and result types via its `__init__.py` <!-- drift-ignore -->
 - orchestrator imports the controls integrity surface only via the `data_controller` walker (no direct service import)
 - orchestrator imports `get_risk_summary` from the public `src.modules.risk_analytics` surface only
 - `src/orchestrators/README.md` is updated to reflect that `daily_risk_investigation/` is the first implemented orchestrator (single-line note; no scope expansion)
@@ -546,7 +546,7 @@ This PRD must be implemented as a sequence of bounded slices. PM / Issue Planner
 ### Suggested sequence
 
 1. **WI-5.1.1 — Orchestrator skeleton and typed contracts**
-   - create `src/orchestrators/daily_risk_investigation/` package with `__init__.py`
+   - create `src/orchestrators/daily_risk_investigation/` package with `__init__.py` <!-- drift-ignore -->
    - define `DailyRunResult`, `TargetInvestigationResult`, `TargetHandoffEntry`, `HandoffStatus`, `TerminalRunStatus`, `ReadinessState`, `OutcomeKind` (typed-schema approach per ADR-001)
    - define `start_daily_run` entry-point signature and `run_id` derivation only; no stage execution behavior yet
    - unit tests for contract shapes and `run_id` determinism
@@ -600,7 +600,7 @@ This PRD must be implemented as a sequence of bounded slices. PM / Issue Planner
 - `generated_at` derivation is deterministic per the documented rule
 - telemetry uses `src.shared.telemetry.emit_operation` exclusively; no `agent_runtime` import; no module-local status mapping; no `IntegrityAssessment` payloads in log records
 - adoption matrix is updated to `adopted` once telemetry slice merges
-- backtick-wrapped paths to the planned `src/orchestrators/daily_risk_investigation/` package are linked to WI-5.1.1 in the header per the reference-integrity convention used by PRD-4.1
+- backtick-wrapped paths to the planned `src/orchestrators/daily_risk_investigation/` package are linked to WI-5.1.1 in the header per the reference-integrity convention used by PRD-4.1 <!-- drift-ignore -->
 - out-of-scope items have not silently leaked into v1
 - PRD-1.1-v2, PRD-2.1, and PRD-4.1 contracts are cross-referenced, not restated or altered
 
