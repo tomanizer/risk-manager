@@ -16,7 +16,7 @@
 - **Related ADRs:** ADR-001 (schema and typing), ADR-002 (replay and snapshot model), ADR-003 (evidence and trace model), ADR-004 (business-day and calendar handling)
 - **Related shared infra:** `docs/shared_infra/index.md`, `docs/shared_infra/telemetry.md`, `docs/shared_infra/adoption_matrix.md`
 - **Related components (planned scaffolding, created by WI-5.1.1):** `src/orchestrators/daily_risk_investigation/` <!-- drift-ignore -->
-- **Existing components consumed:** `src/modules/risk_analytics/` (`get_risk_summary`), `src/modules/controls_integrity/` (`IntegrityAssessment`, `ServiceError`), `src/walkers/data_controller/` (`assess_integrity`)
+- **Existing components consumed:** `src/modules/risk_analytics/` (`get_risk_summary`), `src/modules/controls_integrity/` (`IntegrityAssessment`), `src/shared/` (`ServiceError`), `src/walkers/data_controller/` (`assess_integrity`)
 - **Exemplar (non-normative background only):** `docs/prd_exemplars/PRD-5.1-daily-risk-investigation-orchestrator.md`
 
 ## Purpose
@@ -59,10 +59,10 @@ It does not provide:
 - consumption of `RiskSummary` from `get_risk_summary` for readiness verification and target-set hydration
 - consumption of `IntegrityAssessment | ServiceError` from `data_controller.assess_integrity` for per-target investigation
 - deterministic per-target challenge gate driven solely by the typed fields already produced by the deterministic service (no orchestrator-owned trust rules)
-- structured handoff list of `(node_ref, measure_type, handoff_status, blocking_reason_codes, cautionary_reason_codes, integrity_outcome_ref)`
+- structured handoff list of `(node_ref, measure_type, handoff_status, blocking_reason_codes, cautionary_reason_codes, service_error_status_code)`, with field semantics matching the `TargetHandoffEntry` model defined below
 - replay determinism: equal inputs produce equal `DailyRunResult` (ADR-002)
 - evidence propagation: per-target outcomes carry the unmodified `IntegrityAssessment` (or `ServiceError`) from the walker layer (ADR-003)
-- telemetry: one structured operation event per stage transition plus one terminal `daily_run_complete` event, emitted via `src.shared.telemetry.emit_operation` (no module-local duplicate status mapping; no `agent_runtime` imports)
+- telemetry: structured operation events for the v1 stage subset enumerated in "Required events (v1)" below, plus one terminal `daily_run_complete` event, emitted via `src.shared.telemetry.emit_operation` (no module-local duplicate status mapping; no `agent_runtime` imports)
 - shared-infra adoption: flip `src/orchestrators/` row in `docs/shared_infra/adoption_matrix.md` from `planned` to `adopted` once telemetry slice merges
 - unit tests on contract shapes, stage ordering, gate semantics, degraded handling, and replay equality
 
@@ -405,14 +405,16 @@ Exactly the following events must be emitted per run, each with the listed minim
 | Event `operation` | Status field source | Required context fields (in addition to `operation`, `status`, `duration_ms`) |
 | --- | --- | --- |
 | `daily_run.intake` | `OK` | `run_id`, `as_of_date`, `snapshot_id`, `measure_type`, `candidate_count` |
-| `daily_run.readiness_gate` | `OK` (READY) or `BLOCKED` (BLOCKED) | `run_id`, `as_of_date`, `snapshot_id`, `readiness_state`, `readiness_reason_codes` |
+| `daily_run.readiness_gate` | `OK` when `readiness_state == READY`; otherwise the canary call's `ServiceError.status_code` (one of `MISSING_SNAPSHOT`, `UNSUPPORTED_MEASURE`) | `run_id`, `as_of_date`, `snapshot_id`, `readiness_state`, `readiness_reason_codes` |
 | `daily_run.target_selection` | `OK` | `run_id`, `candidate_count`, `selected_count`, `excluded_missing_node_count` |
 | `daily_run.investigation` | `OK` | `run_id`, `selected_count`, `assessment_count`, `service_error_count` |
 | `daily_run.challenge` | `OK` | `run_id`, `ready_for_handoff_count`, `proceed_with_caveat_count`, `hold_blocking_trust_count`, `hold_unresolved_trust_count`, `hold_investigation_failed_count` |
 | `daily_run.handoff` | `OK` | `run_id`, `handoff_count` |
-| `daily_run_complete` | `terminal_status.value` (mapped: `COMPLETED` and `COMPLETED_WITH_CAVEATS` → `OK`; `COMPLETED_WITH_FAILURES` → `PARTIAL`; `FAILED_ALL_TARGETS` and `BLOCKED_READINESS` → `DEGRADED`) | `run_id`, `as_of_date`, `snapshot_id`, `terminal_status`, `degraded`, `partial`, `selected_count`, `assessment_count`, `service_error_count` |
+| `daily_run_complete` | mapped canonical status derived from `terminal_status` (`COMPLETED` → `OK`; `COMPLETED_WITH_CAVEATS` → `DEGRADED`; `COMPLETED_WITH_FAILURES` → `PARTIAL`; `FAILED_ALL_TARGETS` → `DEGRADED`; `BLOCKED_READINESS` → `DEGRADED`) | `run_id`, `as_of_date`, `snapshot_id`, `terminal_status`, `degraded`, `partial`, `selected_count`, `assessment_count`, `service_error_count` |
 
-The status mapping above is normative and must use only canonical statuses already supported by `_INFO_STATUSES` and `_WARNING_STATUSES` in `src.shared.telemetry.operation_log` (no new status strings).
+The status mapping above is normative. Every value emitted in the `status` field of an orchestrator telemetry event must be one of the canonical statuses already supported by `_INFO_STATUSES` or `_WARNING_STATUSES` in `src.shared.telemetry.operation_log` (no new status strings). The raw `terminal_status` enum value (for example `COMPLETED_WITH_CAVEATS`) is emitted only as a context field on `daily_run_complete`, never as the canonical `status`.
+
+Stages `target_routing`, `synthesis`, and `persist` intentionally do not emit standalone events in v1: routing is a constant decision in the single-walker scope, synthesis is structural collation only, and persistence completion is captured by the terminal `daily_run_complete` event. Adding separate events for these stages requires a PRD update.
 
 If `readiness_state == BLOCKED`, the orchestrator emits `daily_run.intake`, `daily_run.readiness_gate`, and `daily_run_complete` only. Stages 3–8 emit no telemetry in the blocked path.
 
