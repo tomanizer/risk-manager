@@ -2,11 +2,11 @@
 
 ## Status
 
-**READY** — WI-5.1.3 is merged on `main`; replay coverage is partially present, but the public-entrypoint determinism gap is still open.
+**DONE** — Merged to `main` via [PR #177](https://github.com/tomanizer/risk-manager/pull/177). Replay/determinism tests for the public `start_daily_run` entrypoint are on `main`.
 
 ## Blocker
 
-- None. PM can assign this residual replay slice to Coding Agent.
+- None. Work complete.
 
 ## Linked PRD
 
@@ -32,7 +32,12 @@ Current state on `main`:
 - `generated_at` determinism helper coverage already exists in [tests/unit/orchestrators/daily_risk_investigation/test_generated_at.py](tests/unit/orchestrators/daily_risk_investigation/test_generated_at.py)
 - telemetry is already included in the implementation and covered separately by [tests/unit/orchestrators/daily_risk_investigation/test_telemetry.py](tests/unit/orchestrators/daily_risk_investigation/test_telemetry.py)
 
-The missing replay guard is an end-to-end equality assertion over the full `DailyRunResult` returned by `start_daily_run`.
+The missing replay guard was an end-to-end equality assertion over the full `DailyRunResult` returned by `start_daily_run`; PR #177 closed it.
+
+## Completion evidence on `main`
+
+- [tests/unit/orchestrators/daily_risk_investigation/test_replay_determinism.py](tests/unit/orchestrators/daily_risk_investigation/test_replay_determinism.py) — happy-path and `BLOCKED_READINESS` two-invocation `DailyRunResult` equality for `start_daily_run`.
+- Merge: [PR #177](https://github.com/tomanizer/risk-manager/pull/177).
 
 ## Scope
 
