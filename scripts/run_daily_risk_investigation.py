@@ -50,7 +50,7 @@ def find_repo_root(start: Path) -> Path:
 
 
 def _bootstrap_repo_imports() -> None:
-    repo_root = find_repo_root(Path.cwd())
+    repo_root = find_repo_root(Path(__file__).resolve())
     repo_root_str = str(repo_root)
     if repo_root_str not in sys.path:
         sys.path.insert(0, repo_root_str)
@@ -211,8 +211,8 @@ def _summary_payload(scenario: Scenario, result: "DailyRunResult") -> dict[str, 
         "as_of_date": scenario.as_of_date.isoformat(),
         "snapshot_id": scenario.snapshot_id,
         "measure_type": scenario.measure_type.value,
-        "candidate_node_ids": [node.node_id for node in scenario.candidate_targets],
-        "selected_node_ids": [node.node_id for node in result.selected_targets],
+        "candidate_targets": [_node_ref_payload(node) for node in scenario.candidate_targets],
+        "selected_targets": [_node_ref_payload(node) for node in result.selected_targets],
         "readiness_state": result.readiness_state.value,
         "readiness_reason_codes": list(result.readiness_reason_codes),
         "terminal_status": result.terminal_status.value,
@@ -221,7 +221,7 @@ def _summary_payload(scenario: Scenario, result: "DailyRunResult") -> dict[str, 
         "run_id": result.run_id,
         "handoff": [
             {
-                "node_id": entry.node_ref.node_id,
+                "node_ref": _node_ref_payload(entry.node_ref),
                 "handoff_status": entry.handoff_status.value,
                 "blocking_reason_codes": [code.value for code in entry.blocking_reason_codes],
                 "cautionary_reason_codes": [code.value for code in entry.cautionary_reason_codes],
@@ -229,6 +229,15 @@ def _summary_payload(scenario: Scenario, result: "DailyRunResult") -> dict[str, 
             }
             for entry in result.handoff
         ],
+    }
+
+
+def _node_ref_payload(node: "NodeRef") -> dict[str, object]:
+    return {
+        "hierarchy_scope": node.hierarchy_scope.value,
+        "legal_entity_id": node.legal_entity_id,
+        "node_level": node.node_level.value,
+        "node_id": node.node_id,
     }
 
 
