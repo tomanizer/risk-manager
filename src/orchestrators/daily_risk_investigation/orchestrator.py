@@ -390,6 +390,7 @@ def start_daily_run(
         empty_target_results: tuple[TargetInvestigationResult, ...] = ()
         empty_handoff: tuple[TargetHandoffEntry, ...] = ()
         empty_selected: tuple[NodeRef, ...] = ()
+        complete_start = timer_start()
         blocked_result = DailyRunResult(
             run_id=run_id,
             as_of_date=as_of_date,
@@ -407,7 +408,6 @@ def start_daily_run(
             orchestrator_version=orchestrator_version,
             generated_at=_derive_generated_at(empty_target_results, as_of_date),
         )
-        complete_start = timer_start()
         _emit_daily_run_operation(
             "daily_run_complete",
             status=canonical_terminal_run_status_status(blocked_result.terminal_status),

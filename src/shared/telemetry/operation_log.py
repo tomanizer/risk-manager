@@ -126,13 +126,14 @@ def canonical_terminal_run_status_status(terminal_status: str | Enum) -> str:
     }
     result = mapping.get(terminal_status_value)
     if result is None:
-        _log.warning(
-            EVENT_NAME,
-            operation="canonical_terminal_run_status_status",
-            status="DEGRADED",
-            duration_ms=0,
-            unrecognised_terminal_status=terminal_status_value,
-        )
+        if _should_emit("DEGRADED"):
+            _log.warning(
+                EVENT_NAME,
+                operation="canonical_terminal_run_status_status",
+                status="DEGRADED",
+                duration_ms=0,
+                unrecognised_terminal_status=str(terminal_status_value),
+            )
         return "DEGRADED"
     return result
 
