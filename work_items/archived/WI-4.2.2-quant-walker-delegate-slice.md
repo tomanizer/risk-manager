@@ -10,7 +10,7 @@
 
 ## Linked PRD
 
-docs/prds/phase-2/PRD-4.2-quant-walker-v1.md
+docs/prds/phase-2/archive/PRD-4.2-quant-walker-v1-archived.md
 
 Planned walker package path for this WI is src/walkers/quant/ (plain text only until created on main). Upstream service semantics: [PRD-1.1-v2](docs/prds/phase-1/PRD-1.1-risk-summary-service-v2.md).
 
