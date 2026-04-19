@@ -435,12 +435,12 @@ The walker must emit exactly one structured operation event per `summarize_chang
 
 ### Event shape (minimum payload, normative)
 
-Implemented via `src.shared.telemetry.emit_operation`. The walker must use the shared helper directly; no module-local status mapping or duplicate framework. Required keyword arguments:
+Implemented via `src.shared.telemetry.emit_operation`. The walker must use the shared helper directly; no module-local status mapping or duplicate framework. Call shape matches `emit_operation(operation, *, status=..., start_time=..., include_trace_context=..., **context)` in `src/shared/telemetry/operation_log.py`:
 
-- `operation_name`: positional first arg, value `"summarize_change"`
-- `status`: see "Status mapping" below
-- `start_time`: monotonic anchor captured before the upstream call via `timer_start()`
-- `include_trace_context`: `False` (consistent with `risk_analytics` and `data_controller` walker; OpenTelemetry trace keys are not adopted as a parallel evidence surface in v2)
+- `operation`: positional first argument; value `"summarize_change"`
+- `status`: keyword-only; see "Status mapping" below
+- `start_time`: keyword-only; monotonic anchor captured before the upstream call via `timer_start()`
+- `include_trace_context`: keyword-only; `False` (consistent with `risk_analytics` and `data_controller` walker; OpenTelemetry trace keys are not adopted as a parallel evidence surface in v2)
 - `node_ref`: `node_ref_log_dict(node_ref)` (canonical low-cardinality dict)
 - `measure_type`: the input `MeasureType` value (the shared helper handles enum serialization)
 - `as_of_date`: the input `date`

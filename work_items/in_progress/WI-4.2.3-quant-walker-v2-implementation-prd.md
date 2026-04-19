@@ -38,7 +38,8 @@ Close all PRD-4.2 v1 Open Questions required for Module 1 MVP by authoring **PRD
 ## Dependencies
 
 - PRD-4.2-v1 and PRD-1.1-v2 are stable on `main` (not runtime-gated).
-- WI-4.2.2 is merged to `main` (PR #168); v1 implementation exists at `src/walkers/quant/`.
+- WI-4.2.2
+- Merged prerequisite detail: delegate slice on `main` (PR #168); v1 implementation exists at `src/walkers/quant/`.
 
 ## Target area
 
