@@ -99,7 +99,7 @@ def render_module_dashboard(payload: dict[str, Any], *, module_id: str) -> str:
     )
     for stage in _mapping_list(dashboard_entry.get("journey_stages")):
         lines.append(
-            f"| {stage.get('label', '')} | {_normalize_text(stage.get('goal'))} | "
+            f"| {_escape_markdown_table_text(stage.get('label'))} | {_normalize_text(stage.get('goal'))} | "
             f"`{stage.get('status', 'unknown')}` | {_normalize_text(stage.get('notes'))} |"
         )
 
@@ -117,7 +117,8 @@ def render_module_dashboard(payload: dict[str, Any], *, module_id: str) -> str:
         component = component_index.get(component_ref, {})
         capability_name = str(component.get("name") or capability.get("name") or component_ref)
         lines.append(
-            f"| {capability_name} | {capability.get('layer', '')} | `{capability.get('current_state', 'unknown')}` | "
+            f"| {_escape_markdown_table_text(capability_name)} | {_escape_markdown_table_text(capability.get('layer'))} | "
+            f"`{capability.get('current_state', 'unknown')}` | "
             f"{_render_table_list(_string_list(capability.get('implemented_now')))} | "
             f"{_render_table_list(_string_list(capability.get('missing_for_mvp')))} | "
             f"{_render_table_list(_string_list(capability.get('missing_prds')))} | "
@@ -155,7 +156,7 @@ def render_module_dashboard(payload: dict[str, Any], *, module_id: str) -> str:
     )
     for lineage in _mapping_list(dashboard_entry.get("prd_lineage")):
         lines.append(
-            f"| {lineage.get('capability', '')} | {_normalize_text(lineage.get('active_prd'))} | "
+            f"| {_escape_markdown_table_text(lineage.get('capability'))} | {_normalize_text(lineage.get('active_prd'))} | "
             f"`{lineage.get('status', 'unknown')}` | {_normalize_text(lineage.get('supersedes'))} | "
             f"{_normalize_text(lineage.get('next_needed_prd'))} | {_normalize_text(lineage.get('why'))} |"
         )
@@ -171,8 +172,8 @@ def render_module_dashboard(payload: dict[str, Any], *, module_id: str) -> str:
         )
         for item in in_progress_items:
             lines.append(
-                f"| {item.get('id', '')} | `{item.get('type', '')}` | `{item.get('status', '')}` | "
-                f"{item.get('owner', '')} | `{'yes' if item.get('blocking') else 'no'}` | {_normalize_text(item.get('notes'))} |"
+                f"| {_escape_markdown_table_text(item.get('id'))} | `{item.get('type', '')}` | `{item.get('status', '')}` | "
+                f"{_escape_markdown_table_text(item.get('owner'))} | `{'yes' if item.get('blocking') else 'no'}` | {_normalize_text(item.get('notes'))} |"
             )
     else:
         lines.append("None recorded.")
@@ -256,15 +257,20 @@ def _string_list(value: Any) -> list[str]:
         raise ValueError("expected a list of strings")
     out: list[str] = []
     for item in value:
-        text = str(item).strip()
+        text = _escape_markdown_table_text(item)
         if text:
             out.append(text)
     return out
 
 
 def _normalize_text(value: Any) -> str:
-    text = str(value).strip() if value is not None else ""
+    text = _escape_markdown_table_text(value)
     return text or "none"
+
+
+def _escape_markdown_table_text(value: Any) -> str:
+    text = str(value).strip() if value is not None else ""
+    return text.replace("|", "\\|")
 
 
 def _render_table_list(items: list[str]) -> str:

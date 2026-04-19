@@ -56,6 +56,26 @@ def test_render_module_dashboard_cli_writes_dashboard_file(tmp_path: Path) -> No
     assert "# Module 1 Dashboard: End-to-End VaR Workflow" in dashboard_path.read_text(encoding="utf-8")
 
 
+def test_render_module_dashboard_escapes_pipe_characters_in_table_cells(tmp_path: Path) -> None:
+    registry_path = _write_registry(tmp_path)
+    payload = load_registry(registry_path)
+    payload["module_dashboards"][0]["journey_stages"][0]["label"] = "Deterministic | foundation"
+    payload["module_dashboards"][0]["journey_stages"][0]["goal"] = "canonical | analytics"
+    payload["module_dashboards"][0]["journey_stages"][0]["notes"] = "Risk | Analytics"
+    payload["module_dashboards"][0]["capabilities"][0]["implemented_now"] = ["get_risk_summary | get_risk_delta"]
+    payload["module_dashboards"][0]["capabilities"][0]["next_slice"] = "decide | live integration"
+    payload["module_dashboards"][0]["prd_lineage"][0]["capability"] = "Quant | Walker"
+
+    rendered = render_module_dashboard(payload, module_id="MODULE-1-VAR")
+
+    assert "Deterministic \\| foundation" in rendered
+    assert "canonical \\| analytics" in rendered
+    assert "Risk \\| Analytics" in rendered
+    assert "get_risk_summary \\| get_risk_delta" in rendered
+    assert "decide \\| live integration" in rendered
+    assert "Quant \\| Walker" in rendered
+
+
 def _write_registry(root: Path) -> Path:
     registry_path = root / "docs" / "registry" / "current_state_registry.yaml"
     registry_path.parent.mkdir(parents=True, exist_ok=True)
