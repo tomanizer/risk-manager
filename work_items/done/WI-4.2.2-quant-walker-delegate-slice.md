@@ -2,11 +2,7 @@
 
 ## Status
 
-**READY** — WI-4.2.1 (implementation PRD) is merged on `main`; PRD-4.2 is stable implementation contract.
-
-## Blocker
-
-- None. PM can assign this slice to Coding Agent.
+**DONE** — Implementation merged to `main` via PR #168. Moved to done/ by PM drift-triage pass 2026-04-19 (was stuck in in_progress/ after merge).
 
 ## Linked PRD
 
