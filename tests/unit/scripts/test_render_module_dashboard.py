@@ -56,6 +56,41 @@ def test_render_module_dashboard_cli_writes_dashboard_file(tmp_path: Path) -> No
     assert "# Module 1 Dashboard: End-to-End VaR Workflow" in dashboard_path.read_text(encoding="utf-8")
 
 
+def test_render_module_dashboard_empty_open_questions_renders_closed_message(tmp_path: Path) -> None:
+    registry_path = _write_registry(tmp_path)
+    payload = load_registry(registry_path)
+    payload["module_dashboards"][0]["open_questions"] = []
+
+    rendered = render_module_dashboard(payload, module_id="MODULE-1-VAR")
+
+    assert "None — all open questions have been closed." in rendered
+
+
+def test_render_module_dashboard_closed_decisions_renders_expected_sections(tmp_path: Path) -> None:
+    registry_path = _write_registry(tmp_path)
+    payload = load_registry(registry_path)
+    payload["module_dashboards"][0]["open_questions"] = []
+    payload["module_dashboards"][0]["closed_decisions"] = [
+        {
+            "id": "DECISION-MVP-01",
+            "date": "2026-04-19",
+            "question": "Is live-data in MVP?",
+            "decision": "Post-MVP.",
+            "rationale": "Fixture-backed MVP.",
+            "note": "Revisit after MVP.",
+        }
+    ]
+
+    rendered = render_module_dashboard(payload, module_id="MODULE-1-VAR")
+
+    assert "## Closed Decisions" in rendered
+    assert "### DECISION-MVP-01 — 2026-04-19" in rendered
+    assert "**Question:** Is live-data in MVP?" in rendered
+    assert "**Decision:** Post-MVP." in rendered
+    assert "**Rationale:** Fixture-backed MVP." in rendered
+    assert "**Note:** Revisit after MVP." in rendered
+
+
 def test_render_module_dashboard_escapes_pipe_characters_in_table_cells(tmp_path: Path) -> None:
     registry_path = _write_registry(tmp_path)
     payload = load_registry(registry_path)
