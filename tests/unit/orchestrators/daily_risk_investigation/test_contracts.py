@@ -345,37 +345,42 @@ class PublicSurfaceTest(unittest.TestCase):
             TerminalRunStatus,
         )
 
-    def test_start_daily_run_raises_not_implemented(self) -> None:
-        with self.assertRaises(NotImplementedError):
-            start_daily_run(
-                as_of_date=_AS_OF_DATE,
-                snapshot_id=_SNAPSHOT_ID,
-                candidate_targets=(_NODE_REF_TOH,),
-                measure_type=MeasureType.VAR_1D_99,
-            )
+    def test_start_daily_run_accepts_required_kwargs(self) -> None:
+        """start_daily_run accepts the documented required kwargs and returns a DailyRunResult.
+
+        Stage execution semantics are validated in the dedicated WI-5.1.2 test
+        modules; this test pins the public-surface signature only.
+        """
+        result = start_daily_run(
+            as_of_date=_AS_OF_DATE,
+            snapshot_id=_SNAPSHOT_ID,
+            candidate_targets=(_NODE_REF_TOH,),
+            measure_type=MeasureType.VAR_1D_99,
+        )
+        self.assertIsInstance(result, DailyRunResult)
 
     def test_start_daily_run_with_optional_kwargs(self) -> None:
-        with self.assertRaises(NotImplementedError):
+        """start_daily_run accepts the documented optional fixture-index kwargs."""
+        result = start_daily_run(
+            as_of_date=_AS_OF_DATE,
+            snapshot_id=_SNAPSHOT_ID,
+            candidate_targets=(_NODE_REF_TOH,),
+            measure_type=MeasureType.VAR_1D_99,
+            risk_fixture_index=None,
+            controls_fixture_index=None,
+        )
+        self.assertIsInstance(result, DailyRunResult)
+
+    def test_start_daily_run_calls_derive_run_id(self) -> None:
+        """start_daily_run must invoke _derive_run_id once with canonical inputs."""
+        target = "src.orchestrators.daily_risk_investigation.orchestrator._derive_run_id"
+        with patch(target, return_value="drun_stub") as mock_derive:
             start_daily_run(
                 as_of_date=_AS_OF_DATE,
                 snapshot_id=_SNAPSHOT_ID,
                 candidate_targets=(_NODE_REF_TOH,),
                 measure_type=MeasureType.VAR_1D_99,
-                risk_fixture_index=None,
-                controls_fixture_index=None,
             )
-
-    def test_start_daily_run_calls_derive_run_id(self) -> None:
-        """start_daily_run must invoke _derive_run_id before raising NotImplementedError."""
-        target = "src.orchestrators.daily_risk_investigation.orchestrator._derive_run_id"
-        with patch(target, return_value="drun_stub") as mock_derive:
-            with self.assertRaises(NotImplementedError):
-                start_daily_run(
-                    as_of_date=_AS_OF_DATE,
-                    snapshot_id=_SNAPSHOT_ID,
-                    candidate_targets=(_NODE_REF_TOH,),
-                    measure_type=MeasureType.VAR_1D_99,
-                )
             mock_derive.assert_called_once_with(
                 _AS_OF_DATE,
                 _SNAPSHOT_ID,
