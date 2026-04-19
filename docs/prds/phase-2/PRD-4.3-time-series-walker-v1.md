@@ -35,7 +35,7 @@ All deterministic time-series computation — rolling statistics, volatility reg
 
 ### Rationale
 
-1. **Module 1 MVP requires it.** `docs/roadmap/module_1_var_dashboard.md` and `docs/registry/current_state_registry.yaml` (entry `WALKER-TIME-SERIES`) record the Time Series Walker MVP gap as "full time-series interpretation capability" with `next_needed_prd: PRD-TBD-Time-Series-Walker-v1`. There is no Time Series Walker v2 PRD in the roadmap. Authoring a delegation-only v1 followed by an interpretive v2 would create two PRDs, two implementation cycles, and two coding/review passes for a capability that can be specified in one bounded slice today.
+1. **Module 1 MVP requires it.** `docs/roadmap/module_1_var_dashboard.md` and `docs/registry/current_state_registry.yaml` (entry `WALKER-TIME-SERIES`, Module 1 dashboard capabilities) record the Time Series Walker MVP gap as full time-series interpretation with **no implementation on `main` yet**. **PRD-4.3** (this document) supersedes the former `PRD-TBD-Time-Series-Walker-v1` placeholder in registry and dashboard lineage (updated in the same change set as this PR). There is no Time Series Walker v2 PRD in the roadmap. Authoring a delegation-only v1 followed by an interpretive v2 would create two PRDs, two implementation cycles, and two coding/review passes for a capability that can be specified in one bounded slice today.
 2. **Sibling delegation-only v1 was justified by an absent or partial upstream interpretive contract.** PRD-4.1 (Data Controller Walker) delegated to `get_integrity_assessment` because that service already produces a fully interpreted `IntegrityAssessment` (trust state, false-signal risk, blocking/cautionary reason codes). PRD-4.2 (Quant Walker) delegated to `get_risk_change_profile` because the upstream object already carries first-order delta and second-order volatility fields suitable for downstream consumption without further interpretation. The Time Series Walker, in contrast, must produce a **trend/outlier/regime classification** that is not present on any `risk_analytics` typed output — so a delegation-only v1 would not satisfy MVP.
 3. **All required inference is deterministic over typed upstream fields.** `RiskChangeProfile` already carries `current_value`, `rolling_mean`, `rolling_std`, `rolling_min`, `rolling_max`, `history_points_used`, `volatility_regime`, `volatility_change_flag`, `status`, `status_reasons`, and full replay metadata. Every classification rule in this PRD is a deterministic mapping over these fields. The walker does not introduce stochastic models, scenario logic, narrative LLM logic, or any computation that would belong inside `risk_analytics`.
 4. **DECISION-MVP-02 (Governance / Reporting Walker post-MVP) depends on this output shape.** Per `docs/roadmap/module_1_var_dashboard.md`, the Governance / Reporting Walker v1 PRD will be authored "immediately after Quant Walker v2 and Time Series Walker v1 PRDs are in draft, not after their implementations are complete." Specifying `TimeSeriesAssessment` in this PRD unblocks that downstream PRD authoring without further negotiation.
@@ -370,13 +370,16 @@ This rule answers the charter question "is the series noisy, stable, or regime-c
 `confidence` is determined by the following precedence (top-to-bottom; first match wins):
 
 1. `INSUFFICIENT` if `risk_change_profile.history_points_used is None` **or** `risk_change_profile.history_points_used < 5`
-2. `LOW` if `risk_change_profile.status == SummaryStatus.DEGRADED` **or** `risk_change_profile.status == SummaryStatus.MISSING_HISTORY` **or** `risk_change_profile.history_points_used < 20`
-3. `MEDIUM` if `risk_change_profile.status == SummaryStatus.MISSING_COMPARE` **or** `risk_change_profile.history_points_used < 40` **or** `risk_change_profile.volatility_regime == VolatilityRegime.INSUFFICIENT_HISTORY`
-4. `HIGH` otherwise (which implies all of: `risk_change_profile.status == SummaryStatus.OK`, `risk_change_profile.history_points_used >= 40`, `risk_change_profile.volatility_regime != VolatilityRegime.INSUFFICIENT_HISTORY`)
+2. `LOW` if `risk_change_profile.status == SummaryStatus.DEGRADED` **or** `risk_change_profile.history_points_used < 20`
+3. `MEDIUM` if `risk_change_profile.status == SummaryStatus.MISSING_COMPARE` **or** `risk_change_profile.history_points_used < 40`
+4. `HIGH` if `risk_change_profile.status == SummaryStatus.OK` **and** `risk_change_profile.history_points_used >= 40` **and** `risk_change_profile.volatility_regime != VolatilityRegime.INSUFFICIENT_HISTORY`
+5. `LOW` otherwise
 
 The numerical thresholds `5`, `20`, and `40` are point-count bands chosen relative to the PRD-1.1-v2 minimum-history rules (`rolling_std` requires ≥ 2; `volatility_regime` requires ≥ 20 valid points in the 60-business-day baseline). They are closed v1 conventions; any change requires a `walker_version` bump.
 
-`SummaryStatus` values reachable inside a returned `RiskChangeProfile` per PRD-1.1-v2 are: `OK`, `DEGRADED`, `MISSING_COMPARE`, `MISSING_HISTORY`. The other `SummaryStatus` members (`PARTIAL`, `MISSING_NODE`, `MISSING_SNAPSHOT`, `UNSUPPORTED_MEASURE`) are out-of-band for this rule because they cannot appear inside a successfully returned `RiskChangeProfile` (per PRD-1.1-v2 status precedence). The walker treats any unexpected `SummaryStatus` value defensively by falling through to `LOW` if it does not satisfy the `OK` branch in step 4 — this is a defense-in-depth posture and must not be relied on as a contract.
+`SummaryStatus` values reachable inside a returned `RiskChangeProfile` per PRD-1.1-v2 are: `OK`, `DEGRADED`, `MISSING_COMPARE`, `MISSING_HISTORY`. The other `SummaryStatus` members (`PARTIAL`, `MISSING_NODE`, `MISSING_SNAPSHOT`, `UNSUPPORTED_MEASURE`) are out-of-band for this rule because they cannot appear inside a successfully returned `RiskChangeProfile` (per PRD-1.1-v2 status precedence). Step 5 preserves a defense-in-depth fallback to `LOW` for any unexpected `SummaryStatus` value or other future drift that does not satisfy the explicit `OK` branch in step 4; this fallback must not be relied on as a contract.
+
+`SummaryStatus.MISSING_HISTORY` and `VolatilityRegime.INSUFFICIENT_HISTORY` are not named in steps 2–3 because, for outputs returned by `get_risk_change_profile`, upstream coupling already implies `history_points_used < 5` (step 1) or `history_points_used < 20` (step 2) when those statuses or regimes appear; the table stays aligned with service invariants (see `src/modules/risk_analytics/service.py`).
 
 ### Caveat codes
 
@@ -410,7 +413,10 @@ The walker propagates all error semantics from `get_risk_change_profile` unchang
 
 - `lookback_window` is not `60` (per PRD-1.1-v2 v1 constraint)
 - `snapshot_id` is provided but blank
-- `compare_to_date` is later than `as_of_date`
+- `compare_to_date` is later than `as_of_date` (service message: `compare_to_date must be on or before as_of_date`)
+- explicit `compare_to_date` is not a business day in the supplied calendar (service message: `compare_to_date <ISO date> is not a business day in the supplied calendar`; see `_resolve_compare_context` in `src/modules/risk_analytics/service.py`)
+
+The parity-test matrix must include each of the above `ValueError` pass-through cases, including the explicit non-business-day `compare_to_date` validation, so walker behavior remains contract-parity with `get_risk_change_profile`.
 
 The walker adds no new error codes, no new error types, and no fallback behavior. In-object statuses (`OK`, `DEGRADED`, `MISSING_COMPARE`, `MISSING_HISTORY`) on a returned `RiskChangeProfile` are handled by the classification and caveat rules above; they do not become `ServiceError` outcomes at the walker layer.
 
@@ -453,7 +459,7 @@ Exactly one event is emitted per `assess_time_series` call:
 | --- | --- | --- |
 | `assess_time_series` | when outcome is `TimeSeriesAssessment`: `risk_change_profile.status.value` (one of `OK`, `DEGRADED`, `MISSING_COMPARE`, `MISSING_HISTORY`); when outcome is `ServiceError`: `service_error.status_code` (one of `UNSUPPORTED_MEASURE`, `MISSING_SNAPSHOT`, `MISSING_NODE`) | `node_ref` (via `node_ref_log_dict`), `measure_type`, `as_of_date`, `snapshot_id` (from request, may be `None`), `walker_version` |
 
-The status mapping above is normative. Every value emitted in the `status` field must be one of the canonical statuses already supported by `_INFO_STATUSES` or `_WARNING_STATUSES` in `src.shared.telemetry.operation_log` (no new status strings introduced by this walker). The classification outcome enums (`trend_assessment`, `outlier_flag`, `regime_change_signal`, `volatility_regime`, `volatility_direction`, `regime_change_signal`, `confidence`) are deliberately **not** emitted as telemetry context fields in v1 — payload-discipline minimality first; a follow-on WI can add interpretive-outcome counters or histograms once orchestrator consumption patterns are stable.
+The status mapping above is normative. Every value emitted in the `status` field must be one of the canonical statuses already supported by `_INFO_STATUSES` or `_WARNING_STATUSES` in `src.shared.telemetry.operation_log` (no new status strings introduced by this walker). The classification outcome enums (`trend_assessment`, `outlier_flag`, `regime_change_signal`, `volatility_regime`, `volatility_direction`, `confidence`) are deliberately **not** emitted as telemetry context fields in v1 — payload-discipline minimality first; a follow-on WI can add interpretive-outcome counters or histograms once orchestrator consumption patterns are stable.
 
 ### Adoption matrix
 
@@ -468,10 +474,10 @@ The `src/walkers/` row in `docs/shared_infra/adoption_matrix.md` is already `ado
 - For any valid combination of inputs that yields a `RiskChangeProfile`, `assess_time_series(args)` returns a `TimeSeriesAssessment` whose:
   - mirrored fields equal the corresponding upstream fields exactly
   - `trend_assessment`, `outlier_flag`, `regime_change_signal`, `current_z_score`, `confidence`, and `caveat_codes` match the rules in `Classification vocabularies and inference rules`
-  - `risk_change_profile` is the same `RiskChangeProfile` instance (by value equality) as the direct service call
+  - `risk_change_profile` is value-equal to the `RiskChangeProfile` returned by the direct service call (that is, an equivalent nested model with unchanged evidence by value; tests should assert value equality such as `model_dump()` equality, not object identity)
   - `walker_version == "time_series-v1.0.0"`
 - For each documented `ServiceError` path (`UNSUPPORTED_MEASURE`, `MISSING_SNAPSHOT`, `MISSING_NODE`), walker output equals direct service output
-- For each documented `ValueError` validation path (invalid `lookback_window`, blank `snapshot_id`, `compare_to_date > as_of_date`), the walker raises the same `ValueError` (same message) that the service raises
+- For each documented `ValueError` validation path (invalid `lookback_window`, blank `snapshot_id`, `compare_to_date` after `as_of_date`, explicit `compare_to_date` not a business day in the supplied calendar), the walker raises the same `ValueError` (same message) that the service raises
 
 ### Contract
 
@@ -582,14 +588,13 @@ Construct `RiskChangeProfile` instances directly (or via fixtures) covering the 
 | `OK` | `60` | `NORMAL` | `HIGH` |
 | `OK` | `40` | `NORMAL` | `HIGH` |
 | `OK` | `39` | `NORMAL` | `MEDIUM` |
-| `OK` | `40` | `INSUFFICIENT_HISTORY` | `MEDIUM` |
 | `OK` | `20` | `NORMAL` | `MEDIUM` |
 | `OK` | `19` | `NORMAL` | `LOW` |
 | `OK` | `5` | `NORMAL` | `LOW` |
 | `OK` | `4` | `NORMAL` | `INSUFFICIENT` |
 | `OK` | `None` | `NORMAL` | `INSUFFICIENT` |
 | `MISSING_COMPARE` | `60` | `NORMAL` | `MEDIUM` |
-| `MISSING_HISTORY` | `60` | `NORMAL` | `LOW` |
+| `MISSING_HISTORY` | `0` | `INSUFFICIENT_HISTORY` | `INSUFFICIENT` |
 | `DEGRADED` | `60` | `NORMAL` | `LOW` |
 
 **Caveat-code matrix** (subset; coding agent should test each condition independently and at least one combined case):
