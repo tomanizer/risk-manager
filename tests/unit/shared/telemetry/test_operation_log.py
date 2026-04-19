@@ -181,9 +181,7 @@ def test_canonical_terminal_run_status_covers_all_known_values() -> None:
     """
     for member in _TerminalRunStatus:
         result = canonical_terminal_run_status_status(member)
-        assert result == _EXPECTED_TERMINAL_STATUS_MAPPING[member.value], (
-            f"unexpected telemetry status for {member!r}: got {result!r}"
-        )
+        assert result == _EXPECTED_TERMINAL_STATUS_MAPPING[member.value], f"unexpected telemetry status for {member!r}: got {result!r}"
 
 
 def test_canonical_terminal_run_status_accepts_plain_string() -> None:
