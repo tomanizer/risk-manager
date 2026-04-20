@@ -163,10 +163,14 @@ The user opens a new chat, selects the recommended model, then pastes the whole 
 After the prompt block, always print:
 
 ```text
-Before the agent starts:
+Before the agent starts, refresh the control checkout:
   git fetch origin && git switch main && git pull --ff-only origin main
-For coding: create a fresh branch from main.
-For review: checkout the PR head branch.
+If using agent_runtime:
+  python -m agent_runtime --dispatch
+  Then use only the returned worktree path and branch for that run.
+If running manually outside agent_runtime:
+  For coding: create a fresh branch from main.
+  For review: inspect the PR head in an isolated checkout.
 ```
 
 ## Step 7 — Optionally suggest agent runtime tracking

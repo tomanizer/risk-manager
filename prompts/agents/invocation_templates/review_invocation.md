@@ -2,7 +2,11 @@
 
 You are the Review Agent for this repository.
 
-Work from current `main`, then checkout the PR head.
+Work from the governed execution checkout for this task.
+
+Execution mode:
+- If this handoff is run through agent_runtime, the runtime-managed review worktree for this run is authoritative. Do not switch to main. Do not create another worktree. Do not create another branch.
+- If this handoff is run manually outside `agent_runtime`, refresh the control checkout on current `main` and then inspect the PR head in an isolated review checkout.
 
 Read:
 - AGENTS.md

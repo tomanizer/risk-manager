@@ -29,6 +29,10 @@ def build_review_prompt(input_data: ReviewRunnerInput) -> str:
         prompt += f"\nPR URL: {input_data.pr_url}"
     if input_data.base_ref is not None:
         prompt += f"\nBase ref: {input_data.base_ref}"
+    prompt += (
+        "\nIf dispatched by agent_runtime, treat the allocated review worktree and branch as authoritative."
+        "\nDo not switch to `main`, allocate another worktree, or create another branch inside this run."
+    )
     return prompt
 
 

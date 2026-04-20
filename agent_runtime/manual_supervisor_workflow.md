@@ -203,9 +203,11 @@ sqlite3 .agent_runtime/state.db 'select run_id, work_item_id, runner_name, branc
 
 ## Operational rules
 
+- keep the control checkout on refreshed `main`; do not do the real agent work there
 - one dispatched run should use one worktree
 - do not reuse a worktree for a different work item
-- do not perform the real agent work in the control checkout
+- do not switch a runtime-managed session back to `main`
+- do not allocate another worktree or create another feature branch inside a runtime-managed session
 - record the real outcome before releasing the run whenever possible
 - release finished worktrees promptly so lease state stays trustworthy
 

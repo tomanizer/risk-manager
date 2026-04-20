@@ -52,6 +52,25 @@ def _build_branch_name(execution: RunnerExecution, run_id: str) -> str:
     return f"codex/{branch_slug}-{run_id.split('-')[-1]}"
 
 
+def _inject_runtime_checkout_context(prompt: str, lease: WorktreeLeaseRecord) -> str:
+    context_block = (
+        "Execution checkout (agent_runtime authoritative):\n"
+        f"- run_id: {lease.run_id}\n"
+        f"- worktree_path: {lease.worktree_path}\n"
+        f"- branch_name: {lease.branch_name}\n"
+        f"- base_ref: {lease.base_ref}\n"
+        "\n"
+        "Checkout rule:\n"
+        "- do all work only in this worktree\n"
+        "- do not switch to `main`\n"
+        "- do not create another worktree\n"
+        "- do not create another branch\n"
+    )
+    if context_block in prompt:
+        return prompt
+    return f"{context_block}\n{prompt}"
+
+
 def _best_effort_git(repo_root: Path, *args: str) -> RuntimeError | None:
     try:
         _git(repo_root, *args)
@@ -111,12 +130,13 @@ def allocate_worktree(
 def bind_worktree_to_execution(execution: RunnerExecution, lease: WorktreeLeaseRecord) -> RunnerExecution:
     metadata = {
         **dict(execution.metadata),
+        "execution_mode": "runtime_managed",
         "run_id": lease.run_id,
         "worktree_path": lease.worktree_path,
         "branch_name": lease.branch_name,
         "base_ref": lease.base_ref,
     }
-    return replace(execution, metadata=metadata)
+    return replace(execution, prompt=_inject_runtime_checkout_context(execution.prompt, lease), metadata=metadata)
 
 
 def release_worktree(defaults: RuntimeDefaults, db_path: Path, run_id: str) -> str:

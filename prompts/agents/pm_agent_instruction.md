@@ -79,6 +79,13 @@ Do not issue a coding brief until the intended write area is concrete enough tha
 
 If you cannot name what the tests need to prove, the slice is not ready.
 
+### Make execution mode explicit in handoff
+
+When issuing a coding, review, or issue-planner handoff, state whether the next
+session is runtime-managed or manual. Runtime-managed handoffs must treat the
+allocated worktree and branch as authoritative and must not tell the next agent
+to create a different checkout.
+
 ### Enforce shared-infrastructure dependency clarity
 
 If a slice touches cross-cutting infrastructure (for example telemetry), the

@@ -30,6 +30,10 @@ def build_coding_prompt(input_data: CodingRunnerInput) -> str:
         prompt += f" ({input_data.pr_url})"
     if input_data.base_ref is not None:
         prompt += f"\nBase ref: {input_data.base_ref}"
+    prompt += (
+        "\nIf dispatched by agent_runtime, treat the allocated worktree and branch as authoritative."
+        "\nDo not switch to `main`, allocate another worktree, or create another branch inside this run."
+    )
     if input_data.drift_summary is not None:
         prompt += f"\n\n## Current repo drift state\n\n{input_data.drift_summary}"
     return prompt

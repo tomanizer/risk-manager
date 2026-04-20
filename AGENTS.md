@@ -111,17 +111,30 @@ In Cursor, invoke by name in chat using the generated mirrors under `.cursor/ski
 <!-- END GENERATED SKILLS SECTION -->
 ## Freshness and branching rule
 
-Before any PM, coding, review, or drift-monitor pass:
+Refresh the control checkout before any PM, coding, review, or drift-monitor pass:
 
 1. git fetch origin
 2. git switch main
 3. git pull --ff-only origin main
 
-For reviews, then checkout the latest PR head. For coding, create a fresh branch from main.
+Then follow one of these two modes only:
 
-New implementation work must start from the latest `main`.
+### Manual direct mode
 
-Each bounded implementation slice should use a fresh branch created from current `main`.
+- use this only when a human is invoking an agent outside `agent_runtime`
+- PM, spec, issue-planner, coding, and drift-monitor work start from the refreshed control checkout
+- new implementation work must start from the latest `main`
+- each bounded implementation slice should use a fresh feature branch created from current `main`
+- review work should inspect the PR head in an isolated checkout rather than reusing unrelated local state
+
+### Runtime-managed mode
+
+- `agent_runtime` is the authority for execution checkout state
+- the control checkout stays on refreshed `main` and is used only for dispatch, inspection, and human repo maintenance
+- the real PM, spec, issue-planner, coding, and review work happens only in the runtime-allocated worktree for that run
+- agents must not run `git switch main`, `git worktree add`, or create a second feature branch inside a runtime-managed session
+- new coding work without an existing PR starts from a runtime-created worktree based on current `origin/main`
+- review and PR-follow-up coding work use the runtime-managed worktree for the PR head branch, not a second checkout from local `main`
 
 Agents must not continue from stale local state when canon, PR state, or linked contracts may have changed.
 

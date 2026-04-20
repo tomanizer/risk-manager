@@ -121,6 +121,10 @@ both the execution metadata and the runner result.
 The lease is intentionally kept active after dispatch so a later execution layer
 can continue from the same isolated checkout.
 
+In runtime-managed mode, the allocated worktree and branch are authoritative for
+that run. The human control checkout remains on refreshed `main` and should not
+be used for the real PM/spec/coding/review work.
+
 By default the PM runner remains in manual `prepared` mode. You can opt in to
 the first real backend by setting:
 
@@ -254,8 +258,10 @@ The current runtime is designed for a semi-automatic loop:
 .venv/bin/python -m agent_runtime --dispatch
 ```
 
-1. Open the returned `worktree.path` and run the real PM/spec/coding/review agent
-manually in that isolated checkout using the returned `runner.prompt`.
+1. Open the returned `worktree.path` and run the real PM/spec/coding/review
+agent manually in that isolated checkout using the returned `runner.prompt`.
+The runtime-managed worktree and branch are the only checkout state the agent
+should use for that run.
 
 1. When that manual agent session finishes, record the reviewed outcome back into
 the runtime:

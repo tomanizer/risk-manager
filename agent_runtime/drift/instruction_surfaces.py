@@ -10,6 +10,7 @@ GITHUB_AGENTS_DIR = Path(".github/agents")
 PROMPT_AGENTS_DIR = Path("prompts/agents")
 DRIFT_PROMPT_PATH = Path("prompts/drift_monitor/repo_health_audit_prompt.md")
 COPILOT_INSTRUCTIONS_PATH = Path(".github/copilot-instructions.md")
+INVOCATION_TEMPLATES_DIR = Path("prompts/agents/invocation_templates")
 
 FRESHNESS_TRIAD = (
     "git fetch origin",
@@ -69,6 +70,36 @@ DRIFT_ENTRYPOINT_FILES: tuple[Path, ...] = (
     Path("prompts/drift_monitor/repo_health_audit_prompt.md"),
 )
 
+RUNTIME_MANAGED_INVOCATION_EXPECTATIONS: tuple[tuple[Path, tuple[str, ...]], ...] = (
+    (
+        INVOCATION_TEMPLATES_DIR / "pm_invocation.md",
+        (
+            "agent_runtime",
+            "switch to main",
+            "create another worktree",
+            "create another branch",
+        ),
+    ),
+    (
+        INVOCATION_TEMPLATES_DIR / "coding_invocation.md",
+        (
+            "agent_runtime",
+            "switch to main",
+            "create another worktree",
+            "create another branch",
+        ),
+    ),
+    (
+        INVOCATION_TEMPLATES_DIR / "review_invocation.md",
+        (
+            "agent_runtime",
+            "switch to main",
+            "create another worktree",
+            "create another branch",
+        ),
+    ),
+)
+
 INSTRUCTION_SURFACE_SEVERITY = "major"
 BACKTICK_TOKEN_PATTERN = re.compile(r"`([^`\n]+)`")
 BACKTICK_LIST_ITEM_PATTERN = re.compile(r"^\s*(?:-|\d+\.)\s+`([^`\n]+)`\s*$")
@@ -126,6 +157,7 @@ def build_instruction_surface_report(root: Path) -> InstructionSurfaceReport:
         _append_freshness_findings(findings, repo_root, path)
 
     _append_drift_entrypoint_findings(findings, repo_root)
+    _append_runtime_managed_invocation_findings(findings, repo_root)
 
     findings.sort(key=lambda finding: (finding.source_path, finding.kind, finding.related_paths))
     return InstructionSurfaceReport(
@@ -310,6 +342,45 @@ def _append_drift_entrypoint_findings(findings: list[InstructionSurfaceFinding],
             )
 
 
+def _append_runtime_managed_invocation_findings(findings: list[InstructionSurfaceFinding], repo_root: Path) -> None:
+    for path, required_tokens in RUNTIME_MANAGED_INVOCATION_EXPECTATIONS:
+        full_path = repo_root / path
+        if not full_path.is_file():
+            findings.append(
+                InstructionSurfaceFinding(
+                    kind="missing_runtime_managed_invocation_template",
+                    severity=INSTRUCTION_SURFACE_SEVERITY,
+                    drift_class="operational-instruction drift",
+                    owner="repository maintenance",
+                    source_path=path.as_posix(),
+                    related_paths=required_tokens,
+                    message=(
+                        f"Expected invocation template `{path.as_posix()}` is missing, so runtime-managed checkout guidance "
+                        f"cannot be validated: {', '.join(f'`{token}`' for token in required_tokens)}."
+                    ),
+                )
+            )
+            continue
+        contents = full_path.read_text(encoding="utf-8")
+        missing = tuple(token for token in required_tokens if token not in contents)
+        if not missing:
+            continue
+        findings.append(
+            InstructionSurfaceFinding(
+                kind="missing_runtime_managed_checkout_rule",
+                severity=INSTRUCTION_SURFACE_SEVERITY,
+                drift_class="operational-instruction drift",
+                owner="repository maintenance",
+                source_path=path.as_posix(),
+                related_paths=missing,
+                message=(
+                    f"Invocation template `{path.as_posix()}` is missing runtime-managed checkout guidance: "
+                    f"{', '.join(f'`{token}`' for token in missing)}."
+                ),
+            )
+        )
+
+
 def _freshness_rule_files(repo_root: Path) -> tuple[Path, ...]:
     candidates = [
         Path("AGENTS.md"),
@@ -326,6 +397,7 @@ def _instruction_files_scanned(repo_root: Path, freshness_rule_files: tuple[Path
         Path("AGENTS.md"),
         COPILOT_INSTRUCTIONS_PATH,
         DRIFT_PROMPT_PATH,
+        *(path for path, _ in RUNTIME_MANAGED_INVOCATION_EXPECTATIONS),
         *AGENTS_REFERENCE_FILES,
         *(path for path, _ in README_EXPECTATIONS),
         *DRIFT_ENTRYPOINT_FILES,

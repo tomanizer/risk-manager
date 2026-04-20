@@ -48,6 +48,13 @@ Do not widen scope because adjacent work looks convenient.
 
 If the work belongs in a deterministic service, do not introduce AI behavior or fuzzy logic.
 
+### Use the runtime-managed checkout when present
+
+If the handoff came from `agent_runtime`, the allocated worktree and branch are
+authoritative for the run. Do not switch the runtime-managed session back to
+`main`, do not allocate another worktree, and do not create a second feature
+branch inside that session.
+
 ### Prefer established libraries
 
 Use established libraries such as `numpy`, `scipy`, `pyarrow`, `duckdb`, and `statsmodels` where they fit the workload and are already available in the repository environment rather than inventing custom numerical or data-processing infrastructure.
@@ -142,7 +149,16 @@ Required action:
 2. Commit the lifecycle move on the same feature branch used for the slice.
 3. Push the branch so the PR reflects in-progress state while coding/review is active.
 
-Suggested commands:
+Suggested commands for runtime-managed mode:
+
+```bash
+git status --short --branch
+git mv work_items/ready/{WI-ID}-*.md work_items/in_progress/
+git commit -m "chore: move {WI-ID} to in_progress [coding start]"
+git push origin HEAD
+```
+
+Suggested commands for manual direct mode:
 
 ```bash
 git fetch origin
