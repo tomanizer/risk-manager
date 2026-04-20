@@ -64,46 +64,22 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
-      - name: Skill mirror parity
-        if: needs.detect-changes.outputs.skills == 'true'
+      - name: Install skill tooling
+        if: needs.detect-changes.outputs.python != 'true' && needs.detect-changes.outputs.skills == 'true'
         run: |
-          python scripts/skills/check_skill_mirrors.py
+          python -m pip install --upgrade pip
 
-      - name: Ruff
-        if: needs.detect-changes.outputs.python == 'true'
+      - name: Run push gate
+        if: needs.detect-changes.outputs.python == 'true' || needs.detect-changes.outputs.skills == 'true'
         run: |
-          if git ls-files '*.py' '*.pyi' | grep . >/dev/null; then
-            ruff check .
-          else
-            echo 'No Python files found. Skipping Ruff.'
+          args=()
+          if [ "${{ needs.detect-changes.outputs.python }}" = "true" ]; then
+            args+=(--python)
           fi
-
-      - name: Mypy
-        if: needs.detect-changes.outputs.python == 'true'
-        run: |
-          if git ls-files '*.py' '*.pyi' | grep . >/dev/null; then
-            mypy src/ agent_runtime/
-          else
-            echo 'No Python files found. Skipping mypy.'
+          if [ "${{ needs.detect-changes.outputs.skills }}" = "true" ]; then
+            args+=(--skills)
           fi
-
-      - name: Ruff format
-        if: needs.detect-changes.outputs.python == 'true'
-        run: |
-          if git ls-files '*.py' '*.pyi' | grep . >/dev/null; then
-            ruff format --check .
-          else
-            echo 'No Python files found. Skipping Ruff format check.'
-          fi
-
-      - name: Pytest
-        if: needs.detect-changes.outputs.python == 'true'
-        run: |
-          if git ls-files 'tests/**/*.py' 'test_*.py' '*_test.py' | grep . >/dev/null; then
-            pytest -q
-          else
-            echo 'No Python tests found. Skipping pytest.'
-          fi
+          python scripts/ci/run_push_gate.py "${args[@]}"
 
       - name: No relevant CI work
         if: needs.detect-changes.outputs.python != 'true' && needs.detect-changes.outputs.skills != 'true'

@@ -41,8 +41,8 @@ python3 -m venv .venv
 cp .env.example .env
 # Edit .env and fill in the keys for the providers you use (all optional).
 
-# 3. Install the pre-push lint hook (once per clone)
-git config core.hooksPath .githooks
+# 3. Install the repo-tracked pre-push hook (once per clone)
+pre-commit install --hook-type pre-push
 ```
 
 See `agent_runtime/config/README.md` for the full environment variable
