@@ -34,6 +34,33 @@ def test_backlog_materialization_accepts_live_work_items_in_any_stage(tmp_path: 
     assert report.stats.live_work_items_indexed == 3
 
 
+def test_backlog_materialization_matches_simple_numeric_work_item_ids(tmp_path: Path) -> None:
+    prd_dir = tmp_path / "docs" / "prds" / "phase-2"
+    prd_dir.mkdir(parents=True, exist_ok=True)
+    prd_dir.joinpath("PRD-9.2-example.md").write_text(
+        "\n".join(
+            [
+                "# PRD-9.2: Example",
+                "",
+                "## Header",
+                "",
+                "- **Status:** Ready for implementation",
+                "",
+                "## Issue decomposition guidance",
+                "",
+                "1. **WI-123 — Single numeric slice**",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = build_backlog_materialization_report(tmp_path)
+
+    assert report.stats.findings_count == 1
+    assert report.findings[0].related_paths == ("WI-123",)
+
+
 def test_check_backlog_materialization_cli_writes_json_report(tmp_path: Path) -> None:
     _write_repo_with_ready_prd(tmp_path)
     _write_work_item(tmp_path, "done", "WI-9.1.1")
