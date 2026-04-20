@@ -10,5 +10,5 @@ repos:
       - id: mypy
         name: mypy
         language: system
-        entry: python -m mypy src/ agent_runtime/
+        entry: mypy src/ agent_runtime/
         pass_filenames: false
