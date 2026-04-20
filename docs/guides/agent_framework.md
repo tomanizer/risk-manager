@@ -228,12 +228,15 @@ LANGCHAIN_PROJECT=risk-manager
 
 ### 4. Install the pre-push hook
 
-The `.githooks/pre-push` hook runs `ruff`, `ruff format`, and `mypy`
-before every push, matching the CI `lint-and-test` job. Activate it once
-per clone:
+The repo-tracked `pre-commit` pre-push hook runs the shared push gate
+before every push. That gate matches the CI `lint-and-test` job by
+running `ruff`, `ruff format --check`, `mypy`, `pytest`, and skill
+mirror parity as applicable. Locally, it auto-applies Ruff fixes and
+formatting; if it rewrites files, stage them and re-push. Activate it
+once per clone:
 
 ```bash
-git config core.hooksPath .githooks
+pre-commit install --hook-type pre-push
 ```
 
 ### Configuration reference

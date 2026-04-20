@@ -154,12 +154,16 @@ See `tests/unit/agent_runtime/test_settings.py` for the full test suite.
 
 ## Pre-push hook
 
-A pre-push hook in `.githooks/pre-push` runs `ruff check`, `ruff format
---check`, and `mypy` before every push, mirroring the CI `lint-and-test`
-job. Activate it once per clone:
+A repo-tracked `pre-commit` pre-push hook runs the shared push gate
+before every push. The gate aligns local checks with the CI
+`lint-and-test` workflow by running `ruff check`, `mypy`, `ruff format
+--check`, `pytest`, and skill mirror parity as applicable. Locally, the
+hook auto-applies Ruff fixes and formatting; if files are rewritten, the
+push stops so you can stage the changes and retry. Activate it once per
+clone:
 
 ```bash
-git config core.hooksPath .githooks
+pre-commit install --hook-type pre-push
 ```
 
 To bypass in an emergency:
