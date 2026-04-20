@@ -129,6 +129,19 @@ def test_instruction_surface_report_detects_missing_runtime_managed_checkout_rul
     assert finding.source_path == "prompts/agents/invocation_templates/coding_invocation.md"
 
 
+def test_instruction_surface_report_detects_missing_runtime_managed_invocation_template(tmp_path: Path) -> None:
+    _write_instruction_surfaces(tmp_path)
+    prompt_path = tmp_path / "prompts" / "agents" / "invocation_templates" / "coding_invocation.md"
+    prompt_path.unlink()
+
+    report = build_instruction_surface_report(tmp_path)
+
+    assert report.stats.findings_count == 1
+    finding = report.findings[0]
+    assert finding.kind == "missing_runtime_managed_invocation_template"
+    assert finding.source_path == "prompts/agents/invocation_templates/coding_invocation.md"
+
+
 def test_check_instruction_surfaces_cli_writes_json_report(tmp_path: Path) -> None:
     _write_instruction_surfaces(tmp_path)
     output_path = tmp_path / "artifacts" / "drift" / "instruction_surfaces.json"

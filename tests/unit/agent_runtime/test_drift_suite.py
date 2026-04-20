@@ -473,6 +473,8 @@ def _write_instruction_surfaces(root: Path) -> None:
     )
     prompt_drift_dir = root / "prompts" / "drift_monitor"
     prompt_drift_dir.mkdir(parents=True, exist_ok=True)
+    invocation_templates_dir = prompt_agents_dir / "invocation_templates"
+    invocation_templates_dir.mkdir(parents=True, exist_ok=True)
     script_dir = root / "scripts" / "drift"
     script_dir.mkdir(parents=True, exist_ok=True)
     script_dir.joinpath("run_all.py").write_text("print('drift')\n", encoding="utf-8")
@@ -504,3 +506,23 @@ def _write_instruction_surfaces(root: Path) -> None:
     }
     for filename, content in prompt_agent_contents.items():
         (prompt_agents_dir / filename).write_text(content, encoding="utf-8")
+
+    invocation_template_contents = {
+        "pm_invocation.md": (
+            "You are the PM agent.\n"
+            "Execution mode:\n"
+            "- If this handoff is run through agent_runtime, the runtime-managed worktree and branch for this run are authoritative. Do not switch to main. Do not create another worktree. Do not create another branch.\n"
+        ),
+        "coding_invocation.md": (
+            "You are the Coding Agent.\n"
+            "Execution mode:\n"
+            "- If this handoff is run through agent_runtime, the runtime-managed worktree and branch for this run are authoritative. Do not switch to main. Do not create another worktree. Do not create another branch.\n"
+        ),
+        "review_invocation.md": (
+            "You are the Review Agent.\n"
+            "Execution mode:\n"
+            "- If this handoff is run through agent_runtime, the runtime-managed review worktree for this run is authoritative. Do not switch to main. Do not create another worktree. Do not create another branch.\n"
+        ),
+    }
+    for filename, content in invocation_template_contents.items():
+        (invocation_templates_dir / filename).write_text(content, encoding="utf-8")

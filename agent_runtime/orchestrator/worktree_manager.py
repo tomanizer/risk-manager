@@ -64,7 +64,7 @@ def _inject_runtime_checkout_context(prompt: str, lease: WorktreeLeaseRecord) ->
         "- do all work only in this worktree\n"
         "- do not switch to `main`\n"
         "- do not create another worktree\n"
-        "- do not create another branch unless the runtime explicitly instructs it\n"
+        "- do not create another branch\n"
     )
     if context_block in prompt:
         return prompt

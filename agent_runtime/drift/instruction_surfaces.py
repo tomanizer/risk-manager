@@ -346,6 +346,20 @@ def _append_runtime_managed_invocation_findings(findings: list[InstructionSurfac
     for path, required_tokens in RUNTIME_MANAGED_INVOCATION_EXPECTATIONS:
         full_path = repo_root / path
         if not full_path.is_file():
+            findings.append(
+                InstructionSurfaceFinding(
+                    kind="missing_runtime_managed_invocation_template",
+                    severity=INSTRUCTION_SURFACE_SEVERITY,
+                    drift_class="operational-instruction drift",
+                    owner="repository maintenance",
+                    source_path=path.as_posix(),
+                    related_paths=required_tokens,
+                    message=(
+                        f"Expected invocation template `{path.as_posix()}` is missing, so runtime-managed checkout guidance "
+                        f"cannot be validated: {', '.join(f'`{token}`' for token in required_tokens)}."
+                    ),
+                )
+            )
             continue
         contents = full_path.read_text(encoding="utf-8")
         missing = tuple(token for token in required_tokens if token not in contents)
