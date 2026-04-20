@@ -35,7 +35,15 @@ from agent_runtime.storage.sqlite import (
 )
 
 from .github_sync import fetch_pull_requests
-from .state import BacklogMaterializationSnapshot, NextActionType, PrdBootstrapSnapshot, RuntimeSnapshot, TransitionDecision
+from .state import (
+    BacklogMaterializationSnapshot,
+    NextActionType,
+    PrdBootstrapSnapshot,
+    RuntimeSnapshot,
+    TransitionDecision,
+    WorkItemSnapshot,
+    WorkItemStage,
+)
 from .simulations import build_simulation_snapshot, simulation_names
 from .transitions import decide_next_action
 from .work_item_registry import load_work_items
@@ -121,31 +129,44 @@ def build_governance_decision(repo_root: Path) -> TransitionDecision | None:
     )
 
 
+def _has_runnable_ready_item(work_items: tuple[WorkItemSnapshot, ...]) -> bool:
+    completed_ids = {item.id for item in work_items if item.stage is WorkItemStage.DONE}
+    for item in work_items:
+        if item.stage is not WorkItemStage.READY:
+            continue
+        if all(not dependency.startswith("WI-") or dependency in completed_ids for dependency in item.dependencies):
+            return True
+    return False
+
+
 def build_runtime_snapshot(repo_root: Path, state_db_path: Path) -> RuntimeSnapshot:
     work_items, warnings = load_work_items(repo_root)
     pull_requests, github_warnings = fetch_pull_requests(repo_root, work_items)
     workflow_runs = load_workflow_runs(state_db_path)
-    backlog_materialization_report = build_backlog_materialization_report(repo_root)
-    backlog_materialization = tuple(
-        BacklogMaterializationSnapshot(
-            source_path=finding.source_path,
-            related_paths=finding.related_paths,
-            message=finding.message,
+    backlog_materialization: tuple[BacklogMaterializationSnapshot, ...] = ()
+    prd_bootstrap: tuple[PrdBootstrapSnapshot, ...] = ()
+    if not _has_runnable_ready_item(work_items):
+        backlog_materialization_report = build_backlog_materialization_report(repo_root)
+        backlog_materialization = tuple(
+            BacklogMaterializationSnapshot(
+                source_path=finding.source_path,
+                related_paths=finding.related_paths,
+                message=finding.message,
+            )
+            for finding in backlog_materialization_report.findings
+            if finding.kind == "missing_decomposed_work_items"
         )
-        for finding in backlog_materialization_report.findings
-        if finding.kind == "missing_decomposed_work_items"
-    )
-    prd_bootstrap = tuple(
-        PrdBootstrapSnapshot(
-            capability_name=candidate.capability_name,
-            target_prd_id=candidate.target_prd_id,
-            existing_prd_path=candidate.existing_prd_path,
-            registry_path=candidate.registry_path,
-            next_slice=candidate.next_slice,
-            next_version_reason=candidate.next_version_reason,
+        prd_bootstrap = tuple(
+            PrdBootstrapSnapshot(
+                capability_name=candidate.capability_name,
+                target_prd_id=candidate.target_prd_id,
+                existing_prd_path=candidate.existing_prd_path,
+                registry_path=candidate.registry_path,
+                next_slice=candidate.next_slice,
+                next_version_reason=candidate.next_version_reason,
+            )
+            for candidate in load_prd_bootstrap_candidates(repo_root)
         )
-        for candidate in load_prd_bootstrap_candidates(repo_root)
-    )
     # drift_critical_findings / drift_summary_md are intentionally not populated
     # here — running the full drift suite on every poll tick adds 5–10 s of latency.
     # Drift gating is handled by the --governance pre-step, which runs before the
