@@ -1,6 +1,20 @@
 {
   "allowed_findings": [
     {
+      "scan_name": "backlog_materialization",
+      "signature": "backlog_materialization|kind=\"missing_decomposed_work_items\"|source_path=\"docs/prds/phase-2/PRD-4.2-quant-walker-v2.md\"|related_paths=[\"WI-4.2.4\",\"WI-4.2.5\",\"WI-4.2.6\",\"WI-4.2.7\"]",
+      "rationale": "PRD-4.2-v2 is merged and the new scanner is intentionally detecting that WI-4.2.4 through WI-4.2.7 have not yet been materialized as live work-item files. Keep this finding baselined only until Issue Planner creates the bounded Quant Walker implementation WIs and PM reconciles WI-4.2.3 lifecycle state.",
+      "issue": null,
+      "expires_on": "2026-04-27"
+    },
+    {
+      "scan_name": "backlog_materialization",
+      "signature": "backlog_materialization|kind=\"missing_decomposed_work_items\"|source_path=\"docs/prds/phase-2/PRD-4.3-time-series-walker-v1.md\"|related_paths=[\"WI-4.3.1\",\"WI-4.3.2\",\"WI-4.3.3\",\"WI-4.3.4\"]",
+      "rationale": "PRD-4.3 is merged and the new scanner is intentionally detecting that WI-4.3.1 through WI-4.3.4 have not yet been materialized as live work-item files. Keep this finding baselined only until Issue Planner creates the bounded Time Series Walker WIs.",
+      "issue": null,
+      "expires_on": "2026-04-27"
+    },
+    {
       "scan_name": "dependency_hygiene",
       "signature": "dependency_hygiene|kind=\"undeclared_runtime_dependency\"|dependency_name=\"opentelemetry\"|source_path=\"agent_runtime/telemetry/_compat.py\"",
       "rationale": "The opentelemetry namespace package is declared in [project.optional-dependencies].telemetry as 'opentelemetry-api'. The PyPI package name differs from the Python import namespace due to the opentelemetry namespace package convention. The import is guarded by a try/except ImportError so the runtime degrades gracefully when the telemetry extras are not installed.",

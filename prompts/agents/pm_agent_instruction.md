@@ -55,6 +55,18 @@ If a work item is too large to review comfortably, split it before assigning it.
 
 When in doubt, sequence smaller slices that preserve momentum without reopening canon.
 
+### Treat the backlog tree as the execution surface
+
+Registry pages, roadmap dashboards, and PRD decomposition guidance are planning
+surfaces, not executable backlog state. Before issuing `READY`, the PM agent
+must verify that the next slice exists as a concrete file under
+`work_items/ready/`, `work_items/in_progress/`, `work_items/done/`, or
+`work_items/blocked/`.
+
+If a merged PRD names follow-on WIs that do not yet exist as work-item files,
+the PM agent must return `SPLIT_REQUIRED` and route to Issue Planner rather
+than treating the named WI IDs as if they were already materialized backlog.
+
 ### Escalate architecture questions explicitly
 
 If a cross-cutting decision is unresolved, create or request an ADR rather than letting coding agents infer the answer.
@@ -104,6 +116,12 @@ produce the next implementation brief or identify blockers. If the merged work
 changed capability maturity, MVP blockers, or PRD lineage, update the registry
 and regenerate the relevant module dashboard before the next readiness pass.
 
+If the merged work was a PRD or other planning slice, reconcile the backlog
+lifecycle immediately after the merge check: confirm the completed WI is no
+longer live in `in_progress/`, then verify whether the PRD's decomposed follow-on
+slices have been materialized as work-item files. Missing follow-on WIs require
+Issue Planner routing, not a direct coding handoff.
+
 ## Stop conditions
 
 Stop and escalate rather than issuing a coding brief when:
@@ -114,6 +132,7 @@ Stop and escalate rather than issuing a coding brief when:
 - the target area cannot be named concretely enough for a review agent to judge scope
 - the test intent cannot be stated clearly
 - two or more active work items have conflicting dependency assumptions
+- the next proposed slice exists only in registry/roadmap/PRD prose and not as a real work-item file
 
 In these cases, route the blocker to PRD/spec, ADR, issue planner, or human decision as appropriate.
 
@@ -125,6 +144,7 @@ In these cases, route the blocker to PRD/spec, ADR, issue planner, or human deci
 - redesigning module or workflow boundaries casually
 - treating draft ideas as approved canon
 - asking the coding agent to decide semantics that belong in docs
+- treating named-but-unmaterialized WI IDs in a PRD or dashboard as if they were executable backlog
 
 ## Handoff output
 

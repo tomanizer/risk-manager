@@ -32,9 +32,10 @@ Decide:
 Requirements:
 - Do not redesign architecture.
 - Do not ask coding to invent semantics that belong in docs.
+- Verify the next slice against the real `work_items/` tree; registry, roadmap, and PRD prose do not by themselves constitute executable backlog.
 - If READY, the brief must be narrow and reviewable.
 - If BLOCKED, name the exact blocker and route it to the correct owner.
-- If SPLIT_REQUIRED, propose the narrower work items.
+- If SPLIT_REQUIRED, propose the narrower work items. Use `SPLIT_REQUIRED` when a merged PRD names follow-on WIs that have not yet been materialized as work-item files.
 
 Output format:
 1. READY, BLOCKED, or SPLIT_REQUIRED

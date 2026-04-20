@@ -19,7 +19,7 @@ def test_drift_suite_waives_findings_present_in_baseline(tmp_path: Path) -> None
     _write_minimal_repo(tmp_path)
     initial_report = build_drift_suite_report(tmp_path)
 
-    assert initial_report.stats.scans_run == 8
+    assert initial_report.stats.scans_run == 9
     assert initial_report.stats.total_findings == 1
     assert initial_report.stats.new_findings == 1
     assert initial_report.stats.waived_findings == 0
@@ -92,9 +92,10 @@ def test_run_all_cli_writes_combined_and_per_scanner_artifacts(tmp_path: Path) -
 
     assert payload["scan_name"] == "drift_suite"
     assert payload == written_payload
-    assert payload["stats"]["scans_run"] == 8
+    assert payload["stats"]["scans_run"] == 9
     assert payload["stats"]["new_findings"] == 1
     assert (artifact_dir / "architecture_boundaries.json").is_file()
+    assert (artifact_dir / "backlog_materialization.json").is_file()
     assert (artifact_dir / "canon_lineage.json").is_file()
     assert (artifact_dir / "dependency_hygiene.json").is_file()
     assert (artifact_dir / "instruction_surfaces.json").is_file()
@@ -105,6 +106,7 @@ def test_run_all_cli_writes_combined_and_per_scanner_artifacts(tmp_path: Path) -
     summary = summary_path.read_text(encoding="utf-8")
     assert "## Drift Monitor" in summary
     assert "### Architecture Boundaries" in summary
+    assert "### Backlog Materialization" in summary
     assert "### Instruction Surfaces" in summary
     assert "### Module Dashboard Freshness" in summary
     assert "### Reference Integrity" in summary
