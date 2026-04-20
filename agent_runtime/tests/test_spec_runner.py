@@ -250,6 +250,53 @@ def test_load_prd_bootstrap_candidates_returns_actionable_now_candidate_only(tmp
     assert candidate.existing_prd_path == "docs/prds/phase-2/PRD-5.1-daily-risk-investigation-orchestrator-v1.md"
 
 
+def test_load_prd_bootstrap_candidates_handles_folded_scalars_and_stops_before_prd_lineage(tmp_path: Path) -> None:
+    registry_path = tmp_path / "docs" / "registry" / "current_state_registry.yaml"
+    registry_path.parent.mkdir(parents=True, exist_ok=True)
+    registry_path.write_text(
+        "\n".join(
+            [
+                "module_dashboards:",
+                "  - id: DASH-1",
+                "    capabilities:",
+                "      - component_ref: ORCH-DAILY-RISK-INVESTIGATION",
+                "        needs_new_prd_version: true",
+                "        missing_prds: []",
+                "        next_version_reason: >-",
+                "          PRD-5.1 intentionally excludes quant routing",
+                "          and richer orchestration behavior required for MVP.",
+                "        next_slice: >-",
+                "          Author PRD-5.1-v2 for multi-walker orchestration.",
+                "      - component_ref: WALKER-QUANT",
+                "        needs_new_prd_version: false",
+                "        missing_prds: []",
+                "        next_version_reason: >-",
+                "          PRD-4.2-v2 is merged; remaining gap is implementation.",
+                "        next_slice: Deliver WI-4.2.4-WI-4.2.7 per PRD-4.2-v2.",
+                "    prd_lineage:",
+                "      - capability: Risk Analytics",
+                "        active_prd: PRD-1.1-v2",
+                "        status: active",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    prd_path = tmp_path / "docs" / "prds" / "phase-2" / "PRD-5.1-daily-risk-investigation-orchestrator-v1.md"
+    prd_path.parent.mkdir(parents=True, exist_ok=True)
+    prd_path.write_text("# PRD-5.1\n\n- **PRD ID:** PRD-5.1\n", encoding="utf-8")
+
+    candidates = load_prd_bootstrap_candidates(tmp_path)
+
+    assert len(candidates) == 1
+    candidate = candidates[0]
+    assert candidate.capability_name == "ORCH-DAILY-RISK-INVESTIGATION"
+    assert candidate.target_prd_id == "PRD-5.1-v2"
+    assert candidate.existing_prd_path == "docs/prds/phase-2/PRD-5.1-daily-risk-investigation-orchestrator-v1.md"
+    assert candidate.next_version_reason == "PRD-5.1 intentionally excludes quant routing and richer orchestration behavior required for MVP."
+    assert candidate.next_slice == "Author PRD-5.1-v2 for multi-walker orchestration."
+
+
 # --- PM → Spec escalation transition tests ---
 
 

@@ -65,11 +65,26 @@ def _load_registry_capabilities(registry_path: Path) -> tuple[dict[str, object],
     lines = registry_path.read_text(encoding="utf-8").splitlines()
     capabilities: list[dict[str, object]] = []
     in_capabilities = False
+    capabilities_indent: int | None = None
     current: dict[str, object] | None = None
     collecting_missing_prds = False
+    block_scalar_key: str | None = None
+    block_scalar_mode: str | None = None
+    block_scalar_indent: int | None = None
+    block_scalar_lines: list[str] = []
+
+    def flush_block_scalar() -> None:
+        nonlocal block_scalar_indent, block_scalar_key, block_scalar_lines, block_scalar_mode
+        if current is not None and block_scalar_key is not None and block_scalar_mode is not None:
+            current[block_scalar_key] = _finalize_block_scalar(block_scalar_lines, block_scalar_mode)
+        block_scalar_key = None
+        block_scalar_mode = None
+        block_scalar_indent = None
+        block_scalar_lines = []
 
     def finalize_current() -> None:
         nonlocal current, collecting_missing_prds
+        flush_block_scalar()
         if current is not None:
             capabilities.append(current)
         current = None
@@ -77,21 +92,34 @@ def _load_registry_capabilities(registry_path: Path) -> tuple[dict[str, object],
 
     for raw_line in lines:
         stripped = raw_line.strip()
-        if not stripped or stripped.startswith("#"):
+        if not stripped and block_scalar_key is None:
+            continue
+        if stripped.startswith("#") and block_scalar_key is None:
             continue
         indent = len(raw_line) - len(raw_line.lstrip(" "))
+
+        if block_scalar_key is not None and block_scalar_indent is not None:
+            if stripped and indent > block_scalar_indent:
+                block_scalar_lines.append(raw_line[block_scalar_indent + 2 :].rstrip())
+                continue
+            if not stripped and indent > block_scalar_indent:
+                block_scalar_lines.append("")
+                continue
+            flush_block_scalar()
 
         if stripped == "capabilities:":
             finalize_current()
             in_capabilities = True
+            capabilities_indent = indent
             continue
 
         if not in_capabilities:
             continue
 
-        if indent <= 2 and stripped.endswith(":") and stripped != "capabilities:":
+        if capabilities_indent is not None and indent <= capabilities_indent and stripped.endswith(":") and stripped != "capabilities:":
             finalize_current()
             in_capabilities = False
+            capabilities_indent = None
             continue
 
         if indent == 6 and stripped.startswith("- "):
@@ -125,6 +153,12 @@ def _load_registry_capabilities(registry_path: Path) -> tuple[dict[str, object],
                     current["missing_prds"] = []
                     collecting_missing_prds = True
                 continue
+            if value in {">", ">-", "|", "|-"}:
+                block_scalar_key = key
+                block_scalar_mode = "literal" if value.startswith("|") else "folded"
+                block_scalar_indent = indent
+                block_scalar_lines = []
+                continue
             current[key] = _parse_scalar(value)
 
     finalize_current()
@@ -153,6 +187,12 @@ def _parse_scalar(value: str) -> object:
     if value in {"[]", ""}:
         return []
     return value.strip().strip("'\"")
+
+
+def _finalize_block_scalar(lines: list[str], mode: str) -> str:
+    if mode == "literal":
+        return "\n".join(line.strip() for line in lines).strip()
+    return " ".join(line.strip() for line in lines if line.strip()).strip()
 
 
 def _coerce_string_tuple(value: object) -> tuple[str, ...]:
