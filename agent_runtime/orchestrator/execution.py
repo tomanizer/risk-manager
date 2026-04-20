@@ -42,6 +42,27 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
     if decision.work_item_id is None:
         return None
 
+    if decision.action is NextActionType.RUN_SPEC and decision.metadata.get("bootstrap_mode") == "prd_gap":
+        spec_input = SpecRunnerInput(
+            work_item_id=decision.work_item_id,
+            blocked_reason=decision.reason,
+            work_item_path=str(decision.target_path or decision.metadata.get("registry_path") or "."),
+            linked_prd=decision.metadata.get("existing_prd_path") or None,
+            bootstrap_capability=decision.metadata.get("capability_name") or None,
+            target_prd_id=decision.metadata.get("target_prd_id") or None,
+            registry_path=decision.metadata.get("registry_path") or None,
+            next_slice=decision.metadata.get("next_slice") or None,
+        )
+        return RunnerExecution(
+            runner_name=RunnerName.SPEC,
+            work_item_id=decision.work_item_id,
+            prompt=build_spec_prompt(spec_input),
+            metadata={
+                **dict(decision.metadata),
+                "target_path": str(decision.target_path) if decision.target_path is not None else str(decision.metadata.get("registry_path") or "."),
+            },
+        )
+
     work_item = _find_work_item(snapshot, decision.work_item_id)
     pull_request = _find_pull_request(snapshot, decision.work_item_id)
     default_base_ref = f"origin/{pull_request.head_ref_name}" if pull_request is not None and pull_request.head_ref_name else "origin/main"

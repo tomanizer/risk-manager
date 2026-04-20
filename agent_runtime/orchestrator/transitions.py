@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from pathlib import Path
 import re
 
 from agent_runtime.storage.sqlite import WorkflowRunRecord
@@ -300,6 +301,32 @@ def _decision_from_backlog_materialization(snapshot: RuntimeSnapshot) -> Transit
     return None
 
 
+def _decision_from_prd_bootstrap(snapshot: RuntimeSnapshot) -> TransitionDecision | None:
+    for candidate in snapshot.prd_bootstrap:
+        target_prd_id = candidate.target_prd_id or f"{candidate.capability_name}-prd-bootstrap"
+        target_path = Path(candidate.existing_prd_path or candidate.registry_path)
+        reason = (
+            f"Registry indicates {candidate.capability_name} needs {target_prd_id}. "
+            f"{candidate.next_version_reason} Next slice: {candidate.next_slice}"
+        ).strip()
+        return TransitionDecision(
+            action=NextActionType.RUN_SPEC,
+            work_item_id=target_prd_id,
+            reason=reason,
+            target_path=target_path,
+            metadata={
+                "bootstrap_mode": "prd_gap",
+                "capability_name": candidate.capability_name,
+                "target_prd_id": candidate.target_prd_id or "",
+                "existing_prd_path": candidate.existing_prd_path or "",
+                "registry_path": candidate.registry_path,
+                "next_slice": candidate.next_slice,
+                "next_version_reason": candidate.next_version_reason,
+            },
+        )
+    return None
+
+
 def _decide_for_work_item(
     work_item: WorkItemSnapshot,
     pull_request: PullRequestSnapshot | None,
@@ -434,6 +461,10 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
     if backlog_decision is not None:
         return backlog_decision
 
+    prd_bootstrap_decision = _decision_from_prd_bootstrap(snapshot)
+    if prd_bootstrap_decision is not None:
+        return prd_bootstrap_decision
+
     return TransitionDecision(
         action=NextActionType.NOOP,
         work_item_id=None,
@@ -472,5 +503,8 @@ def decide_all_actions(snapshot: RuntimeSnapshot) -> tuple[TransitionDecision, .
         backlog_decision = _decision_from_backlog_materialization(snapshot)
         if backlog_decision is not None:
             return (backlog_decision,)
+        prd_bootstrap_decision = _decision_from_prd_bootstrap(snapshot)
+        if prd_bootstrap_decision is not None:
+            return (prd_bootstrap_decision,)
 
     return tuple(decisions)

@@ -14,6 +14,7 @@ from agent_runtime.config.defaults import RuntimeDefaults, build_defaults
 from agent_runtime.drift.backlog_materialization import build_backlog_materialization_report
 from agent_runtime.notifications.slack import notify_human_gate, notify_runner_failed, send_morning_digest
 from agent_runtime.orchestrator.execution import build_runner_execution
+from agent_runtime.orchestrator.prd_bootstrap import load_prd_bootstrap_candidates
 from agent_runtime.orchestrator.pr_publication import maybe_publish_completed_coding_run
 from agent_runtime.orchestrator.supervisor import (
     classify_loop_payload,
@@ -34,7 +35,7 @@ from agent_runtime.storage.sqlite import (
 )
 
 from .github_sync import fetch_pull_requests
-from .state import BacklogMaterializationSnapshot, NextActionType, RuntimeSnapshot, TransitionDecision
+from .state import BacklogMaterializationSnapshot, NextActionType, PrdBootstrapSnapshot, RuntimeSnapshot, TransitionDecision
 from .simulations import build_simulation_snapshot, simulation_names
 from .transitions import decide_next_action
 from .work_item_registry import load_work_items
@@ -134,6 +135,17 @@ def build_runtime_snapshot(repo_root: Path, state_db_path: Path) -> RuntimeSnaps
         for finding in backlog_materialization_report.findings
         if finding.kind == "missing_decomposed_work_items"
     )
+    prd_bootstrap = tuple(
+        PrdBootstrapSnapshot(
+            capability_name=candidate.capability_name,
+            target_prd_id=candidate.target_prd_id,
+            existing_prd_path=candidate.existing_prd_path,
+            registry_path=candidate.registry_path,
+            next_slice=candidate.next_slice,
+            next_version_reason=candidate.next_version_reason,
+        )
+        for candidate in load_prd_bootstrap_candidates(repo_root)
+    )
     # drift_critical_findings / drift_summary_md are intentionally not populated
     # here — running the full drift suite on every poll tick adds 5–10 s of latency.
     # Drift gating is handled by the --governance pre-step, which runs before the
@@ -145,6 +157,7 @@ def build_runtime_snapshot(repo_root: Path, state_db_path: Path) -> RuntimeSnaps
         workflow_runs=workflow_runs,
         warnings=warnings + github_warnings,
         backlog_materialization=backlog_materialization,
+        prd_bootstrap=prd_bootstrap,
     )
 
 

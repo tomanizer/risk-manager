@@ -65,6 +65,16 @@ class BacklogMaterializationSnapshot:
 
 
 @dataclass(frozen=True)
+class PrdBootstrapSnapshot:
+    capability_name: str
+    target_prd_id: str | None
+    existing_prd_path: str | None
+    registry_path: str
+    next_slice: str
+    next_version_reason: str
+
+
+@dataclass(frozen=True)
 class RuntimeSnapshot:
     work_items: tuple[WorkItemSnapshot, ...]
     pull_requests: tuple[PullRequestSnapshot, ...] = ()
@@ -73,6 +83,7 @@ class RuntimeSnapshot:
     drift_critical_findings: int = 0
     drift_summary_md: str | None = None
     backlog_materialization: tuple[BacklogMaterializationSnapshot, ...] = ()
+    prd_bootstrap: tuple[PrdBootstrapSnapshot, ...] = ()
 
 
 @dataclass(frozen=True)
