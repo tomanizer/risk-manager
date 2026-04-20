@@ -22,11 +22,13 @@ module_dashboards:
       - governance-ready handoff output
     summary: >-
       Deterministic risk analytics and controls-integrity foundations are
-      implemented. The bounded daily orchestrator exists. Multi-walker
-      analytical interpretation and governance-ready output are still missing.
+      implemented. The bounded daily orchestrator exists. PRD-4.2-v2 contracts
+      interpretive Quant Walker output; typed-contract and inference implementation
+      (WI-4.2.4–4.2.7) is still outstanding. Multi-walker orchestration and
+      governance-ready narrative output beyond typed handoff are still missing.
     current_mvp_blockers:
-      - Quant Walker v2 contract is not yet defined.
-      - Time Series Walker v1 implementation (PRD-4.3) is not yet on main.
+      - Quant Walker v2 interpretive implementation (PRD-4.2-v2; WI-4.2.4–4.2.7) is not yet on main.
+      - Time Series Walker v1 implementation (PRD-4.3; WI-4.3.1–WI-4.3.4) is not yet on main.
       - Daily Risk Investigation Orchestrator v2 multi-walker routing is missing.
     not_required_for_mvp:
       - Market Context Walker
@@ -51,8 +53,9 @@ module_dashboards:
         goal: explain quantitative movement and historical context
         status: partial
         notes: >-
-          Quant Walker exists as a delegate only; Time Series Walker v1 is specified
-          by PRD-4.3 but implementation is not yet on main.
+          Quant Walker remains delegate-only in code; PRD-4.2-v2 defines interpretive
+          output — implementation pending. Time Series Walker v1 is specified by PRD-4.3;
+          implementation is not yet on main.
       - id: workflow_orchestration
         label: Workflow orchestration
         goal: route, synthesize, challenge, and hand off the investigation
@@ -116,11 +119,11 @@ module_dashboards:
         missing_for_mvp:
           - interpretive quantitative walker output
         missing_prds: []
-        needs_new_prd_version: true
+        needs_new_prd_version: false
         next_version_reason: >-
-          Current PRD covers delegation-only v1. Module 1 MVP needs actual
-          walker inference over deterministic risk change output.
-        next_slice: Author PRD-4.2-v2 for interpretive Quant Walker output.
+          PRD-4.2-v2 is merged; remaining gap is implementation per WI-4.2.4–4.2.7.
+        next_slice: >-
+          Deliver WI-4.2.4–4.2.7 (typed contracts, inference, telemetry, replay tests) per PRD-4.2-v2.
       - component_ref: WALKER-TIME-SERIES
         layer: walker
         current_state: not_started
@@ -161,11 +164,13 @@ module_dashboards:
         needs_new_prd_version: true
         next_version_reason: >-
           Post-MVP (PM decision 2026-04-19). Typed DailyRunResult handoff is sufficient
-          for MVP. Governance Walker input types still depend on Quant Walker v2 output
-          contracts; Time Series Walker v1 is specified by PRD-4.3 (implementation pending).
+          for MVP. Governance Walker input types depend on Quant Walker v2 and Time
+          Series Walker v1 typed outputs; both are specified (PRD-4.2-v2, PRD-4.3) but
+          interpretive implementations are not yet on main.
         next_slice: >-
-          Post-MVP (near-term) — author Governance / Reporting Walker v1 PRD after Quant
-          Walker v2 PRD is settled (Time Series Walker v1 contract is PRD-4.3).
+          Post-MVP (near-term) — author Governance / Reporting Walker v1 PRD once
+          interpretive outputs from Quant (WI-4.2.4–4.2.7) and Time Series (WI-4.3.x)
+          are available for handoff design.
       - name: Production integration
         layer: cross-cutting
         current_state: not_started
@@ -178,8 +183,9 @@ module_dashboards:
           Post-MVP (PM decision 2026-04-19). MVP is fixture-backed and operator-invoked.
           Live-data integration and database persistence are a near-term post-MVP priority.
         next_slice: >-
-          Post-MVP — author production integration PRD after Quant Walker v2 is contracted
-          (Time Series Walker v1 contract is PRD-4.3).
+          Post-MVP — author production integration PRD after Module 1 analytical
+          interpretation layer is contracted (Quant Walker v2 per PRD-4.2-v2;
+          Time Series Walker v1 per PRD-4.3).
     prd_lineage:
       - capability: Risk Analytics
         active_prd: PRD-1.1-v2
@@ -200,11 +206,13 @@ module_dashboards:
         next_needed_prd: ""
         why: v1 delegate is sufficient for the current trust-gate role.
       - capability: Quant Walker
-        active_prd: PRD-4.2
+        active_prd: PRD-4.2-v2
         status: active
-        supersedes: ""
-        next_needed_prd: PRD-4.2-v2
-        why: v1 is delegation-only; Module 1 MVP needs interpretive walker output.
+        supersedes: PRD-4.2
+        next_needed_prd: ""
+        why: >-
+          v2 defines interpretive QuantInterpretation output; v1 is archived.
+          Module 1 MVP still needs the WI-4.2.4–4.2.7 implementation on main.
       - capability: Time Series Walker
         active_prd: PRD-4.3
         status: active
@@ -225,14 +233,15 @@ module_dashboards:
         next_needed_prd: PRD-TBD-Governance-Reporting-Walker-v1
         why: >-
           Post-MVP (near-term). Typed handoff sufficient for MVP per PM decision 2026-04-19;
-          PRD to be authored after Quant Walker v2 is contracted (Time Series Walker v1 is PRD-4.3).
+          PRD to be authored after interpretive outputs exist on main (PRD-4.2-v2 Quant,
+          PRD-4.3 Time Series).
     in_progress_items: []
     next_recommended_slices:
       - "Deliver WI-5.1.4 (replay determinism tests) — Coding Agent, no blockers."
-      - "Author PRD-4.2-v2 for interpretive Quant Walker output — PRD / Spec Author."
-      - "Deliver WI-4.3.1–WI-4.3.4 per PRD-4.3 (Time Series Walker v1) — Coding Agent, after PRD merge."
-      - "Author PRD-5.1-v2 for multi-walker orchestration — PRD / Spec Author (after Quant Walker v2 output types are defined)."
-      - "[Post-MVP] Author Governance / Reporting Walker v1 PRD after Quant Walker v2 is contracted (Time Series v1 is PRD-4.3)."
+      - "Deliver WI-4.2.4–4.2.7 (Quant Walker v2 implementation per PRD-4.2-v2) — Coding Agent / Issue Planner."
+      - "Deliver WI-4.3.1–WI-4.3.4 per PRD-4.3 (Time Series Walker v1) — Coding Agent / Issue Planner."
+      - "Author PRD-5.1-v2 for multi-walker orchestration — PRD / Spec Author (after Quant Walker v2 typed output is contracted per PRD-4.2-v2)."
+      - "[Post-MVP] Author Governance / Reporting Walker v1 PRD after interpretive implementations land (PRD-4.2-v2 Quant, PRD-4.3 Time Series)."
       - "[Post-MVP near-term priority] Author production integration PRD for live-data and database persistence."
     post_mvp_enhancements:
       - Live-data integration and production database adapter (near-term priority — see closed decision DECISION-MVP-01)
@@ -252,8 +261,8 @@ module_dashboards:
           to the post-MVP production operations stage.
         rationale: >-
           Narrowest path consistent with ADR-002 replay-first discipline. The
-          analytical interpretation layer (Quant Walker v2, Time Series Walker v1)
-          can be fully contracted and delivered without a live-data adapter.
+          Module 1 analytical interpretation layer (Quant Walker v2 per PRD-4.2-v2;
+          Time Series Walker v1) can be fully delivered without a live-data adapter.
         note: >-
           Live-data and database persistence must be implemented as a near-term
           post-MVP priority. Do not delay this indefinitely after MVP closes.
@@ -266,20 +275,21 @@ module_dashboards:
           cautionary_reason_codes) constitutes a machine-readable governance-ready
           handoff. Governance / Reporting Walker is deferred to near-term post-MVP.
         rationale: >-
-          Governance Walker input types still depend on Quant Walker v2 typed outputs,
-          which are not yet contracted; Time Series Walker v1 is specified by PRD-4.3
-          (implementation pending). Authoring Governance PRD before Quant v2 contracts
-          exist would require speculating on part of the input surface. Defer until
-          Quant Walker v2 PRD is settled alongside PRD-4.3.
+          Governance Walker input types depend on Quant Walker v2 and Time Series
+          Walker v1 typed outputs. Both contracts exist (PRD-4.2-v2, PRD-4.3), but
+          neither interpretive implementation is on main yet. Authoring Governance
+          Walker PRD before those surfaces are exercised in code would still require
+          guessing integration details.
         note: >-
-          Governance / Reporting Walker v1 PRD should be authored immediately after
-          Quant Walker v2 PRD is in draft alongside PRD-4.3, not after all implementations
-          are complete.
+          Governance / Reporting Walker v1 PRD should be authored once Quant and Time
+          Series interpretive outputs are available on main for handoff design, not
+          only after all downstream consumers exist.
     change_log:
       - "2026-04-19: Initial Module 1 dashboard seed added to the registry."
       - "2026-04-19: PM decision DECISION-MVP-01 — MVP is fixture-backed only; live-data is post-MVP near-term priority."
       - "2026-04-19: PM decision DECISION-MVP-02 — typed handoff sufficient for MVP; Governance Walker deferred to near-term post-MVP."
-      - "2026-04-20: Time Series Walker v1 contract recorded as PRD-4.3; registry and dashboard lineage replace PRD-TBD-Time-Series-Walker-v1."
+      - "2026-04-20: Quant Walker lineage — active PRD PRD-4.2-v2 (supersedes PRD-4.2); MVP blockers and slices updated for merged contract vs implementation gap."
+      - "2026-04-20: Time Series Walker v1 contract recorded as PRD-4.3; registry lineage replaces PRD-TBD-Time-Series-Walker-v1; dashboard regenerated."
 
 components:
   modules:
@@ -368,20 +378,20 @@ components:
       status: implemented
       contract_status: implemented
       active_prds:
+        - PRD-4.2-v2
+      superseded_prds:
         - PRD-4.2
-      superseded_prds: []
       missing_prds: []
-      needs_new_prd_version: true
+      needs_new_prd_version: false
       next_version_reason: >-
-        Current PRD is delegation-only; richer interpretive output is needed
-        for Module 1 MVP.
+        PRD-4.2-v2 is merged; implement interpretive output per WI-4.2.4–4.2.7 for Module 1 MVP.
       delivery_stage: delegate_implemented
       mvp_relevance:
         - MODULE-1-VAR
       missing_for_mvp:
         - interpretive quantitative output
       next_recommended_slices:
-        - Author PRD-4.2-v2.
+        - Deliver WI-4.2.4–4.2.7 per PRD-4.2-v2 (typed contracts, inference, telemetry, replay tests).
     - id: WALKER-TIME-SERIES
       name: Time Series Walker
       status: proposed
@@ -434,12 +444,13 @@ components:
       needs_new_prd_version: true
       next_version_reason: >-
         Post-MVP (PM decision 2026-04-19). Typed handoff sufficient for MVP.
-        PRD to be authored after Quant Walker v2 and Time Series Walker v1 are contracted.
+        Upstream contracts are PRD-4.2-v2 and PRD-4.3; author Governance PRD after interpretive
+        implementations are on main for handoff design.
       delivery_stage: not_started
       mvp_relevance: []
       missing_for_mvp: []
       next_recommended_slices:
-        - Post-MVP (near-term) — author Governance / Reporting Walker v1 PRD after Quant v2 and Time Series v1 PRDs are settled.
+        - Post-MVP (near-term) — author Governance / Reporting Walker v1 PRD once Quant (WI-4.2.4–4.2.7) and Time Series (WI-4.3.x) interpretive outputs exist on main.
     - id: WALKER-CRITIC-CHALLENGE
       name: Critic / Challenge Walker
       status: proposed
