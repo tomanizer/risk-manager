@@ -15,9 +15,9 @@
 ## Canonical replacement items
 
 - [WI-MAINT-1A-mypy-pre-commit-hook-ci-parity.md](../done/WI-MAINT-1A-mypy-pre-commit-hook-ci-parity.md) — completed config-only slice that adds a local/system mypy hook mirroring current CI exactly.
-- [WI-MAINT-1B-expand-mypy-tests-coverage.md](../blocked/WI-MAINT-1B-expand-mypy-tests-coverage.md) — blocked follow-on for any policy-approved expansion to `tests/`.
+- [WI-MAINT-1B-expand-mypy-tests-coverage.md](../archived/WI-MAINT-1B-expand-mypy-tests-coverage.md) — archived rejected path after the 2026-04-20 decision to keep mypy enforcement limited to `src/` and `agent_runtime/`.
 
 ## PM action
 
 - Reassess `WI-MAINT-1A` immediately for coding assignment.
-- Keep `WI-MAINT-1B` blocked until PM / human explicitly approves expanding the mypy path set to include `tests/`.
+- Treat `WI-MAINT-1B` as closed unless a future human policy decision explicitly reopens test-coverage expansion.
