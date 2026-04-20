@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import sqlite3
 import tempfile
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import patch
 
@@ -24,7 +25,7 @@ from agent_runtime.orchestrator.state import (
     WorkItemSnapshot,
     WorkItemStage,
 )
-from agent_runtime.orchestrator.graph import find_repo_root
+from agent_runtime.orchestrator.graph import build_runtime_snapshot, find_repo_root
 from agent_runtime.orchestrator.execution import build_runner_execution
 from agent_runtime.orchestrator.simulations import build_simulation_snapshot, simulation_names
 from agent_runtime.orchestrator.transitions import decide_next_action
@@ -61,6 +62,80 @@ def test_ready_item_without_pr_routes_to_pm() -> None:
     decision = decide_next_action(snapshot)
 
     assert decision.action is NextActionType.RUN_PM
+
+
+def test_build_runtime_snapshot_skips_bootstrap_scans_when_runnable_ready_item_exists(tmp_path: Path) -> None:
+    ready_item = WorkItemSnapshot(
+        id="WI-1.1.3-risk-summary-history-service",
+        title="WI-1.1.3",
+        path=tmp_path / "work_items" / "ready" / "WI-1.1.3-risk-summary-history-service.md",
+        stage=WorkItemStage.READY,
+        dependencies=(),
+    )
+
+    with (
+        patch("agent_runtime.orchestrator.graph.load_work_items", return_value=((ready_item,), ())),
+        patch("agent_runtime.orchestrator.graph.fetch_pull_requests", return_value=((), ())),
+        patch("agent_runtime.orchestrator.graph.load_workflow_runs", return_value=()),
+        patch("agent_runtime.orchestrator.graph.build_backlog_materialization_report") as backlog_mock,
+        patch("agent_runtime.orchestrator.graph.load_prd_bootstrap_candidates") as prd_mock,
+    ):
+        snapshot = build_runtime_snapshot(tmp_path, tmp_path / "state.db")
+
+    assert snapshot.backlog_materialization == ()
+    assert snapshot.prd_bootstrap == ()
+    backlog_mock.assert_not_called()
+    prd_mock.assert_not_called()
+
+
+def test_build_runtime_snapshot_runs_bootstrap_scans_when_ready_item_is_dependency_blocked(tmp_path: Path) -> None:
+    ready_item = WorkItemSnapshot(
+        id="WI-1.1.4-risk-summary-core-service",
+        title="WI-1.1.4",
+        path=tmp_path / "work_items" / "ready" / "WI-1.1.4-risk-summary-core-service.md",
+        stage=WorkItemStage.READY,
+        dependencies=("WI-1.1.3-risk-summary-history-service",),
+    )
+    backlog_report = SimpleNamespace(
+        findings=(
+            SimpleNamespace(
+                kind="missing_decomposed_work_items",
+                source_path="docs/prds/phase-2/PRD-4.2-quant-walker-v2.md",
+                related_paths=("WI-4.2.4",),
+                message="PRD follow-on work items are missing.",
+            ),
+        )
+    )
+    prd_candidate = SimpleNamespace(
+        capability_name="ORCH-DAILY-RISK-INVESTIGATION",
+        target_prd_id="PRD-5.1-v2",
+        existing_prd_path="docs/prds/phase-2/PRD-5.1-daily-risk-investigation-orchestrator-v1.md",
+        registry_path="docs/registry/current_state_registry.yaml",
+        next_slice="Author PRD-5.1-v2 for multi-walker orchestration.",
+        next_version_reason="PRD-5.1-v1 excludes orchestration needed for MVP.",
+    )
+
+    with (
+        patch("agent_runtime.orchestrator.graph.load_work_items", return_value=((ready_item,), ())),
+        patch("agent_runtime.orchestrator.graph.fetch_pull_requests", return_value=((), ())),
+        patch("agent_runtime.orchestrator.graph.load_workflow_runs", return_value=()),
+        patch(
+            "agent_runtime.orchestrator.graph.build_backlog_materialization_report",
+            return_value=backlog_report,
+        ) as backlog_mock,
+        patch(
+            "agent_runtime.orchestrator.graph.load_prd_bootstrap_candidates",
+            return_value=(prd_candidate,),
+        ) as prd_mock,
+    ):
+        snapshot = build_runtime_snapshot(tmp_path, tmp_path / "state.db")
+
+    assert len(snapshot.backlog_materialization) == 1
+    assert snapshot.backlog_materialization[0].source_path == "docs/prds/phase-2/PRD-4.2-quant-walker-v2.md"
+    assert len(snapshot.prd_bootstrap) == 1
+    assert snapshot.prd_bootstrap[0].target_prd_id == "PRD-5.1-v2"
+    backlog_mock.assert_called_once_with(tmp_path)
+    prd_mock.assert_called_once_with(tmp_path)
 
 
 def test_completed_pm_ready_outcome_routes_to_coding() -> None:

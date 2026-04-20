@@ -21,9 +21,30 @@ class SpecRunnerInput:
     blocked_reason: str
     work_item_path: str
     linked_prd: str | None = None
+    bootstrap_capability: str | None = None
+    target_prd_id: str | None = None
+    registry_path: str | None = None
+    next_slice: str | None = None
 
 
 def build_spec_prompt(input_data: SpecRunnerInput) -> str:
+    if input_data.bootstrap_capability or input_data.target_prd_id:
+        prompt = (
+            "Act only as the spec-resolution agent.\n"
+            f"Bootstrap PRD/spec drafting for {input_data.bootstrap_capability or input_data.work_item_id}.\n"
+            f"Target PRD: {input_data.target_prd_id or 'unspecified'}\n"
+            f"Registry source: {input_data.registry_path or input_data.work_item_path}\n"
+        )
+        if input_data.linked_prd:
+            prompt += f"Current PRD: {input_data.linked_prd}\n"
+        prompt += f"Relevant artifact: {input_data.work_item_path}\nReason: {input_data.blocked_reason}\n"
+        if input_data.next_slice:
+            prompt += f"Requested next slice: {input_data.next_slice}\n"
+        prompt += (
+            "Draft or update the necessary PRD/spec so the contract gap is explicit and downstream PM/coding work can proceed.\nDo not write code.\n"
+        )
+        return prompt
+
     return (
         "Act only as the spec-resolution agent.\n"
         f"Resolve the blocker for {input_data.work_item_id}.\n"

@@ -8,6 +8,7 @@ from pathlib import Path
 
 from agent_runtime.orchestrator.execution import build_runner_execution
 from agent_runtime.orchestrator.state import (
+    BacklogMaterializationSnapshot,
     NextActionType,
     RuntimeSnapshot,
     TransitionDecision,
@@ -79,6 +80,21 @@ def test_build_issue_planner_prompt_instructs_narrow_slices() -> None:
     )
     prompt = build_issue_planner_prompt(input_data)
     assert "narrow" in prompt.lower()
+
+
+def test_build_issue_planner_prompt_handles_backlog_materialization_context() -> None:
+    input_data = IssuePlannerRunnerInput(
+        work_item_id="WI-4.2.3-quant-walker-v2-implementation-prd",
+        split_reason="Implementation-ready PRD follow-on WIs are missing from the live backlog.",
+        work_item_path="work_items/done/WI-4.2.3-quant-walker-v2-implementation-prd.md",
+        linked_prd="`docs/prds/phase-2/PRD-4.2-quant-walker-v2.md` (primary deliverable).",
+        source_prd_path="docs/prds/phase-2/PRD-4.2-quant-walker-v2.md",
+        missing_work_item_ids=("WI-4.2.4", "WI-4.2.5", "WI-4.2.6", "WI-4.2.7"),
+    )
+    prompt = build_issue_planner_prompt(input_data)
+    assert "Materialize the missing follow-on work items" in prompt
+    assert "Do not decompose WI-4.2.3-quant-walker-v2-implementation-prd itself again" in prompt
+    assert "WI-4.2.4, WI-4.2.5, WI-4.2.6, WI-4.2.7" in prompt
 
 
 # ---------------------------------------------------------------------------
@@ -222,3 +238,75 @@ def test_run_issue_planner_decision_builds_issue_planner_execution() -> None:
         assert execution.work_item_id == "WI-1.1.4-risk-summary-core-service"
         assert "Issue Planner agent" in execution.prompt
         assert "PRD-1.1-v2" in execution.prompt
+
+
+def test_empty_ready_queue_with_backlog_materialization_routes_to_issue_planner() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        work_item_path = Path(temp_dir) / "WI-4.2.3-quant-walker-v2-implementation-prd.md"
+        work_item_path.write_text(
+            "# WI-4.2.3\n\n## Linked PRD\n\n`docs/prds/phase-2/PRD-4.2-quant-walker-v2.md` (primary deliverable).\n",
+            encoding="utf-8",
+        )
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-4.2.3-quant-walker-v2-implementation-prd",
+                    title="WI-4.2.3",
+                    path=work_item_path,
+                    stage=WorkItemStage.DONE,
+                    linked_prd="`docs/prds/phase-2/PRD-4.2-quant-walker-v2.md` (primary deliverable).",
+                ),
+            ),
+            backlog_materialization=(
+                BacklogMaterializationSnapshot(
+                    source_path="docs/prds/phase-2/PRD-4.2-quant-walker-v2.md",
+                    related_paths=("WI-4.2.4", "WI-4.2.5", "WI-4.2.6", "WI-4.2.7"),
+                    message="Implementation-ready PRD follow-on WIs are missing from the live backlog.",
+                ),
+            ),
+        )
+
+        decision = decide_next_action(snapshot)
+
+        assert decision.action is NextActionType.RUN_ISSUE_PLANNER
+        assert decision.work_item_id == "WI-4.2.3-quant-walker-v2-implementation-prd"
+        assert decision.metadata["backlog_source_prd"] == "docs/prds/phase-2/PRD-4.2-quant-walker-v2.md"
+        assert decision.metadata["missing_work_item_ids"] == "WI-4.2.4,WI-4.2.5,WI-4.2.6,WI-4.2.7"
+
+
+def test_backlog_materialization_decision_builds_issue_planner_execution() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        work_item_path = Path(temp_dir) / "WI-4.2.3-quant-walker-v2-implementation-prd.md"
+        work_item_path.write_text(
+            "# WI-4.2.3\n\n## Linked PRD\n\n`docs/prds/phase-2/PRD-4.2-quant-walker-v2.md` (primary deliverable).\n",
+            encoding="utf-8",
+        )
+
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-4.2.3-quant-walker-v2-implementation-prd",
+                    title="WI-4.2.3",
+                    path=work_item_path,
+                    stage=WorkItemStage.DONE,
+                    linked_prd="`docs/prds/phase-2/PRD-4.2-quant-walker-v2.md` (primary deliverable).",
+                ),
+            ),
+        )
+        decision = TransitionDecision(
+            action=NextActionType.RUN_ISSUE_PLANNER,
+            work_item_id="WI-4.2.3-quant-walker-v2-implementation-prd",
+            reason="Implementation-ready PRD follow-on WIs are missing from the live backlog.",
+            target_path=work_item_path,
+            metadata={
+                "backlog_source_prd": "docs/prds/phase-2/PRD-4.2-quant-walker-v2.md",
+                "missing_work_item_ids": "WI-4.2.4,WI-4.2.5,WI-4.2.6,WI-4.2.7",
+            },
+        )
+
+        execution = build_runner_execution(snapshot, decision)
+
+        assert execution is not None
+        assert execution.runner_name is RunnerName.ISSUE_PLANNER
+        assert "Materialize the missing follow-on work items" in execution.prompt
+        assert "WI-4.2.4, WI-4.2.5, WI-4.2.6, WI-4.2.7" in execution.prompt
