@@ -11,6 +11,7 @@ import logging
 from pathlib import Path
 
 from agent_runtime.config.defaults import RuntimeDefaults, build_defaults
+from agent_runtime.drift.backlog_materialization import build_backlog_materialization_report
 from agent_runtime.notifications.slack import notify_human_gate, notify_runner_failed, send_morning_digest
 from agent_runtime.orchestrator.execution import build_runner_execution
 from agent_runtime.orchestrator.pr_publication import maybe_publish_completed_coding_run
@@ -33,7 +34,7 @@ from agent_runtime.storage.sqlite import (
 )
 
 from .github_sync import fetch_pull_requests
-from .state import NextActionType, RuntimeSnapshot, TransitionDecision
+from .state import BacklogMaterializationSnapshot, NextActionType, RuntimeSnapshot, TransitionDecision
 from .simulations import build_simulation_snapshot, simulation_names
 from .transitions import decide_next_action
 from .work_item_registry import load_work_items
@@ -123,6 +124,16 @@ def build_runtime_snapshot(repo_root: Path, state_db_path: Path) -> RuntimeSnaps
     work_items, warnings = load_work_items(repo_root)
     pull_requests, github_warnings = fetch_pull_requests(repo_root, work_items)
     workflow_runs = load_workflow_runs(state_db_path)
+    backlog_materialization_report = build_backlog_materialization_report(repo_root)
+    backlog_materialization = tuple(
+        BacklogMaterializationSnapshot(
+            source_path=finding.source_path,
+            related_paths=finding.related_paths,
+            message=finding.message,
+        )
+        for finding in backlog_materialization_report.findings
+        if finding.kind == "missing_decomposed_work_items"
+    )
     # drift_critical_findings / drift_summary_md are intentionally not populated
     # here — running the full drift suite on every poll tick adds 5–10 s of latency.
     # Drift gating is handled by the --governance pre-step, which runs before the
@@ -133,6 +144,7 @@ def build_runtime_snapshot(repo_root: Path, state_db_path: Path) -> RuntimeSnaps
         pull_requests=pull_requests,
         workflow_runs=workflow_runs,
         warnings=warnings + github_warnings,
+        backlog_materialization=backlog_materialization,
     )
 
 

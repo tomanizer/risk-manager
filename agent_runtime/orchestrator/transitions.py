@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+import re
 
 from agent_runtime.storage.sqlite import WorkflowRunRecord
 
 from .state import (
+    BacklogMaterializationSnapshot,
     NextActionType,
     PullRequestSnapshot,
     RuntimeSnapshot,
@@ -25,6 +27,7 @@ _CODING_REPO_UPDATE_OUTCOMES = {"blocked", "completed", "needs_pm"}
 _REVIEW_CODING_OUTCOMES = {"changes_requested"}
 _REVIEW_REPO_UPDATE_OUTCOMES = {"blocked", "pass"}
 _SPEC_REPO_UPDATE_OUTCOMES = {"clarified", "blocked", "split_required"}
+_PRD_PATH_PATTERN = re.compile(r"docs/prds/[A-Za-z0-9_./-]+\.md")
 
 
 def _parse_workflow_run_timestamp(timestamp: str | None) -> float | None:
@@ -68,6 +71,15 @@ def _dependencies_satisfied(item: WorkItemSnapshot, snapshot: RuntimeSnapshot) -
         if dependency.startswith("WI-") and dependency not in completed_ids:
             return False
     return True
+
+
+def _extract_prd_path(linked_prd: str | None) -> str | None:
+    if linked_prd is None:
+        return None
+    match = _PRD_PATH_PATTERN.search(linked_prd)
+    if match is None:
+        return None
+    return match.group(0)
 
 
 def _work_item_changed_since_completion(item: WorkItemSnapshot, completed_at: str | None) -> bool:
@@ -253,6 +265,41 @@ def _decision_from_completed_coding_outcome(
     return None
 
 
+def _backlog_materialization_owner(
+    snapshot: RuntimeSnapshot,
+    finding: BacklogMaterializationSnapshot,
+) -> WorkItemSnapshot | None:
+    stage_priority = {
+        WorkItemStage.DONE: 0,
+        WorkItemStage.IN_PROGRESS: 1,
+        WorkItemStage.BLOCKED: 2,
+        WorkItemStage.READY: 3,
+    }
+    candidates = [work_item for work_item in snapshot.work_items if _extract_prd_path(work_item.linked_prd) == finding.source_path]
+    if not candidates:
+        return None
+    return sorted(candidates, key=lambda work_item: (stage_priority[work_item.stage], work_item.id))[0]
+
+
+def _decision_from_backlog_materialization(snapshot: RuntimeSnapshot) -> TransitionDecision | None:
+    for finding in snapshot.backlog_materialization:
+        owner = _backlog_materialization_owner(snapshot, finding)
+        if owner is None:
+            continue
+        return TransitionDecision(
+            action=NextActionType.RUN_ISSUE_PLANNER,
+            work_item_id=owner.id,
+            reason=finding.message,
+            target_path=owner.path,
+            metadata={
+                "backlog_trigger": "missing_decomposed_work_items",
+                "backlog_source_prd": finding.source_path,
+                "missing_work_item_ids": ",".join(finding.related_paths),
+            },
+        )
+    return None
+
+
 def _decide_for_work_item(
     work_item: WorkItemSnapshot,
     pull_request: PullRequestSnapshot | None,
@@ -383,6 +430,10 @@ def decide_next_action(snapshot: RuntimeSnapshot) -> TransitionDecision:
         )
         return _apply_drift_gate(snapshot, decision)
 
+    backlog_decision = _decision_from_backlog_materialization(snapshot)
+    if backlog_decision is not None:
+        return backlog_decision
+
     return TransitionDecision(
         action=NextActionType.NOOP,
         work_item_id=None,
@@ -416,5 +467,10 @@ def decide_all_actions(snapshot: RuntimeSnapshot) -> tuple[TransitionDecision, .
             workflow_runs_by_work_item.get(work_item.id),
         )
         decisions.append(_apply_drift_gate(snapshot, decision))
+
+    if not decisions:
+        backlog_decision = _decision_from_backlog_materialization(snapshot)
+        if backlog_decision is not None:
+            return (backlog_decision,)
 
     return tuple(decisions)

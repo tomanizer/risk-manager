@@ -99,6 +99,11 @@ The supervisor loop:
 - sleeps on `wait_for_reviews` and `noop`
 - stops cleanly on `human_update_repo`, `human_merge`, prepared manual handoffs, and failed runs
 
+When the live backlog has no runnable `work_items/ready/` entries, the runtime
+now performs a lightweight backlog-materialization scan. If an implementation-ready
+PRD names follow-on WI IDs that do not exist under the live backlog tree, the
+runtime bootstraps into an Issue Planner handoff instead of returning `noop`.
+
 ## Build the next runner invocation
 
 ```bash
@@ -107,6 +112,10 @@ The supervisor loop:
 
 This records the current decision in `.agent_runtime/state.db` and returns the
 typed runner prompt that a later execution layer can hand to the correct agent.
+
+That decision can now be a backlog bootstrap handoff as well as a normal ready-item
+relay step. For example, a merged PRD with issue-decomposition guidance but no
+materialized follow-on WI files can dispatch Issue Planner directly.
 
 ## Dispatch through the local runner adapters
 

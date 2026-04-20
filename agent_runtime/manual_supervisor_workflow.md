@@ -67,6 +67,10 @@ This returns JSON including:
 - `worktree.path`
 - `state_db_path`
 
+If there is no runnable live `ready/` WI, the runtime may still return an
+Issue Planner handoff when an implementation-ready PRD names follow-on WI IDs
+that have not yet been materialized under the live backlog tree.
+
 ### 2. Move into the allocated worktree
 
 ```bash

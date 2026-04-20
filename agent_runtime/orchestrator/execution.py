@@ -78,11 +78,14 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
         )
 
     if decision.action is NextActionType.RUN_ISSUE_PLANNER:
+        missing_work_item_ids = tuple(item_id.strip() for item_id in decision.metadata.get("missing_work_item_ids", "").split(",") if item_id.strip())
         issue_planner_input = IssuePlannerRunnerInput(
             work_item_id=work_item.id,
             split_reason=decision.reason,
             work_item_path=str(work_item.path),
             linked_prd=work_item.linked_prd,
+            source_prd_path=decision.metadata.get("backlog_source_prd"),
+            missing_work_item_ids=missing_work_item_ids,
         )
         return RunnerExecution(
             runner_name=RunnerName.ISSUE_PLANNER,

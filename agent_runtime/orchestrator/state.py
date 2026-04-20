@@ -58,6 +58,13 @@ class PullRequestSnapshot:
 
 
 @dataclass(frozen=True)
+class BacklogMaterializationSnapshot:
+    source_path: str
+    related_paths: tuple[str, ...]
+    message: str
+
+
+@dataclass(frozen=True)
 class RuntimeSnapshot:
     work_items: tuple[WorkItemSnapshot, ...]
     pull_requests: tuple[PullRequestSnapshot, ...] = ()
@@ -65,6 +72,7 @@ class RuntimeSnapshot:
     warnings: tuple[str, ...] = ()
     drift_critical_findings: int = 0
     drift_summary_md: str | None = None
+    backlog_materialization: tuple[BacklogMaterializationSnapshot, ...] = ()
 
 
 @dataclass(frozen=True)

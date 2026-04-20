@@ -15,35 +15,56 @@ class IssuePlannerRunnerInput:
     split_reason: str
     work_item_path: str
     linked_prd: str | None = None
+    source_prd_path: str | None = None
+    missing_work_item_ids: tuple[str, ...] = ()
 
 
 def build_issue_planner_prompt(input_data: IssuePlannerRunnerInput) -> str:
     prompt = "Act only as the Issue Planner agent.\nWork from current `main`.\nRead:\n- AGENTS.md\n- prompts/agents/issue_planner_instruction.md\n"
-    if input_data.linked_prd:
+    if input_data.source_prd_path:
+        prompt += f"- {input_data.source_prd_path}\n"
+    elif input_data.linked_prd:
         prompt += f"- {input_data.linked_prd}\n"
+    prompt += f"- {input_data.work_item_path}\n\nContext:\n"
+    if input_data.source_prd_path and input_data.missing_work_item_ids:
+        missing_ids = ", ".join(input_data.missing_work_item_ids)
+        prompt += (
+            f"The linked implementation-ready PRD names follow-on work items that are not yet materialized in the live backlog.\n"
+            f"PRD: {input_data.source_prd_path}\n"
+            f"Missing work items: {missing_ids}\n"
+            f"Trigger: {input_data.split_reason}\n"
+            f"\n"
+            f"Your task:\n"
+            f"Materialize the missing follow-on work items for {input_data.source_prd_path} into bounded,\n"
+            f"sequenced backlog slices that can each be implemented in a single narrow PR. Do not redesign\n"
+            f"architecture. Do not change PRD semantics. If the PRD already names specific WI IDs, preserve them.\n"
+            f"Do not decompose {input_data.work_item_id} itself again unless the PRD text is insufficient.\n"
+            f"Name exact target files or package areas for each slice.\n"
+            f"\n"
+        )
+    else:
+        prompt += (
+            f"A PM assessment for {input_data.work_item_id} returned SPLIT_REQUIRED.\n"
+            f"Reason: {input_data.split_reason}\n"
+            f"\n"
+            f"Your task:\n"
+            f"Decompose {input_data.work_item_id} into bounded, sequenced work items that can each be\n"
+            f"implemented in a single narrow PR. Do not redesign architecture. Do not change PRD semantics.\n"
+            f"Keep each slice narrow and reviewable. Name exact target files or package areas for each slice.\n"
+            f"\n"
+        )
     prompt += (
-        f"- {input_data.work_item_path}\n"
-        f"\n"
-        f"Context:\n"
-        f"A PM assessment for {input_data.work_item_id} returned SPLIT_REQUIRED.\n"
-        f"Reason: {input_data.split_reason}\n"
-        f"\n"
-        f"Your task:\n"
-        f"Decompose {input_data.work_item_id} into bounded, sequenced work items that can each be\n"
-        f"implemented in a single narrow PR. Do not redesign architecture. Do not change PRD semantics.\n"
-        f"Keep each slice narrow and reviewable. Name exact target files or package areas for each slice.\n"
-        f"\n"
-        f"Return exactly:\n"
-        f"1. proposed new work item names and IDs\n"
-        f"2. purpose of each\n"
-        f"3. scope of each\n"
-        f"4. out of scope for each\n"
-        f"5. dependencies between the proposed slices\n"
-        f"6. exact target area for each\n"
-        f"7. acceptance criteria for each\n"
-        f"8. test intent for each\n"
-        f"9. why this decomposition unblocks the original work item\n"
-        f"10. any residual blocker that would need spec or human escalation\n"
+        "Return exactly:\n"
+        "1. proposed new work item names and IDs\n"
+        "2. purpose of each\n"
+        "3. scope of each\n"
+        "4. out of scope for each\n"
+        "5. dependencies between the proposed slices\n"
+        "6. exact target area for each\n"
+        "7. acceptance criteria for each\n"
+        "8. test intent for each\n"
+        "9. why this decomposition unblocks the original work item\n"
+        "10. any residual blocker that would need spec or human escalation\n"
     )
     return prompt
 
