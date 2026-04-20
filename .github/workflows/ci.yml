@@ -6,8 +6,44 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      python: ${{ steps.filter.outputs.python }}
+      skills: ${{ steps.filter.outputs.skills }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect changed surfaces
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            python:
+              - ".github/workflows/ci.yml"
+              - "pyproject.toml"
+              - "src/**"
+              - "agent_runtime/**"
+              - "tests/**"
+              - "fixtures/**"
+              - "scripts/**"
+            skills:
+              - ".github/workflows/ci.yml"
+              - "skills/**"
+              - ".cursor/skills/**"
+              - ".claude/commands/**"
+              - ".github/skills/**"
+              - "scripts/skills/**"
+
   lint-and-test:
+    needs: detect-changes
     runs-on: ubuntu-latest
 
     steps:
@@ -15,16 +51,26 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Python
+        if: needs.detect-changes.outputs.python == 'true' || needs.detect-changes.outputs.skills == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml'
 
       - name: Install tooling
+        if: needs.detect-changes.outputs.python == 'true'
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
+      - name: Skill mirror parity
+        if: needs.detect-changes.outputs.skills == 'true'
+        run: |
+          python scripts/skills/check_skill_mirrors.py
+
       - name: Ruff
+        if: needs.detect-changes.outputs.python == 'true'
         run: |
           if git ls-files '*.py' '*.pyi' | grep . >/dev/null; then
             ruff check .
@@ -32,18 +78,17 @@ jobs:
             echo 'No Python files found. Skipping Ruff.'
           fi
 
-      - name: Skill mirror parity
-        run: |
-          python scripts/skills/check_skill_mirrors.py
-
       - name: Mypy
+        if: needs.detect-changes.outputs.python == 'true'
         run: |
           if git ls-files '*.py' '*.pyi' | grep . >/dev/null; then
             mypy src/ agent_runtime/
           else
             echo 'No Python files found. Skipping mypy.'
           fi
+
       - name: Ruff format
+        if: needs.detect-changes.outputs.python == 'true'
         run: |
           if git ls-files '*.py' '*.pyi' | grep . >/dev/null; then
             ruff format --check .
@@ -52,9 +97,15 @@ jobs:
           fi
 
       - name: Pytest
+        if: needs.detect-changes.outputs.python == 'true'
         run: |
           if git ls-files 'tests/**/*.py' 'test_*.py' '*_test.py' | grep . >/dev/null; then
             pytest -q
           else
             echo 'No Python tests found. Skipping pytest.'
           fi
+
+      - name: No relevant CI work
+        if: needs.detect-changes.outputs.python != 'true' && needs.detect-changes.outputs.skills != 'true'
+        run: |
+          echo 'No Python or skill changes detected. Skipping heavy CI steps.'
