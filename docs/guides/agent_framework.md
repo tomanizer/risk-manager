@@ -231,7 +231,9 @@ LANGCHAIN_PROJECT=risk-manager
 The repo-tracked `pre-commit` pre-push hook runs the shared push gate
 before every push. That gate matches the CI `lint-and-test` job by
 running `ruff`, `ruff format --check`, `mypy`, `pytest`, and skill
-mirror parity as applicable. Activate it once per clone:
+mirror parity as applicable. Locally, it auto-applies Ruff fixes and
+formatting; if it rewrites files, stage them and re-push. Activate it
+once per clone:
 
 ```bash
 pre-commit install --hook-type pre-push

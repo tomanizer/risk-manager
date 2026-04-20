@@ -4,6 +4,6 @@ repos:
       - id: push-gate
         name: push-gate
         language: system
-        entry: python scripts/ci/run_push_gate.py --python --skills
+        entry: python scripts/ci/run_push_gate.py --python --skills --apply-ruff-fixes
         pass_filenames: false
         stages: [pre-push]
