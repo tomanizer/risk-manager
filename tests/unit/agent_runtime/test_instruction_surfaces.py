@@ -280,17 +280,17 @@ def _write_instruction_surfaces(root: Path) -> None:
         "pm_invocation.md": (
             "You are the PM agent.\n"
             "Execution mode:\n"
-            "- If this handoff is run through `agent_runtime`, the runtime-managed worktree and branch for this run are authoritative. Do not switch to `main`, create another worktree, or create another branch.\n"
+            "- If this handoff is run through agent_runtime, the runtime-managed worktree and branch for this run are authoritative. Do not switch to main. Do not create another worktree. Do not create another branch.\n"
         ),
         "coding_invocation.md": (
             "You are the Coding Agent.\n"
             "Execution mode:\n"
-            "- If this handoff is run through `agent_runtime`, the runtime-managed worktree and branch for this run are authoritative. Do not switch to `main`. Do not create another worktree. Do not create another branch.\n"
+            "- If this handoff is run through agent_runtime, the runtime-managed worktree and branch for this run are authoritative. Do not switch to main. Do not create another worktree. Do not create another branch.\n"
         ),
         "review_invocation.md": (
             "You are the Review Agent.\n"
             "Execution mode:\n"
-            "- If this handoff is run through `agent_runtime`, the runtime-managed review worktree for this run is authoritative. Do not switch to `main`. Do not create another worktree. Do not create another branch.\n"
+            "- If this handoff is run through agent_runtime, the runtime-managed review worktree for this run is authoritative. Do not switch to main. Do not create another worktree. Do not create another branch.\n"
         ),
     }
     for filename, content in invocation_template_contents.items():

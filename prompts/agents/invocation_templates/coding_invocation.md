@@ -5,7 +5,7 @@ You are the Coding Agent for this repository.
 Work from the governed execution checkout for this task.
 
 Execution mode:
-- If this handoff is run through `agent_runtime`, the runtime-managed worktree and branch for this run are authoritative. Do not switch to `main`. Do not create another worktree. Do not create another branch.
+- If this handoff is run through agent_runtime, the runtime-managed worktree and branch for this run are authoritative. Do not switch to main. Do not create another worktree. Do not create another branch.
 - If this handoff is run manually outside `agent_runtime`, refresh the control checkout on current `main` and create a fresh feature branch from current `main` before coding.
 
 Read:
