@@ -5,3 +5,10 @@ repos:
       - id: ruff-format   # auto-formats in place (equivalent to `ruff format`)
       - id: ruff          # lints and auto-fixes safe issues (equivalent to `ruff check --fix`)
         args: [--fix]
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        language: system
+        entry: python -m mypy src/ agent_runtime/
+        pass_filenames: false
