@@ -24,6 +24,18 @@ A dependency is closed only when one of the following is true:
 
 Dependencies are not closed merely because a draft exists or because the PM agent can imagine how the gap should be solved.
 
+## Backlog reality check
+
+Named future slices in a PRD, registry entry, or roadmap page are not
+executable backlog by themselves. Before the PM agent returns `READY`, the next
+slice must exist as a concrete work-item file under the live backlog tree
+(`work_items/ready/`, `work_items/in_progress/`, `work_items/done/`, or
+`work_items/blocked/`).
+
+If a merged PRD includes issue decomposition guidance but the decomposed WI
+files do not yet exist, the correct verdict is `SPLIT_REQUIRED` routed to Issue
+Planner, not `READY` routed to Coding.
+
 ## Common block patterns
 
 The PM agent should block work when:

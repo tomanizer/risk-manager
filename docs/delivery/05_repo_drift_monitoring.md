@@ -90,6 +90,20 @@ Checks:
 
 Does not check semantic architecture quality beyond explicit import edges, runtime wiring within allowed imports, or non-Python coupling.
 
+### Backlog materialization
+
+**Implementation:** `agent_runtime/drift/backlog_materialization.py`
+**CLI:** `scripts/drift/check_backlog_materialization.py`
+**Drift class:** operational-instruction drift
+**Typical owner:** PM
+
+Checks:
+- Active PRDs marked `Ready for implementation` that include issue decomposition guidance naming WI IDs
+- Missing live work-item files for those decomposed WI IDs under `work_items/ready/`, `work_items/in_progress/`, `work_items/done/`, or `work_items/blocked/`
+- Cases where PM could otherwise mistake registry, roadmap, or PRD prose for executable backlog
+
+Does not decide whether the proposed WI split is good, whether a missing WI should be `ready` vs `blocked`, or whether backlog priority is correct; it only detects that the decomposed work has not been materialized as actual work-item files.
+
 ### Canon lineage
 
 **Implementation:** `agent_runtime/drift/canon_lineage.py`
@@ -201,6 +215,7 @@ Does not check whether a module entrypoint is the right design, whether non-lega
 
 Per-scanner JSON:
 - `artifacts/drift/architecture_boundaries.json`
+- `artifacts/drift/backlog_materialization.json`
 - `artifacts/drift/canon_lineage.json`
 - `artifacts/drift/dependency_hygiene.json`
 - `artifacts/drift/instruction_surfaces.json`

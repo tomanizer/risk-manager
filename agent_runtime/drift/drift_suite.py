@@ -9,6 +9,7 @@ from typing import Callable
 from agent_runtime.telemetry import drift_scan_span, record_drift_findings
 
 from .architecture_boundaries import ArchitectureBoundaryReport, build_architecture_boundary_report
+from .backlog_materialization import BacklogMaterializationReport, build_backlog_materialization_report
 from .canon_lineage import CanonLineageReport, build_canon_lineage_report
 from .dependency_hygiene import DependencyHygieneReport, build_dependency_hygiene_report
 from .instruction_surfaces import InstructionSurfaceReport, build_instruction_surface_report
@@ -25,6 +26,7 @@ DEFAULT_SUMMARY_PATH = Path("artifacts/drift/summary.md")
 
 _ReportT = (
     ArchitectureBoundaryReport
+    | BacklogMaterializationReport
     | CanonLineageReport
     | DependencyHygieneReport
     | InstructionSurfaceReport
@@ -194,6 +196,12 @@ _SCANNERS: tuple[_ScannerSpec, ...] = (
         build_report=build_architecture_boundary_report,
     ),
     _ScannerSpec(
+        scan_name="backlog_materialization",
+        title="Backlog Materialization",
+        artifact_name="backlog_materialization.json",
+        build_report=build_backlog_materialization_report,
+    ),
+    _ScannerSpec(
         scan_name="canon_lineage",
         title="Canon Lineage",
         artifact_name="canon_lineage.json",
@@ -239,6 +247,7 @@ _SCANNERS: tuple[_ScannerSpec, ...] = (
 
 _SIGNATURE_FIELDS: dict[str, tuple[str, ...]] = {
     "architecture_boundaries": ("kind", "source_path", "source_line", "import_target"),
+    "backlog_materialization": ("kind", "source_path", "related_paths"),
     "canon_lineage": ("kind", "source_path", "related_paths"),
     "dependency_hygiene": ("kind", "dependency_name", "source_path"),
     "instruction_surfaces": ("kind", "source_path", "related_paths"),
@@ -618,6 +627,11 @@ def _summary_anchor(finding: DriftSuiteFinding) -> str:
     raw = finding.raw_finding
     if finding.scan_name == "architecture_boundaries":
         return f"{raw['source_path']}:{raw['source_line']} `{raw['import_target']}`"
+    if finding.scan_name == "backlog_materialization":
+        related_paths = raw.get("related_paths")
+        if isinstance(related_paths, list) and related_paths:
+            return f"{raw['source_path']} `{', '.join(str(path) for path in related_paths)}`"
+        return f"{raw['source_path']} `{raw['kind']}`"
     if finding.scan_name == "canon_lineage":
         return f"{raw['source_path']} `{raw['kind']}`"
     if finding.scan_name == "dependency_hygiene":

@@ -8,6 +8,7 @@ Use this checklist when acting as the PM agent or when reviewing PM-agent output
 
 - Did the PM agent identify the real blocker rather than pushing ambiguity downstream?
 - Is the dependency story real, not assumed?
+- Did the PM agent verify the next slice against the actual `work_items/` tree rather than only registry, roadmap, or PRD prose?
 - Is the target area concrete enough to review?
 - Did the PM agent say whether replay, evidence, or domain semantics are explicit enough?
 
@@ -34,6 +35,7 @@ Use this checklist when acting as the PM agent or when reviewing PM-agent output
 ## Failure patterns
 
 - generic "looks ready" language with no concrete blockers or scope
+- naming a next WI range from a PRD or dashboard even though no corresponding work-item files exist
 - target area described only at module-family level
 - implementation brief that mixes current work with future work
 - no distinction between code fix and canon fix
