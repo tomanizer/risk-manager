@@ -9,7 +9,9 @@ import sys
 from agent_runtime.drift.drift_suite import (
     DriftBaselineEntry,
     DriftSuiteReport,
+    DriftSuiteFinding,
     _is_baseline_expired,
+    _summary_anchor,
     build_drift_suite_report,
     render_drift_suite_issue_body,
 )
@@ -200,6 +202,24 @@ def test_render_drift_suite_issue_body_includes_marker_and_findings(tmp_path: Pa
     assert "## Net-New Findings" in body
     assert "reference_integrity: missing_reference" in body
     assert "README.md:1 `docs/missing.md`" in body
+
+
+def test_summary_anchor_includes_backlog_materialization_source_and_wis() -> None:
+    finding = DriftSuiteFinding(
+        scan_name="backlog_materialization",
+        signature="sig",
+        kind="missing_decomposed_work_items",
+        severity="major",
+        drift_class="operational-instruction drift",
+        owner="PM",
+        message="example",
+        raw_finding={
+            "source_path": "docs/prds/phase-2/PRD-4.2-quant-walker-v2.md",
+            "related_paths": ["WI-4.2.4", "WI-4.2.5"],
+        },
+    )
+
+    assert _summary_anchor(finding) == ("docs/prds/phase-2/PRD-4.2-quant-walker-v2.md `WI-4.2.4, WI-4.2.5`")
 
 
 def test_drift_suite_report_round_trips_through_dict(tmp_path: Path) -> None:

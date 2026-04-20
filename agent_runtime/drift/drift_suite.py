@@ -627,6 +627,11 @@ def _summary_anchor(finding: DriftSuiteFinding) -> str:
     raw = finding.raw_finding
     if finding.scan_name == "architecture_boundaries":
         return f"{raw['source_path']}:{raw['source_line']} `{raw['import_target']}`"
+    if finding.scan_name == "backlog_materialization":
+        related_paths = raw.get("related_paths")
+        if isinstance(related_paths, list) and related_paths:
+            return f"{raw['source_path']} `{', '.join(str(path) for path in related_paths)}`"
+        return f"{raw['source_path']} `{raw['kind']}`"
     if finding.scan_name == "canon_lineage":
         return f"{raw['source_path']} `{raw['kind']}`"
     if finding.scan_name == "dependency_hygiene":
