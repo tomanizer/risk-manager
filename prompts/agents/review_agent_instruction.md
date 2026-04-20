@@ -154,6 +154,17 @@ Do not issue PASS if CI is failing on checks attributable to the PR changes.
 After posting APPROVE to GitHub, and only when the verdict is PASS, commit
 the work-item lifecycle move to the feature branch:
 
+Runtime-managed mode:
+
+```bash
+git status --short --branch
+git mv work_items/in_progress/{WI-ID}-*.md work_items/done/ 2>/dev/null || git mv work_items/ready/{WI-ID}-*.md work_items/done/
+git commit -m "chore: move {WI-ID} to done [review PASS]"
+git push origin HEAD
+```
+
+Manual direct mode:
+
 ```bash
 git fetch origin {branch}
 git switch main

@@ -9,7 +9,20 @@ from unittest.mock import patch
 
 from agent_runtime.config.settings import get_settings
 from agent_runtime.runners.contracts import RunnerDispatchStatus, RunnerExecution, RunnerName
-from agent_runtime.runners.review_runner import dispatch_review_execution
+from agent_runtime.runners.review_runner import ReviewRunnerInput, build_review_prompt, dispatch_review_execution
+
+
+def test_build_review_prompt_includes_runtime_managed_checkout_rule() -> None:
+    prompt = build_review_prompt(
+        ReviewRunnerInput(
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            pr_number=71,
+            base_ref="origin/main",
+        )
+    )
+
+    assert "agent_runtime" in prompt
+    assert "Do not switch to `main`" in prompt
 
 
 def test_dispatch_review_execution_prepared_backend_when_explicitly_set() -> None:

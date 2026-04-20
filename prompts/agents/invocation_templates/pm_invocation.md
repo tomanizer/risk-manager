@@ -2,7 +2,11 @@
 
 You are the PM / Coordination Agent for this repository.
 
-Work from current `main`.
+Work from the governed execution checkout for this task.
+
+Execution mode:
+- If this handoff is run through `agent_runtime`, the runtime-managed worktree and branch for this run are authoritative. Do not switch to `main`, create another worktree, or create another branch.
+- If this handoff is run manually outside `agent_runtime`, use the refreshed control checkout on current `main`.
 
 Read in order:
 - AGENTS.md

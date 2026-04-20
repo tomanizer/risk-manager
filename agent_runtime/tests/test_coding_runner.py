@@ -8,8 +8,21 @@ import subprocess
 from unittest.mock import patch
 
 from agent_runtime.config.settings import get_settings
-from agent_runtime.runners.coding_runner import dispatch_coding_execution
 from agent_runtime.runners.contracts import RunnerDispatchStatus, RunnerExecution, RunnerName
+from agent_runtime.runners.coding_runner import CodingRunnerInput, build_coding_prompt, dispatch_coding_execution
+
+
+def test_build_coding_prompt_includes_runtime_managed_checkout_rule() -> None:
+    prompt = build_coding_prompt(
+        CodingRunnerInput(
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            task_summary="Implement the bounded slice.",
+            base_ref="origin/main",
+        )
+    )
+
+    assert "agent_runtime" in prompt
+    assert "Do not switch to `main`" in prompt
 
 
 def test_dispatch_coding_execution_prepared_backend_when_explicitly_set() -> None:

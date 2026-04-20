@@ -9,7 +9,24 @@ from unittest.mock import patch
 
 from agent_runtime.config.settings import get_settings
 from agent_runtime.runners.contracts import RunnerDispatchStatus, RunnerExecution, RunnerName
-from agent_runtime.runners.pm_runner import dispatch_pm_execution
+from agent_runtime.runners.pm_runner import build_pm_prompt, dispatch_pm_execution
+
+
+def test_build_pm_prompt_includes_runtime_managed_checkout_rule() -> None:
+    prompt = build_pm_prompt(
+        input_data=type(
+            "PMInput",
+            (),
+            {
+                "work_item_id": "WI-1.1.4-risk-summary-core-service",
+                "work_item_path": "work_items/ready/WI-1.1.4-risk-summary-core-service.md",
+                "linked_prd": "docs/prds/phase-1/PRD-1.1-risk-summary-service-v2.md",
+            },
+        )()
+    )
+
+    assert "agent_runtime" in prompt
+    assert "Do not switch to `main`" in prompt
 
 
 def test_dispatch_pm_execution_uses_prepared_backend_by_default() -> None:

@@ -57,7 +57,10 @@ def test_allocate_reuse_and_release_worktree() -> None:
         assert Path(lease.worktree_path).is_dir()
 
         bound_execution = bind_worktree_to_execution(execution, lease)
+        assert bound_execution.prompt.startswith("Execution checkout (agent_runtime authoritative):")
+        assert lease.run_id in bound_execution.prompt
         assert bound_execution.metadata["run_id"] == lease.run_id
+        assert bound_execution.metadata["execution_mode"] == "runtime_managed"
         assert bound_execution.metadata["worktree_path"] == lease.worktree_path
 
         reused = allocate_worktree(defaults, db_path, execution)

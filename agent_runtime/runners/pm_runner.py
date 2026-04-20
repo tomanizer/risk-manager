@@ -30,6 +30,10 @@ def build_pm_prompt(input_data: PMRunnerInput) -> str:
     )
     if input_data.linked_prd is not None:
         prompt += f"\nLinked PRD: {input_data.linked_prd}."
+    prompt += (
+        "\nIf dispatched by agent_runtime, treat the allocated worktree and branch as authoritative."
+        "\nDo not switch to `main`, allocate another worktree, or create another branch inside this run."
+    )
     return prompt
 
 
