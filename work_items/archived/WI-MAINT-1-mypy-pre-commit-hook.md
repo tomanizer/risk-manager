@@ -14,7 +14,7 @@
 
 ## Canonical replacement items
 
-- [WI-MAINT-1A-mypy-pre-commit-hook-ci-parity.md](../ready/WI-MAINT-1A-mypy-pre-commit-hook-ci-parity.md) — coding-ready config-only slice that adds a local/system mypy hook mirroring current CI exactly.
+- [WI-MAINT-1A-mypy-pre-commit-hook-ci-parity.md](../in_progress/WI-MAINT-1A-mypy-pre-commit-hook-ci-parity.md) — active config-only slice that adds a local/system mypy hook mirroring current CI exactly.
 - [WI-MAINT-1B-expand-mypy-tests-coverage.md](../blocked/WI-MAINT-1B-expand-mypy-tests-coverage.md) — blocked follow-on for any policy-approved expansion to `tests/`.
 
 ## PM action
