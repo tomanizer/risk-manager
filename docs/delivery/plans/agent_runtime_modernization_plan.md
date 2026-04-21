@@ -256,8 +256,8 @@ Do not convert issues 3 and 4 into detailed work items until issues 1 and 2 have
 
 Materialized work items on `2026-04-21`:
 
-- [WI-MAINT-2A](../../../work_items/ready/WI-MAINT-2A-shared-handoff-bundle-contract.md) - ready
-- [WI-MAINT-2B](../../../work_items/blocked/WI-MAINT-2B-runtime-shared-handoff-migration.md) - blocked on `WI-MAINT-2A`
+- [WI-MAINT-2A](../../../work_items/done/WI-MAINT-2A-shared-handoff-bundle-contract.md) - done via [PR #202](https://github.com/tomanizer/risk-manager/pull/202)
+- [WI-MAINT-2B](../../../work_items/in_progress/WI-MAINT-2B-runtime-shared-handoff-migration.md) - in progress on the shared runtime handoff migration
 - [WI-MAINT-2C](../../../work_items/blocked/WI-MAINT-2C-manual-handoff-surface-parity.md) - blocked on `WI-MAINT-2A` and `WI-MAINT-2B`
 - [WI-MAINT-3A](../../../work_items/done/WI-MAINT-3A-runtime-pr-followup-checkout-semantics.md) - done via [PR #194](https://github.com/tomanizer/risk-manager/pull/194)
 
@@ -331,7 +331,7 @@ Expected decomposition after Wave 1 midpoint:
 
 ### Next Step
 
-Run a PM / readiness pass for [WI-MAINT-2A](../../../work_items/ready/WI-MAINT-2A-shared-handoff-bundle-contract.md), then start coding on that slice. Treat [WI-MAINT-3A](../../../work_items/done/WI-MAINT-3A-runtime-pr-followup-checkout-semantics.md) as completed foundation work on `main`.
+Treat [WI-MAINT-2A](../../../work_items/done/WI-MAINT-2A-shared-handoff-bundle-contract.md) and [WI-MAINT-3A](../../../work_items/done/WI-MAINT-3A-runtime-pr-followup-checkout-semantics.md) as completed foundation work on `main`, and continue delivery on [WI-MAINT-2B](../../../work_items/in_progress/WI-MAINT-2B-runtime-shared-handoff-migration.md).
 
 ### After Issue Creation
 
