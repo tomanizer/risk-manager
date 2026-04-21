@@ -13,6 +13,8 @@ These documents exist to make the delivery governance model more than a generic 
 - `03_slice_sizing_and_pr_strategy.md`
 - `04_review_triage_and_escalation.md`
 - `05_repo_drift_monitoring.md`
+- `plans/` - repo-local implementation planning artifacts for bounded delivery initiatives
+- `github_issue_drafts/` - draft GitHub issue bodies prepared from repo-local planning artifacts
 - `exemplars/PM-X1-ready-vs-blocked-example.md`
 - `exemplars/PM-X2-implementation-brief-example.md`
 
