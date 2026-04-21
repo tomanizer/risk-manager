@@ -22,6 +22,7 @@ from agent_runtime.orchestrator.state import (
     NextActionType,
     PullRequestSnapshot,
     RuntimeSnapshot,
+    TransitionDecision,
     WorkItemSnapshot,
     WorkItemStage,
 )
@@ -38,6 +39,7 @@ from agent_runtime.storage.sqlite import (
     WorkflowRunRecord,
     initialize_database,
     load_telemetry_events,
+    load_worktree_lease,
     load_workflow_run_by_run_id,
     load_workflow_run,
     load_workflow_runs,
@@ -510,6 +512,78 @@ def test_initialize_database_migrates_missing_updated_at_column() -> None:
         assert actual_columns == EXPECTED_WORKFLOW_RUN_COLUMNS
 
 
+def test_initialize_database_migrates_missing_worktree_branch_ownership_column() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        db_path = Path(temp_dir) / "runtime" / "state.db"
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with sqlite3.connect(db_path) as connection:
+            connection.executescript(
+                """
+                CREATE TABLE workflow_runs (
+                    work_item_id TEXT PRIMARY KEY,
+                    run_id TEXT,
+                    branch_name TEXT,
+                    pr_number INTEGER,
+                    status TEXT NOT NULL,
+                    blocked_reason TEXT,
+                    last_action TEXT,
+                    runner_name TEXT,
+                    runner_status TEXT,
+                    outcome_status TEXT,
+                    outcome_summary TEXT,
+                    details_json TEXT NOT NULL DEFAULT '{}',
+                    result_json TEXT NOT NULL DEFAULT '{}',
+                    outcome_details_json TEXT NOT NULL DEFAULT '{}',
+                    completed_at TEXT
+                );
+                CREATE TABLE worktree_leases (
+                    run_id TEXT PRIMARY KEY,
+                    work_item_id TEXT NOT NULL,
+                    runner_name TEXT NOT NULL,
+                    branch_name TEXT NOT NULL,
+                    base_ref TEXT NOT NULL,
+                    worktree_path TEXT NOT NULL UNIQUE,
+                    status TEXT NOT NULL,
+                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    released_at TEXT
+                );
+                INSERT INTO worktree_leases (
+                    run_id,
+                    work_item_id,
+                    runner_name,
+                    branch_name,
+                    base_ref,
+                    worktree_path,
+                    status
+                )
+                VALUES (
+                    'review-run-1',
+                    'WI-1.1.4-risk-summary-core-service',
+                    'review',
+                    'codex/review-wi-1-1-4',
+                    'origin/main',
+                    '/tmp/runtime-review-worktree',
+                    'active'
+                );
+                """
+            )
+            connection.commit()
+
+        initialize_database(db_path)
+
+        with sqlite3.connect(db_path) as connection:
+            worktree_rows = connection.execute("PRAGMA table_info(worktree_leases)").fetchall()
+
+        actual_worktree_columns = tuple(row[1] for row in worktree_rows)
+        lease = load_worktree_lease(db_path, "review-run-1")
+
+        assert set(actual_worktree_columns) == set(EXPECTED_WORKTREE_LEASE_COLUMNS)
+        assert "branch_owned_by_runtime" in actual_worktree_columns
+        assert lease is not None
+        assert lease.branch_owned_by_runtime is True
+
+
 def test_upsert_workflow_run_round_trips_extended_columns() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         db_path = Path(temp_dir) / "runtime" / "state.db"
@@ -688,6 +762,7 @@ def test_build_pull_request_snapshots_maps_live_payload() -> None:
                             "url": "https://github.com/tomanizer/risk-manager/pull/44",
                             "isDraft": False,
                             "headRefName": "codex/WI-1.1.3-risk-summary-history-service",
+                            "baseRefName": "main",
                             "updatedAt": "2026-04-06T10:00:00Z",
                             "title": "Implement WI-1.1.3",
                             "body": "Implements history service.",
@@ -722,6 +797,7 @@ def test_build_pull_request_snapshots_maps_live_payload() -> None:
     assert snapshots[0].review_decision == "APPROVED"
     assert snapshots[0].updated_at == "2026-04-06T10:00:00Z"
     assert snapshots[0].ci_status == "SUCCESS"
+    assert snapshots[0].base_ref_name == "main"
 
 
 def test_build_runner_execution_for_pm_uses_work_item_context() -> None:
@@ -762,6 +838,7 @@ def test_build_runner_execution_for_review_includes_pr_context() -> None:
                 number=52,
                 is_draft=False,
                 url="https://github.com/tomanizer/risk-manager/pull/52",
+                head_ref_name="codex/wi-1-1-4",
                 unresolved_review_threads=1,
             ),
         ),
@@ -774,7 +851,7 @@ def test_build_runner_execution_for_review_includes_pr_context() -> None:
     assert execution is not None
     assert execution.runner_name is RunnerName.REVIEW
     assert "PR #52" in execution.prompt
-    assert "Base ref: origin/main" in execution.prompt
+    assert "PR base ref: origin/main" in execution.prompt
     assert execution.metadata["pr_number"] == "52"
 
 
@@ -795,6 +872,7 @@ def test_build_runner_execution_for_coding_includes_base_ref() -> None:
                 is_draft=False,
                 url="https://github.com/tomanizer/risk-manager/pull/52",
                 head_ref_name="codex/wi-1-1-4",
+                base_ref_name="main",
                 ci_status="FAILURE",
             ),
         ),
@@ -806,7 +884,47 @@ def test_build_runner_execution_for_coding_includes_base_ref() -> None:
     assert decision.action is NextActionType.RUN_CODING
     assert execution is not None
     assert execution.runner_name is RunnerName.CODING
-    assert "Base ref: origin/codex/wi-1-1-4" in execution.prompt
+    assert "PR base ref: origin/main" in execution.prompt
+    assert "PR head branch: codex/wi-1-1-4" in execution.prompt
+    assert execution.metadata["checkout_detached"] == "true"
+    assert execution.metadata["branch_owned_by_runtime"] == "false"
+
+
+def test_build_runner_execution_for_issue_planner_keeps_pr_head_checkout_metadata_off() -> None:
+    snapshot = RuntimeSnapshot(
+        work_items=(
+            WorkItemSnapshot(
+                id="WI-1.1.4-risk-summary-core-service",
+                title="WI-1.1.4",
+                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
+                stage=WorkItemStage.READY,
+            ),
+        ),
+        pull_requests=(
+            PullRequestSnapshot(
+                work_item_id="WI-1.1.4-risk-summary-core-service",
+                number=52,
+                is_draft=False,
+                url="https://github.com/tomanizer/risk-manager/pull/52",
+                head_ref_name="codex/wi-1-1-4",
+                base_ref_name="main",
+            ),
+        ),
+    )
+
+    decision = TransitionDecision(
+        action=NextActionType.RUN_ISSUE_PLANNER,
+        work_item_id="WI-1.1.4-risk-summary-core-service",
+        reason="Need to split this work item.",
+    )
+    execution = build_runner_execution(snapshot, decision)
+
+    assert execution is not None
+    assert execution.runner_name is RunnerName.ISSUE_PLANNER
+    assert execution.metadata["base_ref"] == "origin/main"
+    assert "pr_head_branch" not in execution.metadata
+    assert "checkout_ref" not in execution.metadata
+    assert "checkout_detached" not in execution.metadata
 
 
 def test_build_runner_execution_preserves_decision_metadata() -> None:

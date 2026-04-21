@@ -20,7 +20,15 @@ class IssuePlannerRunnerInput:
 
 
 def build_issue_planner_prompt(input_data: IssuePlannerRunnerInput) -> str:
-    prompt = "Act only as the Issue Planner agent.\nWork from current `main`.\nRead:\n- AGENTS.md\n- prompts/agents/issue_planner_instruction.md\n"
+    prompt = (
+        "Act only as the Issue Planner agent.\n"
+        "If dispatched by agent_runtime, treat the allocated worktree as authoritative and do not switch to `main`, "
+        "create another worktree, or create another branch.\n"
+        "If running manually outside agent_runtime, refresh current `main` and create a fresh branch from current `main` before editing work items.\n"
+        "Read:\n"
+        "- AGENTS.md\n"
+        "- prompts/agents/issue_planner_instruction.md\n"
+    )
     if input_data.source_prd_path:
         prompt += f"- {input_data.source_prd_path}\n"
     elif input_data.linked_prd:

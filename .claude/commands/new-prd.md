@@ -108,7 +108,11 @@ The user opens a new chat, selects the recommended model, then pastes the whole 
 After the prompt block, always print:
 
 ```text
-Before the agent starts:
+Before the agent starts, refresh the control checkout:
   git fetch origin && git switch main && git pull --ff-only origin main
-For PRD authoring: work from a fresh branch created from main.
+If using agent_runtime:
+  python -m agent_runtime --dispatch
+  Then use only the returned worktree path and checkout context for that run.
+If running manually outside agent_runtime:
+  For PRD authoring: work from a fresh branch created from main.
 ```

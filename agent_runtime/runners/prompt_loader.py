@@ -13,9 +13,11 @@ _log = get_logger(__name__)
 
 _INSTRUCTION_FILES: dict[RunnerName, str] = {
     RunnerName.PM: "prompts/agents/pm_agent_instruction.md",
-    RunnerName.SPEC: "prompts/agents/risk_methodology_spec_agent_instruction.md",
+    RunnerName.SPEC: "prompts/agents/prd_spec_agent_instruction.md",
+    RunnerName.ISSUE_PLANNER: "prompts/agents/issue_planner_instruction.md",
     RunnerName.CODING: "prompts/agents/coding_agent_instruction.md",
     RunnerName.REVIEW: "prompts/agents/review_agent_instruction.md",
+    RunnerName.DRIFT_MONITOR: "prompts/agents/drift_monitor_agent_instruction.md",
 }
 
 

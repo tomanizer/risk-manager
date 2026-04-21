@@ -20,6 +20,7 @@ from agent_runtime.orchestrator.state import (
     TransitionDecision,
     WorkItemSnapshot,
 )
+from agent_runtime.runners.contracts import RunnerExecution, RunnerName
 
 
 def _make_defaults(tmp_dir: str) -> RuntimeDefaults:
@@ -80,22 +81,44 @@ class TestHasActiveLease:
     def test_returns_false_when_no_lease(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             defaults = _make_defaults(tmp)
+            snapshot = _make_snapshot()
             decision = TransitionDecision(
                 action=NextActionType.RUN_PM,
                 work_item_id="WI-1",
                 reason="test",
             )
-            assert _has_active_lease(defaults, decision) is False
+            assert _has_active_lease(defaults, snapshot, decision) is False
 
     def test_returns_false_for_none_work_item(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             defaults = _make_defaults(tmp)
+            snapshot = _make_snapshot()
             decision = TransitionDecision(
                 action=NextActionType.NOOP,
                 work_item_id=None,
                 reason="test",
             )
-            assert _has_active_lease(defaults, decision) is False
+            assert _has_active_lease(defaults, snapshot, decision) is False
+
+    def test_returns_false_when_active_lease_is_not_reusable_for_current_checkout(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            defaults = _make_defaults(tmp)
+            snapshot = _make_snapshot()
+            decision = TransitionDecision(
+                action=NextActionType.RUN_PM,
+                work_item_id="WI-1",
+                reason="test",
+            )
+            execution = RunnerExecution(
+                runner_name=RunnerName.PM,
+                work_item_id="WI-1",
+                prompt="test prompt",
+                metadata={"base_ref": "origin/main"},
+            )
+
+            with patch("agent_runtime.orchestrator.parallel_dispatch.build_runner_execution", return_value=execution):
+                with patch("agent_runtime.orchestrator.parallel_dispatch.has_reusable_active_worktree_lease", return_value=False):
+                    assert _has_active_lease(defaults, snapshot, decision) is False
 
 
 class TestRunParallelStep:

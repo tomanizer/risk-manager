@@ -60,8 +60,13 @@ Recommended model: Sonnet (or equivalent mid-tier)
 After the prompt block, always print:
 
 ```text
-Before the agent starts:
+Before the agent starts, refresh the control checkout:
   git fetch origin && git switch main && git pull --ff-only origin main
+If using agent_runtime:
+  python -m agent_runtime --dispatch
+  Then use only the returned worktree path and checkout context for that run.
+If running manually outside agent_runtime:
+  Run the drift monitor from the refreshed control checkout on main.
 ```
 
 ## Hard stops

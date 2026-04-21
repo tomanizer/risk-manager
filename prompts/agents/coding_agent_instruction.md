@@ -50,10 +50,15 @@ If the work belongs in a deterministic service, do not introduce AI behavior or 
 
 ### Use the runtime-managed checkout when present
 
-If the handoff came from `agent_runtime`, the allocated worktree and branch are
-authoritative for the run. Do not switch the runtime-managed session back to
-`main`, do not allocate another worktree, and do not create a second feature
-branch inside that session.
+If the handoff came from `agent_runtime`, the allocated worktree and checkout
+context are authoritative for the run. Do not switch the runtime-managed
+session back to `main`, do not allocate another worktree, and do not create a
+second feature branch inside that session.
+
+For PR follow-up coding, the runtime may place you on a detached checkout at
+the PR head instead of a local branch. In that case, keep working in the
+detached checkout and use the runtime-provided PR head push target exactly as
+given rather than creating a new branch.
 
 ### Prefer established libraries
 
@@ -155,7 +160,10 @@ Suggested commands for runtime-managed mode:
 git status --short --branch
 git mv work_items/ready/{WI-ID}-*.md work_items/in_progress/
 git commit -m "chore: move {WI-ID} to in_progress [coding start]"
+# If the runtime checkout is on a local branch:
 git push origin HEAD
+# If the runtime checkout is detached at the PR head:
+git push origin HEAD:{PR_HEAD_BRANCH}
 ```
 
 Suggested commands for manual direct mode:
@@ -206,7 +214,11 @@ Paste this into a FRESH Review Agent session (new chat / new Codex session):
 
 You are the Review Agent for this repository.
 
-Work from current `main`, then checkout the PR head.
+Work from the governed execution checkout for this task.
+
+Execution mode:
+- If this handoff is run through agent_runtime, the runtime-managed review worktree for this run is authoritative. Use the provided checkout context exactly as given, including any PR-head checkout or push target. Do not switch to main. Do not create another worktree. Do not create another branch.
+- If this handoff is run manually outside `agent_runtime`, refresh the control checkout on current `main` and then inspect the PR head in an isolated review checkout.
 
 Read:
 - AGENTS.md

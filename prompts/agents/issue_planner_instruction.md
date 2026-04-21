@@ -48,6 +48,12 @@ reference the prerequisite shared slice explicitly before dependent items.
 
 The reviewer should be able to answer pass or fail without inferring hidden intent.
 
+### Use the runtime-managed checkout when present
+
+If the handoff came from `agent_runtime`, the allocated worktree for the run is
+authoritative. Do not switch that session back to `main`, do not allocate
+another worktree, and do not create another branch inside that session.
+
 ## Stop conditions
 
 Stop and escalate rather than producing a work item when:

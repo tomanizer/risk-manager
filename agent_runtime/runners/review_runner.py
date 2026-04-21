@@ -21,6 +21,7 @@ class ReviewRunnerInput:
     pr_number: int
     pr_url: str | None = None
     base_ref: str | None = None
+    pr_head_branch: str | None = None
 
 
 def build_review_prompt(input_data: ReviewRunnerInput) -> str:
@@ -28,11 +29,18 @@ def build_review_prompt(input_data: ReviewRunnerInput) -> str:
     if input_data.pr_url is not None:
         prompt += f"\nPR URL: {input_data.pr_url}"
     if input_data.base_ref is not None:
-        prompt += f"\nBase ref: {input_data.base_ref}"
+        prompt += f"\nPR base ref: {input_data.base_ref}"
+    if input_data.pr_head_branch is not None:
+        prompt += f"\nPR head branch: {input_data.pr_head_branch}"
     prompt += (
-        "\nIf dispatched by agent_runtime, treat the allocated review worktree and branch as authoritative."
+        "\nIf dispatched by agent_runtime, treat the allocated review worktree and checkout context as authoritative."
         "\nDo not switch to `main`, allocate another worktree, or create another branch inside this run."
     )
+    if input_data.pr_head_branch is not None:
+        prompt += (
+            "\nIf the runtime checkout is detached at the PR head, do not create a local branch; "
+            f"push any PASS lifecycle commit with `git push origin HEAD:{input_data.pr_head_branch}`."
+        )
     return prompt
 
 

@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS worktree_leases (
     work_item_id TEXT NOT NULL,
     runner_name TEXT NOT NULL,
     branch_name TEXT NOT NULL,
+    branch_owned_by_runtime INTEGER NOT NULL DEFAULT 1,
     base_ref TEXT NOT NULL,
     worktree_path TEXT NOT NULL UNIQUE,
     status TEXT NOT NULL,
@@ -133,6 +134,7 @@ EXPECTED_WORKTREE_LEASE_COLUMNS = (
     "work_item_id",
     "runner_name",
     "branch_name",
+    "branch_owned_by_runtime",
     "base_ref",
     "worktree_path",
     "status",
@@ -179,6 +181,10 @@ _DEFAULT_COLUMN_DEFINITIONS = {
     "updated_at": "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
 }
 
+_WORKTREE_LEASE_DEFAULT_COLUMN_DEFINITIONS = {
+    "branch_owned_by_runtime": "INTEGER NOT NULL DEFAULT 1",
+}
+
 
 @dataclass(frozen=True)
 class WorkflowRunRecord:
@@ -210,6 +216,7 @@ class WorktreeLeaseRecord:
     base_ref: str
     worktree_path: str
     status: str
+    branch_owned_by_runtime: bool = True
     created_at: str | None = None
     released_at: str | None = None
 
@@ -309,11 +316,24 @@ def _ensure_expected_columns(connection: sqlite3.Connection) -> None:
         connection.execute(f"ALTER TABLE workflow_runs ADD COLUMN {column_name} {column_definition}")
 
 
+def _ensure_expected_worktree_lease_columns(connection: sqlite3.Connection) -> None:
+    rows = connection.execute("PRAGMA table_info(worktree_leases)").fetchall()
+    actual_columns = {row[1] for row in rows}
+    for column_name in EXPECTED_WORKTREE_LEASE_COLUMNS:
+        if column_name in actual_columns:
+            continue
+        column_definition = _WORKTREE_LEASE_DEFAULT_COLUMN_DEFINITIONS.get(column_name)
+        if column_definition is None:
+            continue
+        connection.execute(f"ALTER TABLE worktree_leases ADD COLUMN {column_name} {column_definition}")
+
+
 def initialize_database(db_path: Path) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(db_path) as connection:
         connection.executescript(SCHEMA)
         _ensure_expected_columns(connection)
+        _ensure_expected_worktree_lease_columns(connection)
         _verify_workflow_runs_schema(connection)
         _verify_worktree_leases_schema(connection)
         _verify_workflow_events_schema(connection)
@@ -527,17 +547,19 @@ def insert_worktree_lease(db_path: Path, record: WorktreeLeaseRecord) -> None:
                 work_item_id,
                 runner_name,
                 branch_name,
+                branch_owned_by_runtime,
                 base_ref,
                 worktree_path,
                 status,
                 created_at,
                 released_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP), ?)
             ON CONFLICT(run_id) DO UPDATE SET
                 work_item_id = excluded.work_item_id,
                 runner_name = excluded.runner_name,
                 branch_name = excluded.branch_name,
+                branch_owned_by_runtime = excluded.branch_owned_by_runtime,
                 base_ref = excluded.base_ref,
                 worktree_path = excluded.worktree_path,
                 status = excluded.status,
@@ -548,6 +570,7 @@ def insert_worktree_lease(db_path: Path, record: WorktreeLeaseRecord) -> None:
                 record.work_item_id,
                 record.runner_name,
                 record.branch_name,
+                int(record.branch_owned_by_runtime),
                 record.base_ref,
                 record.worktree_path,
                 record.status,
@@ -569,6 +592,7 @@ def load_active_worktree_lease(db_path: Path, work_item_id: str, runner_name: st
                 work_item_id,
                 runner_name,
                 branch_name,
+                branch_owned_by_runtime,
                 base_ref,
                 worktree_path,
                 status,
@@ -596,6 +620,7 @@ def load_worktree_lease(db_path: Path, run_id: str) -> WorktreeLeaseRecord | Non
                 work_item_id,
                 runner_name,
                 branch_name,
+                branch_owned_by_runtime,
                 base_ref,
                 worktree_path,
                 status,
@@ -721,6 +746,7 @@ def _row_to_worktree_lease(row: sqlite3.Row | None) -> WorktreeLeaseRecord | Non
         base_ref=str(row["base_ref"]),
         worktree_path=str(row["worktree_path"]),
         status=str(row["status"]),
+        branch_owned_by_runtime=bool(row["branch_owned_by_runtime"]),
         created_at=str(row["created_at"]) if row["created_at"] is not None else None,
         released_at=str(row["released_at"]) if row["released_at"] is not None else None,
     )

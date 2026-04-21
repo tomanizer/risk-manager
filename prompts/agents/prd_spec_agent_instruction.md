@@ -100,6 +100,12 @@ When the capability depends on shared infrastructure, specify required shared
 contracts explicitly and reference relevant `docs/shared_infra/` canon files.
 Do not leave shared-infra assumptions implicit for downstream coding.
 
+### Use the runtime-managed checkout when present
+
+If the handoff came from `agent_runtime`, the allocated worktree for the run is
+authoritative. Do not switch that session back to `main`, do not allocate
+another worktree, and do not create another branch inside that session.
+
 ## Stop conditions
 
 Stop and escalate rather than producing a vague PRD when:

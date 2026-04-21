@@ -12,6 +12,11 @@ They bridge the standing instruction files (in `prompts/agents/`) with the per-t
 
 The agent's standing instruction file is referenced in each template. The agent should read it first, then apply the task-specific context from the invocation prompt.
 
+Every template now carries explicit execution-mode guidance:
+
+- manual direct mode starts from refreshed current `main`
+- runtime-managed mode uses the `agent_runtime`-allocated worktree and checkout context exactly as provided
+
 When a task touches cross-cutting infrastructure, include:
 
 - `docs/shared_infra/index.md`

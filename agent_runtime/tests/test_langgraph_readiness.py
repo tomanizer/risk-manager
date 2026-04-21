@@ -114,6 +114,21 @@ def test_load_system_prompt_returns_governed_prompt_when_present() -> None:
     assert len(prompt) > 100
 
 
+def test_load_system_prompt_supports_all_runtime_roles() -> None:
+    repo_root = Path(__file__).resolve()
+    for _ in range(10):
+        repo_root = repo_root.parent
+        if (repo_root / "AGENTS.md").exists():
+            break
+    else:
+        return
+
+    for runner_name in (RunnerName.SPEC, RunnerName.ISSUE_PLANNER, RunnerName.DRIFT_MONITOR):
+        prompt = load_system_prompt(runner_name, repo_root)
+        assert "AGENTS.md" in prompt
+        assert len(prompt) > 100
+
+
 def test_load_system_prompt_falls_back_gracefully() -> None:
     with tempfile.TemporaryDirectory() as temp_dir:
         prompt = load_system_prompt(RunnerName.PM, Path(temp_dir))

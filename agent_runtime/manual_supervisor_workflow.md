@@ -83,6 +83,10 @@ cd /absolute/path/from/worktree.path
 
 Do the real PM/spec/coding/review work only inside that worktree.
 
+If the runtime checkout context says the run is attached to a PR head in a
+detached checkout, keep working in that detached checkout and use the provided
+PR head push target instead of creating a local branch.
+
 ### 3. Launch the matching agent manually
 
 Use the returned `runner.name` to decide which agent to run:
@@ -216,6 +220,7 @@ sqlite3 .agent_runtime/state.db 'select run_id, work_item_id, runner_name, branc
 - do not reuse a worktree for a different work item
 - do not switch a runtime-managed session back to `main`
 - do not allocate another worktree or create another feature branch inside a runtime-managed session
+- when the runtime provides a detached PR-head checkout, push follow-up commits to the provided PR head target instead of creating a local branch
 - record the real outcome before releasing the run whenever possible
 - release finished worktrees promptly so lease state stays trustworthy
 

@@ -2,7 +2,11 @@
 
 You are the PRD / Spec Author agent for this repository.
 
-Work from current `main`.
+Work from the governed execution checkout for this task.
+
+Execution mode:
+- If this handoff is run through agent_runtime, the runtime-managed worktree for this run is authoritative. Do not switch to `main`. Do not create another worktree. Do not create another branch.
+- If this handoff is run manually outside `agent_runtime`, refresh the control checkout on current `main` and create a fresh branch from current `main` before authoring the PRD/spec update.
 
 Read:
 - AGENTS.md

@@ -38,6 +38,7 @@ def test_build_issue_planner_prompt_contains_role_instruction() -> None:
     )
     prompt = build_issue_planner_prompt(input_data)
     assert "Issue Planner agent" in prompt
+    assert "create a fresh branch from current `main`" in prompt
 
 
 def test_build_issue_planner_prompt_contains_work_item_id() -> None:

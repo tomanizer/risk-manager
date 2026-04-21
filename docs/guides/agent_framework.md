@@ -178,7 +178,7 @@ The simplest way to use the agents is to copy an invocation template, fill in th
 
 ### The freshness rule
 
-Before any agent pass, sync to the latest `main`:
+Before any manual direct-mode agent pass, sync the control checkout to the latest `main`:
 
 ```bash
 git fetch origin
@@ -186,7 +186,21 @@ git switch main
 git pull --ff-only origin main
 ```
 
-For reviews, then checkout the PR head. For coding, create a fresh branch from `main`. Agents must not work from stale local state.
+Manual direct mode then follows the old split:
+
+- for reviews, checkout the PR head in an isolated review checkout
+- for coding, create a fresh branch from current `main`
+
+Runtime-managed mode is different:
+
+- refresh the control checkout before dispatch
+- let `agent_runtime` allocate the authoritative worktree
+- do the real agent work only inside that allocated worktree
+- do not switch a runtime-managed session back to `main`
+- do not allocate another worktree or create another branch inside a runtime-managed session
+- for PR-linked coding or review, use the runtime-provided PR-head checkout or push target exactly as given
+
+Agents must not work from stale local state.
 
 ## Local environment setup
 
