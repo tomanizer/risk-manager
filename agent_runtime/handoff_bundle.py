@@ -95,9 +95,10 @@ def _resolve_prd_path(reference_text: str | None, repo_root: Path) -> str | None
 
     docs_dir = repo_root / "docs"
     first_line = next((line.strip().strip("`") for line in reference_text.splitlines() if line.strip()), "")
-    candidates = sorted(docs_dir.rglob(f"*{first_line}*.md"))
-    if candidates:
-        return _repo_relative(candidates[0], repo_root)
+    if first_line and not any(char in first_line for char in "*?[]"):
+        candidates = sorted(docs_dir.rglob(f"*{first_line}*.md"))
+        if candidates:
+            return _repo_relative(candidates[0], repo_root)
 
     match = _PRD_REF_RE.match(first_line)
     if not match:
@@ -312,7 +313,7 @@ def _render_key_value_list(
         raise TypeError(f"Expected dataclass or dict for markdown rendering, got {type(value)!r}")
     lines: list[str] = []
     for key, raw_value in payload.items():
-        if isinstance(raw_value, tuple):
+        if isinstance(raw_value, (list, tuple)):
             rendered = ", ".join(f"`{item}`" for item in raw_value) if raw_value else "<none>"
         elif raw_value is None:
             rendered = "<none>"
