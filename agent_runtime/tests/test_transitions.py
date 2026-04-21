@@ -57,6 +57,7 @@ def _write_runtime_work_item(
 ) -> Path:
     work_item_path = repo_root / relative_path
     work_item_path.parent.mkdir(parents=True, exist_ok=True)
+    (repo_root / "docs").mkdir(parents=True, exist_ok=True)
     if linked_prd and linked_prd.startswith("docs/"):
         prd_path = repo_root / linked_prd
         prd_path.parent.mkdir(parents=True, exist_ok=True)

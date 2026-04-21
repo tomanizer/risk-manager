@@ -213,6 +213,25 @@ def test_build_spec_prompt_handles_prd_bootstrap_context() -> None:
     assert "create a fresh branch from current `main`" in prompt
 
 
+def test_build_spec_prompt_bootstrap_context_includes_governed_handoff_bundle_when_provided() -> None:
+    prompt = build_spec_prompt(
+        SpecRunnerInput(
+            work_item_id="PRD-5.1-v2",
+            blocked_reason="Registry indicates a new orchestrator PRD is required.",
+            work_item_path="docs/prds/phase-2/PRD-5.1-daily-risk-investigation-orchestrator-v1.md",
+            linked_prd="docs/prds/phase-2/PRD-5.1-daily-risk-investigation-orchestrator-v1.md",
+            bootstrap_capability="ORCH-DAILY-RISK-INVESTIGATION",
+            target_prd_id="PRD-5.1-v2",
+            registry_path="docs/registry/current_state_registry.yaml",
+            next_slice="Author PRD-5.1-v2 for multi-walker orchestration.",
+            handoff_bundle_markdown="# Agent Handoff Bundle\n\n## Checkout Context\n- base_ref: `origin/main`",
+        )
+    )
+
+    assert "## Governed Handoff Bundle" in prompt
+    assert "## Checkout Context" in prompt
+
+
 def test_build_spec_prompt_includes_governed_handoff_bundle_when_provided() -> None:
     prompt = build_spec_prompt(
         SpecRunnerInput(

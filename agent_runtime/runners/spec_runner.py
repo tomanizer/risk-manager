@@ -47,6 +47,8 @@ def build_spec_prompt(input_data: SpecRunnerInput) -> str:
             "If running manually outside agent_runtime, refresh current `main` and create a fresh branch from current `main` before authoring the PRD/spec update.\n"
             "Do not write code.\n"
         )
+        if input_data.handoff_bundle_markdown is not None:
+            prompt += f"\n\n## Governed Handoff Bundle\n\n{input_data.handoff_bundle_markdown}"
         return prompt
 
     prompt = (

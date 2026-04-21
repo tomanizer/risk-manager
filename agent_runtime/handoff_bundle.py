@@ -79,10 +79,7 @@ def _find_repo_root(work_item_path: Path, repo_root: Path | None) -> Path:
     for root in search_roots:
         if (root / "work_items").exists() and (root / "docs").exists():
             return root
-    for root in search_roots:
-        if root.name == "work_items":
-            return root.parent
-    return candidate.parent
+    raise RuntimeError(f"Could not infer repo root from work item path: {work_item_path}")
 
 
 def _resolve_prd_path(reference_text: str | None, repo_root: Path) -> str | None:
