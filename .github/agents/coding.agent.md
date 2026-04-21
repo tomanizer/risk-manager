@@ -18,10 +18,17 @@ The instruction file contains the full reading list for engineering docs, checkl
 
 Before starting implementation:
 
-1. `git fetch origin`
-2. `git switch main`
-3. `git pull --ff-only origin main`
-4. create a fresh branch from current `main` for this bounded slice
+1. If running manually outside `agent_runtime`:
+   - `git fetch origin`
+   - `git switch main`
+   - `git pull --ff-only origin main`
+   - create a fresh branch from current `main` for this bounded slice
+2. If dispatched by `agent_runtime`:
+   - use only the allocated worktree and injected checkout context for this run
+   - do not switch to `main`
+   - do not create another worktree
+   - do not create another branch
+   - if the checkout is detached at a PR head, push follow-up commits to the runtime-provided PR head target
 
 You must:
 

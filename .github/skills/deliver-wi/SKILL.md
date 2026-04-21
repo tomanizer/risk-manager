@@ -47,7 +47,11 @@ Recommended model: Sonnet (or equivalent mid-tier)
 
 You are the PM / Coordination Agent for this repository.
 
-Work from current `main`.
+Work from the governed execution checkout for this task.
+
+Execution mode:
+- If this handoff is run through agent_runtime, the runtime-managed worktree and branch for this run are authoritative. Do not switch to main. Do not create another worktree. Do not create another branch.
+- If this handoff is run manually outside `agent_runtime`, use the refreshed control checkout on current `main`.
 
 Read in order:
 - AGENTS.md
@@ -167,9 +171,10 @@ Before the agent starts, refresh the control checkout:
   git fetch origin && git switch main && git pull --ff-only origin main
 If using agent_runtime:
   python -m agent_runtime --dispatch
-  Then use only the returned worktree path and branch for that run.
+  Then use only the returned worktree path and checkout context for that run.
 If running manually outside agent_runtime:
-  For coding: create a fresh branch from main.
+  For coding, PRD/spec authoring, or issue-planner edits: create a fresh branch from main.
+  For PM or drift-monitor analysis: use the refreshed control checkout on main.
   For review: inspect the PR head in an isolated checkout.
 ```
 

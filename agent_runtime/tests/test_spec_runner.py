@@ -210,6 +210,7 @@ def test_build_spec_prompt_handles_prd_bootstrap_context() -> None:
     assert "Target PRD: PRD-5.1-v2" in prompt
     assert "Current PRD: docs/prds/phase-2/PRD-5.1-daily-risk-investigation-orchestrator-v1.md" in prompt
     assert "Requested next slice: Author PRD-5.1-v2 for multi-walker orchestration." in prompt
+    assert "create a fresh branch from current `main`" in prompt
 
 
 def test_load_prd_bootstrap_candidates_returns_actionable_now_candidate_only(tmp_path: Path) -> None:

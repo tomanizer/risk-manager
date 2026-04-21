@@ -41,7 +41,10 @@ def build_spec_prompt(input_data: SpecRunnerInput) -> str:
         if input_data.next_slice:
             prompt += f"Requested next slice: {input_data.next_slice}\n"
         prompt += (
-            "Draft or update the necessary PRD/spec so the contract gap is explicit and downstream PM/coding work can proceed.\nDo not write code.\n"
+            "Draft or update the necessary PRD/spec so the contract gap is explicit and downstream PM/coding work can proceed.\n"
+            "If dispatched by agent_runtime, treat the allocated worktree as authoritative and do not switch to `main`, create another worktree, or create another branch.\n"
+            "If running manually outside agent_runtime, refresh current `main` and create a fresh branch from current `main` before authoring the PRD/spec update.\n"
+            "Do not write code.\n"
         )
         return prompt
 
@@ -49,7 +52,9 @@ def build_spec_prompt(input_data: SpecRunnerInput) -> str:
         "Act only as the spec-resolution agent.\n"
         f"Resolve the blocker for {input_data.work_item_id}.\n"
         f"Work item: {input_data.work_item_path}\n"
-        f"Blocked reason: {input_data.blocked_reason}"
+        f"Blocked reason: {input_data.blocked_reason}\n"
+        "If dispatched by agent_runtime, treat the allocated worktree as authoritative and do not switch to `main`, create another worktree, or create another branch.\n"
+        "If running manually outside agent_runtime, refresh current `main` and create a fresh branch from current `main` before authoring the PRD/spec update."
     )
 
 

@@ -131,10 +131,11 @@ Then follow one of these two modes only:
 
 - `agent_runtime` is the authority for execution checkout state
 - the control checkout stays on refreshed `main` and is used only for dispatch, inspection, and human repo maintenance
-- the real PM, spec, issue-planner, coding, and review work happens only in the runtime-allocated worktree for that run
+- the real PM, spec, issue-planner, coding, review, and drift-monitor work happens only in the runtime-allocated worktree for that run
 - agents must not run `git switch main`, `git worktree add`, or create a second feature branch inside a runtime-managed session
 - new coding work without an existing PR starts from a runtime-created worktree based on current `origin/main`
-- review and PR-follow-up coding work use the runtime-managed worktree for the PR head branch, not a second checkout from local `main`
+- review and PR-follow-up coding work use the runtime-managed checkout for the PR head lineage, not a second branch from local `main`
+- when the runtime provides a detached PR-head checkout, agents must keep working in that checkout and use the provided PR head push target rather than creating a local branch
 
 Agents must not continue from stale local state when canon, PR state, or linked contracts may have changed.
 

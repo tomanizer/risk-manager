@@ -88,6 +88,12 @@ Focus on contradictions, trust problems, and governance decay before naming ligh
 
 Do not make merge decisions, implementation decisions, or policy decisions that belong to PM, coding, review, spec, or humans.
 
+### Use the runtime-managed checkout when present
+
+If the handoff came from `agent_runtime`, the allocated worktree for the run is
+authoritative. Do not switch that session back to `main`, do not allocate
+another worktree, and do not create another branch inside that session.
+
 ### Classify the drift
 
 For each material finding, say whether it is mainly:

@@ -18,11 +18,15 @@ def test_build_review_prompt_includes_runtime_managed_checkout_rule() -> None:
             work_item_id="WI-1.1.4-risk-summary-core-service",
             pr_number=71,
             base_ref="origin/main",
+            pr_head_branch="codex/wi-1-1-4",
         )
     )
 
     assert "agent_runtime" in prompt
     assert "Do not switch to `main`" in prompt
+    assert "PR base ref: origin/main" in prompt
+    assert "PR head branch: codex/wi-1-1-4" in prompt
+    assert "git push origin HEAD:codex/wi-1-1-4" in prompt
 
 
 def test_dispatch_review_execution_prepared_backend_when_explicitly_set() -> None:

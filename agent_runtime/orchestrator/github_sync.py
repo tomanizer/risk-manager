@@ -30,6 +30,7 @@ query($owner: String!, $name: String!, $cursor: String) {
         url
         isDraft
         headRefName
+        baseRefName
         updatedAt
         title
         body
@@ -234,6 +235,7 @@ def build_pull_request_snapshots(
             is_draft=bool(raw_node.get("isDraft")),
             url=str(raw_node.get("url")) if raw_node.get("url") else None,
             head_ref_name=str(raw_node.get("headRefName")) if raw_node.get("headRefName") else None,
+            base_ref_name=str(raw_node.get("baseRefName")) if raw_node.get("baseRefName") else None,
             updated_at=str(raw_node.get("updatedAt")) if raw_node.get("updatedAt") else None,
             unresolved_review_threads=unresolved_review_threads,
             has_new_review_comments=False,

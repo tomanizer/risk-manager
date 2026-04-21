@@ -68,6 +68,17 @@ Stop and escalate rather than issuing a pass/fail when:
 
 In these cases, flag the review as incomplete, describe the blocker, and route it to PM, PRD/spec, or human decision.
 
+## Runtime-managed checkout rule
+
+If the handoff came from `agent_runtime`, the allocated review worktree and
+checkout context are authoritative for the run. Do not switch the session back
+to `main`, do not allocate another worktree, and do not create another branch.
+
+For PR-linked review work, the runtime may place you on a detached checkout at
+the PR head. In that case, keep working in the detached checkout and use the
+runtime-provided PR head push target exactly as given rather than creating a
+local branch.
+
 ## GitHub actions required during review
 
 Before issuing a pass/fail, the review agent must complete all of these steps using the `gh` CLI and GitHub API:
@@ -160,7 +171,10 @@ Runtime-managed mode:
 git status --short --branch
 git mv work_items/in_progress/{WI-ID}-*.md work_items/done/ 2>/dev/null || git mv work_items/ready/{WI-ID}-*.md work_items/done/
 git commit -m "chore: move {WI-ID} to done [review PASS]"
+# If the runtime checkout is on a local branch:
 git push origin HEAD
+# If the runtime checkout is detached at the PR head:
+git push origin HEAD:{PR_HEAD_BRANCH}
 ```
 
 Manual direct mode:

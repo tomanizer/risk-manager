@@ -19,6 +19,7 @@ class CodingRunnerInput:
     pr_number: int | None = None
     pr_url: str | None = None
     base_ref: str | None = None
+    pr_head_branch: str | None = None
     drift_summary: str | None = None
 
 
@@ -29,11 +30,18 @@ def build_coding_prompt(input_data: CodingRunnerInput) -> str:
     if input_data.pr_url is not None:
         prompt += f" ({input_data.pr_url})"
     if input_data.base_ref is not None:
-        prompt += f"\nBase ref: {input_data.base_ref}"
+        prompt += f"\nPR base ref: {input_data.base_ref}"
+    if input_data.pr_head_branch is not None:
+        prompt += f"\nPR head branch: {input_data.pr_head_branch}"
     prompt += (
         "\nIf dispatched by agent_runtime, treat the allocated worktree and branch as authoritative."
         "\nDo not switch to `main`, allocate another worktree, or create another branch inside this run."
     )
+    if input_data.pr_head_branch is not None:
+        prompt += (
+            "\nIf the runtime checkout is detached at the PR head, keep working in that detached checkout and "
+            f"push follow-up commits with `git push origin HEAD:{input_data.pr_head_branch}`."
+        )
     if input_data.drift_summary is not None:
         prompt += f"\n\n## Current repo drift state\n\n{input_data.drift_summary}"
     return prompt

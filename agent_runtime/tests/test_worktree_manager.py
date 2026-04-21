@@ -13,7 +13,12 @@ from agent_runtime.orchestrator.worktree_manager import (
     release_worktree,
 )
 from agent_runtime.runners.contracts import RunnerExecution, RunnerName
-from agent_runtime.storage.sqlite import load_active_worktree_lease, load_worktree_lease
+from agent_runtime.storage.sqlite import (
+    WorktreeLeaseRecord,
+    insert_worktree_lease,
+    load_active_worktree_lease,
+    load_worktree_lease,
+)
 
 
 def _git(cwd: Path, *args: str) -> None:
@@ -102,3 +107,104 @@ def test_release_worktree_reports_missing_or_already_released() -> None:
         assert release_worktree(defaults, db_path, lease.run_id) == "released"
         assert release_worktree(defaults, db_path, lease.run_id) == "already_released"
         assert release_worktree(defaults, db_path, "missing-run") == "not_found"
+
+
+def test_allocate_worktree_replaces_stale_gitdir_stub() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        repo_root = temp_path / "repo"
+        repo_root.mkdir()
+
+        _git(repo_root, "init")
+        _git(repo_root, "config", "user.email", "test@example.com")
+        _git(repo_root, "config", "user.name", "Test User")
+        (repo_root / "README.md").write_text("runtime test\n", encoding="utf-8")
+        _git(repo_root, "add", "README.md")
+        _git(repo_root, "commit", "-m", "init")
+
+        defaults = RuntimeDefaults(repo_root=repo_root, worktree_root_dirname="repo-worktrees")
+        db_path = repo_root / ".agent_runtime" / "state.db"
+        execution = RunnerExecution(
+            runner_name=RunnerName.PM,
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            prompt="Act only as the PM agent.",
+            metadata={"base_ref": "HEAD"},
+        )
+
+        stale_worktree = temp_path / "stale-worktree"
+        stale_worktree.mkdir()
+        (stale_worktree / ".git").write_text("gitdir: /tmp/missing-runtime-gitdir\n", encoding="utf-8")
+        stale_run_id = "pm-wi-1-1-4-risk-summary-core-service-stale"
+        insert_worktree_lease(
+            db_path,
+            WorktreeLeaseRecord(
+                run_id=stale_run_id,
+                work_item_id=execution.work_item_id,
+                runner_name=execution.runner_name.value,
+                branch_name="codex/pm-wi-1-1-4-stale",
+                base_ref="HEAD",
+                worktree_path=str(stale_worktree),
+                status="active",
+            ),
+        )
+
+        lease = allocate_worktree(defaults, db_path, execution)
+        stale = load_worktree_lease(db_path, stale_run_id)
+
+        assert lease.run_id != stale_run_id
+        assert stale is not None
+        assert stale.status == "released"
+
+        rev_parse = subprocess.run(
+            ["git", "rev-parse", "--is-inside-work-tree"],
+            cwd=lease.worktree_path,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        assert rev_parse.stdout.strip() == "true"
+
+
+def test_release_worktree_keeps_non_runtime_owned_branch() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        repo_root = temp_path / "repo"
+        repo_root.mkdir()
+
+        _git(repo_root, "init")
+        _git(repo_root, "config", "user.email", "test@example.com")
+        _git(repo_root, "config", "user.name", "Test User")
+        (repo_root / "README.md").write_text("runtime test\n", encoding="utf-8")
+        _git(repo_root, "add", "README.md")
+        _git(repo_root, "commit", "-m", "init")
+        _git(repo_root, "branch", "pr/head")
+
+        defaults = RuntimeDefaults(repo_root=repo_root, worktree_root_dirname="repo-worktrees")
+        db_path = repo_root / ".agent_runtime" / "state.db"
+        execution = RunnerExecution(
+            runner_name=RunnerName.REVIEW,
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            prompt="Act only as the review agent.",
+            metadata={
+                "base_ref": "HEAD",
+                "checkout_ref": "HEAD",
+                "checkout_detached": "true",
+                "branch_owned_by_runtime": "false",
+                "pr_head_branch": "pr/head",
+            },
+        )
+
+        lease = allocate_worktree(defaults, db_path, execution)
+        assert lease.branch_name == "pr/head"
+        assert lease.branch_owned_by_runtime is False
+
+        assert release_worktree(defaults, db_path, lease.run_id) == "released"
+
+        branch_check = subprocess.run(
+            ["git", "rev-parse", "--verify", "refs/heads/pr/head"],
+            cwd=repo_root,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        assert branch_check.returncode == 0

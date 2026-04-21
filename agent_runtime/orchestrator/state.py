@@ -49,6 +49,7 @@ class PullRequestSnapshot:
     is_draft: bool
     url: str | None = None
     head_ref_name: str | None = None
+    base_ref_name: str | None = None
     updated_at: str | None = None
     unresolved_review_threads: int = 0
     has_new_review_comments: bool = False

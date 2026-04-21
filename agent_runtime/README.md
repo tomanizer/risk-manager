@@ -140,6 +140,11 @@ In runtime-managed mode, the allocated worktree and branch are authoritative for
 that run. The human control checkout remains on refreshed `main` and should not
 be used for the real PM/spec/coding/review work.
 
+For PR-linked coding and review runs, the runtime may allocate a detached
+checkout at the PR head instead of creating a second local branch. When that
+happens, the injected checkout context is authoritative, including the PR-head
+push target.
+
 By default the PM runner remains in manual `prepared` mode. You can opt in to
 the first real backend by setting:
 
@@ -263,6 +268,9 @@ runtime cycle to move straight into PR-aware routing.
 Use this when a runner has finished and its isolated worktree is no longer
 needed.
 
+Release deletes only runtime-owned local branches. PR-linked detached checkouts
+do not delete the PR head branch from the control checkout.
+
 ## Semi-Automatic Supervised Workflow
 
 The current runtime is designed for a semi-automatic loop:
@@ -275,8 +283,10 @@ The current runtime is designed for a semi-automatic loop:
 
 1. Open the returned `worktree.path` and run the real PM/spec/coding/review
 agent manually in that isolated checkout using the returned `runner.prompt`.
-The runtime-managed worktree and branch are the only checkout state the agent
-should use for that run.
+The runtime-managed worktree and checkout context are the only checkout state
+the agent should use for that run. If the prompt says the checkout is detached
+at a PR head, keep working there and use the provided push target instead of
+creating another branch.
 
 1. When that manual agent session finishes, record the reviewed outcome back into
 the runtime:

@@ -30,13 +30,13 @@ That collapses the governance model.
 
 ## Freshness rule
 
-Before any PM, coding, review, or drift-monitor cycle:
+Before any manual direct-mode PM, coding, review, or drift-monitor cycle:
 
 1. git fetch origin
 2. git switch main
 3. git pull --ff-only origin main
 
-For reviews, then checkout the latest PR head. For coding, create a fresh branch from main.
+For manual review work, then checkout the latest PR head. For manual coding, create a fresh branch from main.
 
 New work must begin from up-to-date `main`.
 
@@ -45,6 +45,11 @@ Each bounded slice should use its own fresh branch created from current `main`.
 Agents must not rely on stale local state when the repository, PRs, or canon documents may have changed.
 
 Repo-health audits should also run from current `main` so they do not report drift against stale local guidance.
+
+In runtime-managed mode, refresh the control checkout before dispatch and then
+do the real PM/spec/issue-planner/coding/review/drift-monitor work only inside
+the runtime-allocated worktree. Do not switch a runtime-managed session back to
+`main`, do not allocate another worktree, and do not create another branch.
 
 ## Canonical handoff chain
 

@@ -16,9 +16,15 @@ The instruction file contains the full reading list, audit priorities, and opera
 
 Before starting analysis:
 
-1. `git fetch origin`
-2. `git switch main`
-3. `git pull --ff-only origin main`
+1. If running manually outside `agent_runtime`:
+   - `git fetch origin`
+   - `git switch main`
+   - `git pull --ff-only origin main`
+2. If dispatched by `agent_runtime`:
+   - use only the allocated worktree and injected checkout context for this run
+   - do not switch to `main`
+   - do not create another worktree
+   - do not create another branch
 
 Run deterministic scanners first when available:
 

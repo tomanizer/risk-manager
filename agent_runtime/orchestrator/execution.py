@@ -65,11 +65,14 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
 
     work_item = _find_work_item(snapshot, decision.work_item_id)
     pull_request = _find_pull_request(snapshot, decision.work_item_id)
-    default_base_ref = f"origin/{pull_request.head_ref_name}" if pull_request is not None and pull_request.head_ref_name else "origin/main"
+    default_base_ref = f"origin/{pull_request.base_ref_name}" if pull_request is not None and pull_request.base_ref_name else "origin/main"
     base_metadata = {
         **dict(decision.metadata),
         "base_ref": default_base_ref,
     }
+    if pull_request is not None and pull_request.head_ref_name:
+        base_metadata["pr_head_branch"] = pull_request.head_ref_name
+        base_metadata["checkout_ref"] = f"origin/{pull_request.head_ref_name}"
 
     if decision.action is NextActionType.RUN_PM:
         pm_input = PMRunnerInput(
@@ -122,11 +125,14 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
             pr_number=pull_request.number if pull_request is not None else None,
             pr_url=pull_request.url if pull_request is not None else None,
             base_ref=base_metadata["base_ref"],
+            pr_head_branch=pull_request.head_ref_name if pull_request is not None else None,
             drift_summary=snapshot.drift_summary_md,
         )
         metadata = {**base_metadata, "target_path": str(work_item.path)}
         if pull_request is not None:
             metadata["pr_number"] = str(pull_request.number)
+            metadata["checkout_detached"] = "true"
+            metadata["branch_owned_by_runtime"] = "false"
             if pull_request.url is not None:
                 metadata["pr_url"] = pull_request.url
         return RunnerExecution(
@@ -144,11 +150,14 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
             pr_number=pull_request.number,
             pr_url=pull_request.url,
             base_ref=base_metadata["base_ref"],
+            pr_head_branch=pull_request.head_ref_name,
         )
         metadata = {
             **base_metadata,
             "target_path": str(work_item.path),
             "pr_number": str(pull_request.number),
+            "checkout_detached": "true",
+            "branch_owned_by_runtime": "false",
         }
         if pull_request.url is not None:
             metadata["pr_url"] = pull_request.url

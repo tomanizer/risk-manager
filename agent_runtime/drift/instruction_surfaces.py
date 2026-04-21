@@ -81,6 +81,24 @@ RUNTIME_MANAGED_INVOCATION_EXPECTATIONS: tuple[tuple[Path, tuple[str, ...]], ...
         ),
     ),
     (
+        INVOCATION_TEMPLATES_DIR / "prd_spec_invocation.md",
+        (
+            "agent_runtime",
+            "switch to `main`",
+            "create another worktree",
+            "create another branch",
+        ),
+    ),
+    (
+        INVOCATION_TEMPLATES_DIR / "issue_planner_invocation.md",
+        (
+            "agent_runtime",
+            "switch to `main`",
+            "create another worktree",
+            "create another branch",
+        ),
+    ),
+    (
         INVOCATION_TEMPLATES_DIR / "coding_invocation.md",
         (
             "agent_runtime",
@@ -94,6 +112,15 @@ RUNTIME_MANAGED_INVOCATION_EXPECTATIONS: tuple[tuple[Path, tuple[str, ...]], ...
         (
             "agent_runtime",
             "switch to main",
+            "create another worktree",
+            "create another branch",
+        ),
+    ),
+    (
+        INVOCATION_TEMPLATES_DIR / "drift_monitor_invocation.md",
+        (
+            "agent_runtime",
+            "switch to `main`",
             "create another worktree",
             "create another branch",
         ),

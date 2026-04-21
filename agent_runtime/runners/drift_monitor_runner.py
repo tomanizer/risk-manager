@@ -24,7 +24,9 @@ class DriftMonitorRunnerInput:
 def build_drift_monitor_prompt(input_data: DriftMonitorRunnerInput) -> str:
     prompt = (
         "Act only as the Drift Monitor agent.\n"
-        "Work from current `main`.\n"
+        "If dispatched by agent_runtime, treat the allocated worktree as authoritative and do not switch to `main`, "
+        "create another worktree, or create another branch.\n"
+        "If running manually outside agent_runtime, work from refreshed current `main`.\n"
         "Read:\n"
         "- AGENTS.md\n"
         "- prompts/agents/drift_monitor_agent_instruction.md\n"
