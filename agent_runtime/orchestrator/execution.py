@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from agent_runtime.handoff_bundle import build_handoff_bundle
 
 from .state import NextActionType, PullRequestSnapshot, RuntimeSnapshot, TransitionDecision, WorkItemSnapshot
@@ -35,12 +37,24 @@ def _build_runtime_handoff(
     runtime_metadata: dict[str, str],
     pull_request: PullRequestSnapshot | None,
 ) -> tuple[str, str]:
-    bundle = build_handoff_bundle(
-        role=runner_name.value,
-        work_item_path=work_item.path,
-        runtime_metadata=runtime_metadata,
-        pull_request=pull_request,
-    )
+    try:
+        bundle = build_handoff_bundle(
+            role=runner_name.value,
+            work_item_path=work_item.path,
+            runtime_metadata=runtime_metadata,
+            pull_request=pull_request,
+        )
+    except RuntimeError as error:
+        if "Could not infer repo root from work item path" not in str(error):
+            raise
+        # Temp-fixture and simulation work items can live outside a full repo layout.
+        bundle = build_handoff_bundle(
+            role=runner_name.value,
+            work_item_path=work_item.path,
+            runtime_metadata=runtime_metadata,
+            pull_request=pull_request,
+            repo_root=Path(work_item.path).resolve().parent,
+        )
     return bundle.render_markdown(), bundle.to_json()
 
 
