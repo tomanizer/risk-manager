@@ -12,8 +12,6 @@ from src.modules.risk_analytics import RiskChangeProfile
 
 NonEmptyStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
-QUANT_WALKER_VERSION: NonEmptyStr = "v2.0.0"
-
 
 class ChangeKind(StrEnum):
     FIRST_ORDER_DRIVEN = "FIRST_ORDER_DRIVEN"
@@ -67,7 +65,6 @@ class QuantInterpretation(BaseModel):
 
 
 __all__ = [
-    "QUANT_WALKER_VERSION",
     "ChangeKind",
     "ConfidenceLevel",
     "InvestigationHint",
