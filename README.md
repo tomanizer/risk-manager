@@ -45,7 +45,9 @@ cp .env.example .env
 pre-commit install --hook-type pre-push
 ```
 
-The pre-push hook auto-applies Ruff fixes and formatting locally. If it
+The pre-push hook runs through the repo-local `.venv`, so pushes from
+non-activated shells and GUI clients still use the project dev
+environment. It auto-applies Ruff fixes and formatting locally. If it
 rewrites files, stage the changes and push again.
 
 See `agent_runtime/config/README.md` for the full environment variable
