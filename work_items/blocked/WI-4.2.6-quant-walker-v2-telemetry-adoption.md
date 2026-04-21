@@ -65,8 +65,7 @@ Canon (not WI-gated):
 ## Target area
 
 - `src/walkers/quant/walker.py`
-- `tests/unit/walkers/quant/conftest.py`
-- `tests/unit/walkers/quant/test_summarize_change_telemetry.py`
+- `tests/unit/walkers/quant/`
 - `docs/shared_infra/adoption_matrix.md`
 
 ## Acceptance criteria

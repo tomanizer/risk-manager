@@ -78,7 +78,7 @@ Canon (not WI-gated):
 
 - `src/walkers/quant/walker.py`
 - `src/walkers/quant/__init__.py`
-- `tests/unit/walkers/quant/test_summarize_change_interpretation.py`
+- `tests/unit/walkers/quant/`
 - `tests/unit/walkers/quant/test_summarize_change_parity.py`
 
 ## Acceptance criteria

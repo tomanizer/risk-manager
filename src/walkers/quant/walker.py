@@ -23,6 +23,11 @@ from src.modules.risk_analytics.contracts import MeasureType, NodeRef
 from src.modules.risk_analytics.fixtures import FixtureIndex
 from src.shared import ServiceError
 
+from .contracts import NonEmptyStr
+
+
+QUANT_WALKER_VERSION: NonEmptyStr = "v2.0.0"
+
 
 def summarize_change(
     node_ref: NodeRef,
