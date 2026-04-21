@@ -234,3 +234,92 @@ def test_handoff_bundle_serialization_and_markdown_are_deterministic(tmp_path: P
     assert payload["linked_prd"]["resolved_path"] == "docs/prds/phase-1/PRD-1.1-risk-summary-service-v2.md"
     assert "## Scope" in first.render_markdown()
     assert "- base_ref: `origin/main`" in first.render_markdown()
+
+
+def test_render_markdown_handles_multiline_linked_prd_reference_with_backticks(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    _write_file(repo_root / "docs" / "prds" / "phase-1" / "PRD-1.1-risk-summary-service-v2.md", "# PRD\n")
+    work_item_path = repo_root / "work_items" / "ready" / "WI-MAINT-PRD-MULTILINE.md"
+    _write_file(
+        work_item_path,
+        """
+        # WI-MAINT-PRD-MULTILINE
+
+        ## Linked PRD
+
+        `docs/prds/phase-1/PRD-1.1-risk-summary-service-v2.md`
+        (supersedes `docs/prds/phase-0/PRD-0.9-risk-summary-service.md`)
+
+        ## Dependencies
+
+        None.
+
+        ## Scope
+
+        - preserve markdown formatting
+
+        ## Target area
+
+        - `agent_runtime/`
+
+        ## Out of scope
+
+        - consumer migration
+
+        ## Acceptance criteria
+
+        - rendered markdown remains well formed
+        """,
+    )
+
+    bundle = build_handoff_bundle(role="review", work_item_path=work_item_path, repo_root=repo_root)
+
+    markdown = bundle.render_markdown()
+
+    assert "## Linked PRD" in markdown
+    assert "- reference_text:" in markdown
+    assert "  `docs/prds/phase-1/PRD-1.1-risk-summary-service-v2.md`" in markdown
+    assert "  (supersedes `docs/prds/phase-0/PRD-0.9-risk-summary-service.md`)" in markdown
+    assert "  - resolved_path: `docs/prds/phase-1/PRD-1.1-risk-summary-service-v2.md`" in markdown
+    assert markdown.count("`") % 2 == 0
+
+
+def test_build_handoff_bundle_resolves_prd_reference_with_explanatory_text(tmp_path: Path) -> None:
+    repo_root = tmp_path / "repo"
+    _write_file(repo_root / "docs" / "prds" / "phase-2" / "PRD-2.1-shared-evidence-ref.md", "# PRD\n")
+    work_item_path = repo_root / "work_items" / "done" / "WI-2.1.6-shared-evidence-ref-extraction.md"
+    _write_file(
+        work_item_path,
+        """
+        # WI-2.1.6
+
+        ## Linked PRD
+
+        PRD-2.1 (EvidenceRef schema and validation rules; gap closure in reuse analysis)
+
+        ## Dependencies
+
+        - WI-2.1.5
+
+        ## Scope
+
+        - keep linked PRD resolution stable
+
+        ## Target area
+
+        - `src/shared/`
+
+        ## Out of scope
+
+        - walker migration
+
+        ## Acceptance criteria
+
+        - linked PRD resolves
+        """,
+    )
+
+    bundle = build_handoff_bundle(role="coding", work_item_path=work_item_path, repo_root=repo_root)
+
+    assert bundle.linked_prd is not None
+    assert bundle.linked_prd.resolved_path == "docs/prds/phase-2/PRD-2.1-shared-evidence-ref.md"

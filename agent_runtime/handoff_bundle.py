@@ -11,7 +11,7 @@ from typing import Mapping, cast
 from agent_runtime.orchestrator.state import PullRequestSnapshot
 
 _SECTION_RE = re.compile(r"^##\s+(.+)$", re.MULTILINE)
-_PRD_REF_RE = re.compile(r"^(PRD-[\d.]+)(?:-.+?)?(?:-v(\d+))?$", re.IGNORECASE)
+_PRD_REF_RE = re.compile(r"\b(PRD-[\d.]+)(?:-.+?)?(?:-v(\d+))?\b", re.IGNORECASE)
 _ADR_REF_RE = re.compile(r"\bADR-\d+\b")
 _DOC_PATH_RE = re.compile(r"(?P<path>docs/[^\s)`]+\.md)")
 
@@ -100,7 +100,7 @@ def _resolve_prd_path(reference_text: str | None, repo_root: Path) -> str | None
         if candidates:
             return _repo_relative(candidates[0], repo_root)
 
-    match = _PRD_REF_RE.match(first_line)
+    match = _PRD_REF_RE.search(first_line)
     if not match:
         return None
     base_part = match.group(1)
@@ -294,12 +294,18 @@ class HandoffBundle:
 
 
 def _render_document_reference(reference: HandoffDocumentReference) -> list[str]:
-    lines = [f"- reference_text: `{reference.reference_text}`"]
+    lines = ["- reference_text:"]
+    lines.extend(_render_multiline_list_value(reference.reference_text))
     if reference.resolved_path is not None:
-        lines.append(f"  resolved_path: `{reference.resolved_path}`")
+        lines.append(f"  - resolved_path: `{reference.resolved_path}`")
     else:
-        lines.append("  resolved_path: <unresolved>")
+        lines.append("  - resolved_path: <unresolved>")
     return lines
+
+
+def _render_multiline_list_value(value: str, *, indent: str = "  ") -> list[str]:
+    rendered_lines = value.splitlines() or [""]
+    return [f"{indent}{line}" if line else indent for line in rendered_lines]
 
 
 def _render_key_value_list(
