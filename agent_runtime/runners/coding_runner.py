@@ -34,8 +34,8 @@ def build_coding_prompt(input_data: CodingRunnerInput) -> str:
     if input_data.pr_head_branch is not None:
         prompt += f"\nPR head branch: {input_data.pr_head_branch}"
     prompt += (
-        "\nIf dispatched by agent_runtime, treat the allocated worktree and branch as authoritative."
-        "\nDo not switch to `main`, allocate another worktree, or create another branch inside this run."
+        "\nIf dispatched by agent_runtime, treat the allocated worktree and checkout context as authoritative."
+        "\nDo not switch to `main`, allocate another worktree, or change branch state inside this run."
     )
     if input_data.pr_head_branch is not None:
         prompt += (

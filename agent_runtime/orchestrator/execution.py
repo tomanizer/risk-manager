@@ -70,9 +70,6 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
         **dict(decision.metadata),
         "base_ref": default_base_ref,
     }
-    if pull_request is not None and pull_request.head_ref_name:
-        base_metadata["pr_head_branch"] = pull_request.head_ref_name
-        base_metadata["checkout_ref"] = f"origin/{pull_request.head_ref_name}"
 
     if decision.action is NextActionType.RUN_PM:
         pm_input = PMRunnerInput(
@@ -129,8 +126,10 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
             drift_summary=snapshot.drift_summary_md,
         )
         metadata = {**base_metadata, "target_path": str(work_item.path)}
-        if pull_request is not None:
+        if pull_request is not None and pull_request.head_ref_name:
             metadata["pr_number"] = str(pull_request.number)
+            metadata["pr_head_branch"] = pull_request.head_ref_name
+            metadata["checkout_ref"] = f"origin/{pull_request.head_ref_name}"
             metadata["checkout_detached"] = "true"
             metadata["branch_owned_by_runtime"] = "false"
             if pull_request.url is not None:
@@ -145,6 +144,8 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
     if decision.action is NextActionType.RUN_REVIEW:
         if pull_request is None:
             raise RuntimeError("review execution requires an attached pull request")
+        if not pull_request.head_ref_name:
+            raise RuntimeError("review execution requires a PR head branch name")
         review_input = ReviewRunnerInput(
             work_item_id=work_item.id,
             pr_number=pull_request.number,
@@ -156,6 +157,8 @@ def build_runner_execution(snapshot: RuntimeSnapshot, decision: TransitionDecisi
             **base_metadata,
             "target_path": str(work_item.path),
             "pr_number": str(pull_request.number),
+            "pr_head_branch": pull_request.head_ref_name,
+            "checkout_ref": f"origin/{pull_request.head_ref_name}",
             "checkout_detached": "true",
             "branch_owned_by_runtime": "false",
         }

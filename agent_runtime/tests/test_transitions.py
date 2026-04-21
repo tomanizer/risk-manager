@@ -22,6 +22,7 @@ from agent_runtime.orchestrator.state import (
     NextActionType,
     PullRequestSnapshot,
     RuntimeSnapshot,
+    TransitionDecision,
     WorkItemSnapshot,
     WorkItemStage,
 )
@@ -837,6 +838,7 @@ def test_build_runner_execution_for_review_includes_pr_context() -> None:
                 number=52,
                 is_draft=False,
                 url="https://github.com/tomanizer/risk-manager/pull/52",
+                head_ref_name="codex/wi-1-1-4",
                 unresolved_review_threads=1,
             ),
         ),
@@ -886,6 +888,43 @@ def test_build_runner_execution_for_coding_includes_base_ref() -> None:
     assert "PR head branch: codex/wi-1-1-4" in execution.prompt
     assert execution.metadata["checkout_detached"] == "true"
     assert execution.metadata["branch_owned_by_runtime"] == "false"
+
+
+def test_build_runner_execution_for_issue_planner_keeps_pr_head_checkout_metadata_off() -> None:
+    snapshot = RuntimeSnapshot(
+        work_items=(
+            WorkItemSnapshot(
+                id="WI-1.1.4-risk-summary-core-service",
+                title="WI-1.1.4",
+                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
+                stage=WorkItemStage.READY,
+            ),
+        ),
+        pull_requests=(
+            PullRequestSnapshot(
+                work_item_id="WI-1.1.4-risk-summary-core-service",
+                number=52,
+                is_draft=False,
+                url="https://github.com/tomanizer/risk-manager/pull/52",
+                head_ref_name="codex/wi-1-1-4",
+                base_ref_name="main",
+            ),
+        ),
+    )
+
+    decision = TransitionDecision(
+        action=NextActionType.RUN_ISSUE_PLANNER,
+        work_item_id="WI-1.1.4-risk-summary-core-service",
+        reason="Need to split this work item.",
+    )
+    execution = build_runner_execution(snapshot, decision)
+
+    assert execution is not None
+    assert execution.runner_name is RunnerName.ISSUE_PLANNER
+    assert execution.metadata["base_ref"] == "origin/main"
+    assert "pr_head_branch" not in execution.metadata
+    assert "checkout_ref" not in execution.metadata
+    assert "checkout_detached" not in execution.metadata
 
 
 def test_build_runner_execution_preserves_decision_metadata() -> None:

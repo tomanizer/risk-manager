@@ -24,6 +24,7 @@ def test_build_review_prompt_includes_runtime_managed_checkout_rule() -> None:
 
     assert "agent_runtime" in prompt
     assert "Do not switch to `main`" in prompt
+    assert "allocated review worktree and checkout context as authoritative" in prompt
     assert "PR base ref: origin/main" in prompt
     assert "PR head branch: codex/wi-1-1-4" in prompt
     assert "git push origin HEAD:codex/wi-1-1-4" in prompt

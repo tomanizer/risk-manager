@@ -33,7 +33,7 @@ def build_review_prompt(input_data: ReviewRunnerInput) -> str:
     if input_data.pr_head_branch is not None:
         prompt += f"\nPR head branch: {input_data.pr_head_branch}"
     prompt += (
-        "\nIf dispatched by agent_runtime, treat the allocated review worktree and branch as authoritative."
+        "\nIf dispatched by agent_runtime, treat the allocated review worktree and checkout context as authoritative."
         "\nDo not switch to `main`, allocate another worktree, or create another branch inside this run."
     )
     if input_data.pr_head_branch is not None:

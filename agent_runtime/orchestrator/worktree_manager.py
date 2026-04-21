@@ -113,11 +113,15 @@ def _is_valid_worktree(path: Path) -> bool:
 def _build_checkout_request(execution: RunnerExecution) -> CheckoutRequest:
     base_ref = execution.metadata.get("base_ref", "origin/main")
     checkout_ref = execution.metadata.get("checkout_ref", base_ref)
+    checkout_detached = execution.metadata.get("checkout_detached") == "true"
+    branch_owned_by_runtime = execution.metadata.get("branch_owned_by_runtime", "true") != "false"
+    if checkout_detached:
+        branch_owned_by_runtime = False
     return CheckoutRequest(
         base_ref=base_ref,
         checkout_ref=checkout_ref,
-        checkout_detached=execution.metadata.get("checkout_detached") == "true",
-        branch_owned_by_runtime=execution.metadata.get("branch_owned_by_runtime", "true") != "false",
+        checkout_detached=checkout_detached,
+        branch_owned_by_runtime=branch_owned_by_runtime,
         pr_head_branch=execution.metadata.get("pr_head_branch"),
     )
 
