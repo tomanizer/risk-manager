@@ -50,7 +50,7 @@ Result:
 
 ## Current State By Operating Mode
 
-## 1. Manual Invocation Mode
+### 1. Manual Invocation Mode
 
 ### What is working
 
@@ -73,7 +73,7 @@ Result:
 
 Manual mode is currently the highest-quality path, but it does not scale operationally. The repo should keep its governance discipline while removing the prompt-copying and state-recording friction.
 
-## 2. Semi-Autonomous Runtime Mode
+### 2. Semi-Autonomous Runtime Mode
 
 ### What is working
 
@@ -98,7 +98,7 @@ Manual mode is currently the highest-quality path, but it does not scale operati
 
 This mode is currently a coordination bridge, not a convincing operating model. It owns state and worktrees, but not the full handoff contract.
 
-## 3. Automated Mode
+### 3. Automated Mode
 
 ### What is present
 
@@ -125,7 +125,7 @@ The repo does not yet have an automated delivery system. It has automation ingre
 
 ## Highest-Impact Findings
 
-## Finding 1: The manual and runtime paths use different handoff quality
+### Finding 1: The manual and runtime paths use different handoff quality
 
 The manual path resolves rich context from templates and repo artifacts in `scripts/invoke.py`, including WI sections, PRD path resolution, ADR lookup, and placeholder filling. The runtime path uses much thinner prompt builders in `agent_runtime/orchestrator/execution.py`, `agent_runtime/runners/pm_runner.py`, and `agent_runtime/runners/review_runner.py`.
 
@@ -164,7 +164,7 @@ That shared builder should produce:
 - PR context
 - review comments and CI context when relevant
 
-## Finding 2: PR-follow-up coding currently allocates a new branch instead of continuing on the PR head
+### Finding 2: PR-follow-up coding currently allocates a new branch instead of continuing on the PR head
 
 `build_runner_execution()` sets `base_ref` to `origin/<pull_request.head_ref_name>` when a PR exists, but `allocate_worktree()` always creates a new branch with `git worktree add -b <new-branch> ... <base_ref>`.
 
@@ -187,7 +187,7 @@ Recommendation:
 - persist `checkout_mode` explicitly in the run metadata
 - make PR-follow-up coding impossible to dispatch unless the runtime can prove it is operating on the PR head branch
 
-## Finding 3: `codex_exec` backends do not use the governed system prompts
+### Finding 3: `codex_exec` backends do not use the governed system prompts
 
 The OpenAI and Anthropic backends explicitly load `load_system_prompt()` and send it as a system message. The `codex_exec` backends only pass `execution.prompt` plus an output schema wrapper.
 
@@ -210,7 +210,7 @@ Recommendation:
 - if the CLI supports a real system-prompt surface, use it
 - if not, prepend a clearly delimited governed instruction block and record it with the run artifact
 
-## Finding 4: Review automation does not ingest the information a real review needs
+### Finding 4: Review automation does not ingest the information a real review needs
 
 `agent_runtime/orchestrator/github_sync.py` ingests:
 
@@ -247,7 +247,7 @@ Recommendation:
   - diff stats and changed-file list
 - store that context in a run artifact, not only in memory
 
-## Finding 5: The spec role is still wired to the legacy instruction file
+### Finding 5: The spec role is still wired to the legacy instruction file
 
 `prompt_loader.py` maps `RunnerName.SPEC` to `prompts/agents/risk_methodology_spec_agent_instruction.md`, while `AGENTS.md` says that legacy role is retained only for backward compatibility and the responsibilities are now covered by the PRD / Spec Author.
 
@@ -262,7 +262,7 @@ Recommendation:
   - `prd_author`
 - do not keep the runtime on a legacy prompt surface if autonomous use is the goal
 
-## Finding 6: Several autonomy features exist but are not wired into the actual runtime path
+### Finding 6: Several autonomy features exist but are not wired into the actual runtime path
 
 Examples:
 
@@ -282,7 +282,7 @@ Recommendation:
 - either wire these features into the real loop or explicitly demote them to experimental status
 - avoid shipping autonomy flags before the side effects exist
 
-## Finding 7: The run model is still last-known-state oriented, not run-history oriented
+### Finding 7: The run model is still last-known-state oriented, not run-history oriented
 
 `workflow_runs` is keyed by `work_item_id`, so the table stores the latest state for each work item rather than a full run lineage. There is an event table, but it is not the main operational source of truth.
 
@@ -306,7 +306,7 @@ Recommendation:
   - outcome payload
   - PR metadata snapshot
 
-## Finding 8: The operator UX is fragmented across skill, script, runtime, and repo docs
+### Finding 8: The operator UX is fragmented across skill, script, runtime, and repo docs
 
 The operator currently has to combine:
 
