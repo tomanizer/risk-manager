@@ -26,11 +26,11 @@ from agent_runtime.orchestrator.pr_publication import maybe_publish_completed_co
 from agent_runtime.orchestrator.worktree_manager import (
     allocate_worktree,
     bind_worktree_to_execution,
+    has_reusable_active_worktree_lease,
 )
 from agent_runtime.runners.contracts import RunnerDispatchStatus, RunnerResult
 from agent_runtime.storage.sqlite import (
     WorkflowRunRecord,
-    load_active_worktree_lease,
     load_workflow_run,
     mark_workflow_run_running,
     record_workflow_outcome,
@@ -172,13 +172,17 @@ def _dispatch_one(
     }
 
 
-def _has_active_lease(defaults: RuntimeDefaults, decision: TransitionDecision) -> bool:
-    """Return True if the work item already has an active worktree lease."""
+def _has_active_lease(defaults: RuntimeDefaults, snapshot: RuntimeSnapshot, decision: TransitionDecision) -> bool:
+    """Return True if the work item already has a reusable active worktree lease."""
     if decision.work_item_id is None:
         return False
-    runner_name = decision.action.value.replace("run_", "")
-    lease = load_active_worktree_lease(defaults.state_db_path, decision.work_item_id, runner_name)
-    return lease is not None
+    try:
+        execution = build_runner_execution(snapshot, decision)
+    except RuntimeError:
+        return False
+    if execution is None:
+        return False
+    return has_reusable_active_worktree_lease(defaults, defaults.state_db_path, execution)
 
 
 def run_parallel_step(
@@ -193,7 +197,7 @@ def run_parallel_step(
     """
     all_decisions = decide_all_actions(snapshot)
 
-    dispatchable = [d for d in all_decisions if d.action in _DISPATCHABLE_ACTIONS and not _has_active_lease(defaults, d)][
+    dispatchable = [d for d in all_decisions if d.action in _DISPATCHABLE_ACTIONS and not _has_active_lease(defaults, snapshot, d)][
         : defaults.max_concurrent_runs
     ]
 

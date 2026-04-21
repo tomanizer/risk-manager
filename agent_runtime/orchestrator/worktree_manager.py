@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 import re
@@ -19,6 +19,15 @@ from agent_runtime.storage.sqlite import (
     load_worktree_lease,
     mark_worktree_lease_released,
 )
+
+
+@dataclass(frozen=True)
+class CheckoutRequest:
+    base_ref: str
+    checkout_ref: str
+    checkout_detached: bool
+    branch_owned_by_runtime: bool
+    pr_head_branch: str | None = None
 
 
 def _slugify(value: str) -> str:
@@ -101,20 +110,123 @@ def _is_valid_worktree(path: Path) -> bool:
     return result.returncode == 0 and result.stdout.strip() == "true"
 
 
+def _build_checkout_request(execution: RunnerExecution) -> CheckoutRequest:
+    base_ref = execution.metadata.get("base_ref", "origin/main")
+    checkout_ref = execution.metadata.get("checkout_ref", base_ref)
+    return CheckoutRequest(
+        base_ref=base_ref,
+        checkout_ref=checkout_ref,
+        checkout_detached=execution.metadata.get("checkout_detached") == "true",
+        branch_owned_by_runtime=execution.metadata.get("branch_owned_by_runtime", "true") != "false",
+        pr_head_branch=execution.metadata.get("pr_head_branch"),
+    )
+
+
+def _should_fetch_origin(request: CheckoutRequest) -> bool:
+    return request.base_ref.startswith("origin/") or request.checkout_ref.startswith("origin/")
+
+
+def _git_stdout(repo_root: Path, *args: str) -> str:
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as error:
+        stderr = error.stderr.strip()
+        detail = f"\n{stderr}" if stderr else ""
+        raise RuntimeError(f"git command failed: {' '.join(error.cmd)}{detail}") from error
+    return result.stdout.strip()
+
+
+def _current_branch_name(path: Path) -> str | None:
+    result = subprocess.run(
+        ["git", "symbolic-ref", "--quiet", "--short", "HEAD"],
+        cwd=path,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return None
+    branch_name = result.stdout.strip()
+    return branch_name or None
+
+
+def _resolve_commit(repo_root: Path, ref: str) -> str:
+    return _git_stdout(repo_root, "rev-parse", f"{ref}^{{commit}}")
+
+
+def _lease_matches_checkout_request(
+    repo_root: Path,
+    lease: WorktreeLeaseRecord,
+    request: CheckoutRequest,
+) -> bool:
+    worktree_path = Path(lease.worktree_path)
+    if not _is_valid_worktree(worktree_path):
+        return False
+    if lease.base_ref != request.base_ref:
+        return False
+    if lease.branch_owned_by_runtime != request.branch_owned_by_runtime:
+        return False
+    if request.pr_head_branch is not None and lease.branch_name != request.pr_head_branch:
+        return False
+
+    current_branch_name = _current_branch_name(worktree_path)
+    current_detached = current_branch_name is None
+    if current_detached != request.checkout_detached:
+        return False
+
+    if request.checkout_detached:
+        return _resolve_commit(worktree_path, "HEAD") == _resolve_commit(repo_root, request.checkout_ref)
+    return current_branch_name == lease.branch_name
+
+
+def has_reusable_active_worktree_lease(
+    defaults: RuntimeDefaults,
+    db_path: Path,
+    execution: RunnerExecution,
+) -> bool:
+    request = _build_checkout_request(execution)
+    if _should_fetch_origin(request):
+        _git(defaults.repo_root, "fetch", "origin")
+
+    existing = load_active_worktree_lease(db_path, execution.work_item_id, execution.runner_name.value)
+    if existing is None:
+        return False
+    return _lease_matches_checkout_request(defaults.repo_root, existing, request)
+
+
 def _cleanup_stale_lease(defaults: RuntimeDefaults, db_path: Path, lease: WorktreeLeaseRecord) -> None:
+    _best_effort_git(defaults.repo_root, "worktree", "remove", "--force", lease.worktree_path)
     _best_effort_git(defaults.repo_root, "worktree", "prune")
     if lease.branch_owned_by_runtime:
         _best_effort_git(defaults.repo_root, "branch", "-D", lease.branch_name)
     mark_worktree_lease_released(db_path, lease.run_id)
 
 
-def _checkout_plan(execution: RunnerExecution, run_id: str) -> tuple[str, str, bool, bool]:
-    base_ref = execution.metadata.get("base_ref", "origin/main")
-    checkout_ref = execution.metadata.get("checkout_ref", base_ref)
-    checkout_detached = execution.metadata.get("checkout_detached") == "true"
-    branch_owned_by_runtime = execution.metadata.get("branch_owned_by_runtime", "true") != "false"
-    branch_name = execution.metadata.get("pr_head_branch") or _build_branch_name(execution, run_id)
-    return branch_name, checkout_ref, checkout_detached, branch_owned_by_runtime
+def _checkout_plan(execution: RunnerExecution, run_id: str) -> tuple[CheckoutRequest, str]:
+    request = _build_checkout_request(execution)
+    branch_name = request.pr_head_branch or _build_branch_name(execution, run_id)
+    return request, branch_name
+
+
+def _cleanup_unclaimed_worktree(
+    defaults: RuntimeDefaults,
+    worktree_path: Path,
+    branch_name: str,
+    branch_owned_by_runtime: bool,
+) -> None:
+    cleanup_error = _best_effort_git(defaults.repo_root, "worktree", "remove", "--force", str(worktree_path))
+    if branch_owned_by_runtime:
+        error = _best_effort_git(defaults.repo_root, "branch", "-D", branch_name)
+        if cleanup_error is None and error is not None:
+            cleanup_error = error
+    if cleanup_error is not None:
+        raise cleanup_error
 
 
 def allocate_worktree(
@@ -122,41 +234,48 @@ def allocate_worktree(
     db_path: Path,
     execution: RunnerExecution,
 ) -> WorktreeLeaseRecord:
+    request = _build_checkout_request(execution)
+    if _should_fetch_origin(request):
+        _git(defaults.repo_root, "fetch", "origin")
+
     existing = load_active_worktree_lease(db_path, execution.work_item_id, execution.runner_name.value)
     if existing is not None:
-        worktree_path = Path(existing.worktree_path)
-        if _is_valid_worktree(worktree_path):
+        if _lease_matches_checkout_request(defaults.repo_root, existing, request):
             return existing
         _cleanup_stale_lease(defaults, db_path, existing)
 
     run_id = _build_run_id(execution)
-    base_ref = execution.metadata.get("base_ref", "origin/main")
-    branch_name, checkout_ref, checkout_detached, branch_owned_by_runtime = _checkout_plan(execution, run_id)
+    request, branch_name = _checkout_plan(execution, run_id)
     worktree_dirname = _slugify(f"{execution.runner_name.value}-{execution.work_item_id}-{run_id.split('-')[-1]}")
     worktree_path = defaults.worktree_root_path / worktree_dirname
 
     defaults.worktree_root_path.mkdir(parents=True, exist_ok=True)
-    if checkout_ref.startswith("origin/") or base_ref.startswith("origin/"):
-        _git(defaults.repo_root, "fetch", "origin")
-    if checkout_detached:
-        _git(defaults.repo_root, "worktree", "add", "--detach", str(worktree_path), checkout_ref)
+    if request.checkout_detached:
+        _git(defaults.repo_root, "worktree", "add", "--detach", str(worktree_path), request.checkout_ref)
     else:
-        _git(defaults.repo_root, "worktree", "add", "-b", branch_name, str(worktree_path), checkout_ref)
+        _git(defaults.repo_root, "worktree", "add", "-b", branch_name, str(worktree_path), request.checkout_ref)
 
     lease = WorktreeLeaseRecord(
         run_id=run_id,
         work_item_id=execution.work_item_id,
         runner_name=execution.runner_name.value,
         branch_name=branch_name,
-        base_ref=base_ref,
+        base_ref=request.base_ref,
         worktree_path=str(worktree_path),
         status="active",
-        branch_owned_by_runtime=branch_owned_by_runtime,
+        branch_owned_by_runtime=request.branch_owned_by_runtime,
     )
     try:
         insert_worktree_lease(db_path, lease)
     except sqlite3.IntegrityError:
+        cleanup_error: RuntimeError | None = None
+        try:
+            _cleanup_unclaimed_worktree(defaults, worktree_path, branch_name, request.branch_owned_by_runtime)
+        except RuntimeError as error:
+            cleanup_error = error
         concurrent_lease = load_active_worktree_lease(db_path, execution.work_item_id, execution.runner_name.value)
+        if cleanup_error is not None:
+            raise cleanup_error
         if concurrent_lease is None:
             raise
         return concurrent_lease
