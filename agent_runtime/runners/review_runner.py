@@ -22,6 +22,7 @@ class ReviewRunnerInput:
     pr_url: str | None = None
     base_ref: str | None = None
     pr_head_branch: str | None = None
+    handoff_bundle_markdown: str | None = None
 
 
 def build_review_prompt(input_data: ReviewRunnerInput) -> str:
@@ -41,6 +42,8 @@ def build_review_prompt(input_data: ReviewRunnerInput) -> str:
             "\nIf the runtime checkout is detached at the PR head, do not create a local branch; "
             f"push any PASS lifecycle commit with `git push origin HEAD:{input_data.pr_head_branch}`."
         )
+    if input_data.handoff_bundle_markdown is not None:
+        prompt += f"\n\n## Governed Handoff Bundle\n\n{input_data.handoff_bundle_markdown}"
     return prompt
 
 

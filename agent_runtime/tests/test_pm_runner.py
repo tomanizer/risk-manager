@@ -21,12 +21,31 @@ def test_build_pm_prompt_includes_runtime_managed_checkout_rule() -> None:
                 "work_item_id": "WI-1.1.4-risk-summary-core-service",
                 "work_item_path": "work_items/ready/WI-1.1.4-risk-summary-core-service.md",
                 "linked_prd": "docs/prds/phase-1/PRD-1.1-risk-summary-service-v2.md",
+                "handoff_bundle_markdown": None,
             },
         )()
     )
 
     assert "agent_runtime" in prompt
     assert "Do not switch to `main`" in prompt
+
+
+def test_build_pm_prompt_includes_governed_handoff_bundle_when_provided() -> None:
+    prompt = build_pm_prompt(
+        input_data=type(
+            "PMInput",
+            (),
+            {
+                "work_item_id": "WI-1.1.4-risk-summary-core-service",
+                "work_item_path": "work_items/ready/WI-1.1.4-risk-summary-core-service.md",
+                "linked_prd": None,
+                "handoff_bundle_markdown": "# Agent Handoff Bundle\n\n## Acceptance Criteria\n- deterministic",
+            },
+        )()
+    )
+
+    assert "## Governed Handoff Bundle" in prompt
+    assert "## Acceptance Criteria" in prompt
 
 
 def test_dispatch_pm_execution_uses_prepared_backend_by_default() -> None:

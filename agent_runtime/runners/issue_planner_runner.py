@@ -17,6 +17,7 @@ class IssuePlannerRunnerInput:
     linked_prd: str | None = None
     source_prd_path: str | None = None
     missing_work_item_ids: tuple[str, ...] = ()
+    handoff_bundle_markdown: str | None = None
 
 
 def build_issue_planner_prompt(input_data: IssuePlannerRunnerInput) -> str:
@@ -74,6 +75,8 @@ def build_issue_planner_prompt(input_data: IssuePlannerRunnerInput) -> str:
         "9. why this decomposition unblocks the original work item\n"
         "10. any residual blocker that would need spec or human escalation\n"
     )
+    if input_data.handoff_bundle_markdown is not None:
+        prompt += f"\n\n## Governed Handoff Bundle\n\n{input_data.handoff_bundle_markdown}"
     return prompt
 
 

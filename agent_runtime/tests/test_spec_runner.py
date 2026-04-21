@@ -213,6 +213,20 @@ def test_build_spec_prompt_handles_prd_bootstrap_context() -> None:
     assert "create a fresh branch from current `main`" in prompt
 
 
+def test_build_spec_prompt_includes_governed_handoff_bundle_when_provided() -> None:
+    prompt = build_spec_prompt(
+        SpecRunnerInput(
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            blocked_reason="Canon gap needs clarification.",
+            work_item_path="work_items/blocked/WI-1.1.4-risk-summary-core-service.md",
+            handoff_bundle_markdown="# Agent Handoff Bundle\n\n## Scope\n- bounded clarification",
+        )
+    )
+
+    assert "## Governed Handoff Bundle" in prompt
+    assert "## Scope" in prompt
+
+
 def test_load_prd_bootstrap_candidates_returns_actionable_now_candidate_only(tmp_path: Path) -> None:
     registry_path = tmp_path / "docs" / "registry" / "current_state_registry.yaml"
     registry_path.parent.mkdir(parents=True, exist_ok=True)

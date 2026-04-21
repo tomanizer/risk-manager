@@ -31,6 +31,19 @@ def test_build_coding_prompt_includes_runtime_managed_checkout_rule() -> None:
     assert "git push origin HEAD:codex/wi-1-1-4" in prompt
 
 
+def test_build_coding_prompt_includes_governed_handoff_bundle_when_provided() -> None:
+    prompt = build_coding_prompt(
+        CodingRunnerInput(
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            task_summary="Implement the bounded slice.",
+            handoff_bundle_markdown="# Agent Handoff Bundle\n\n## Stop Conditions\n- stop on scope creep",
+        )
+    )
+
+    assert "## Governed Handoff Bundle" in prompt
+    assert "## Stop Conditions" in prompt
+
+
 def test_dispatch_coding_execution_prepared_backend_when_explicitly_set() -> None:
     execution = RunnerExecution(
         runner_name=RunnerName.CODING,

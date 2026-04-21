@@ -48,6 +48,60 @@ from agent_runtime.storage.sqlite import (
 )
 
 
+def _write_runtime_work_item(
+    repo_root: Path,
+    *,
+    relative_path: str,
+    title: str,
+    linked_prd: str | None = None,
+) -> Path:
+    work_item_path = repo_root / relative_path
+    work_item_path.parent.mkdir(parents=True, exist_ok=True)
+    if linked_prd and linked_prd.startswith("docs/"):
+        prd_path = repo_root / linked_prd
+        prd_path.parent.mkdir(parents=True, exist_ok=True)
+        prd_path.write_text("# PRD\n", encoding="utf-8")
+    linked_prd_text = linked_prd or "None"
+    work_item_path.write_text(
+        "\n".join(
+            [
+                f"# {title}",
+                "",
+                "## Linked PRD",
+                "",
+                linked_prd_text,
+                "",
+                "## Dependencies",
+                "",
+                "None.",
+                "",
+                "## Scope",
+                "",
+                "- bounded runtime handoff migration",
+                "",
+                "## Target area",
+                "",
+                "- `agent_runtime/`",
+                "",
+                "## Out of scope",
+                "",
+                "- manual surfaces",
+                "",
+                "## Acceptance criteria",
+                "",
+                "- bundle metadata is present",
+                "",
+                "## Stop conditions",
+                "",
+                "- stop on scope creep",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return work_item_path
+
+
 def test_ready_item_without_pr_routes_to_pm() -> None:
     snapshot = RuntimeSnapshot(
         work_items=(
@@ -801,123 +855,158 @@ def test_build_pull_request_snapshots_maps_live_payload() -> None:
 
 
 def test_build_runner_execution_for_pm_uses_work_item_context() -> None:
-    snapshot = RuntimeSnapshot(
-        work_items=(
-            WorkItemSnapshot(
-                id="WI-1.1.4-risk-summary-core-service",
-                title="WI-1.1.4",
-                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
-                stage=WorkItemStage.READY,
-                linked_prd="docs/prds/phase-1/PRD-1.1-risk-summary-service-v2.md",
-            ),
+    with tempfile.TemporaryDirectory() as temp_dir:
+        repo_root = Path(temp_dir)
+        work_item_path = _write_runtime_work_item(
+            repo_root,
+            relative_path="work_items/ready/WI-1.1.4-risk-summary-core-service.md",
+            title="WI-1.1.4",
+            linked_prd="docs/prds/phase-1/PRD-1.1-risk-summary-service-v2.md",
         )
-    )
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-1.1.4-risk-summary-core-service",
+                    title="WI-1.1.4",
+                    path=work_item_path,
+                    stage=WorkItemStage.READY,
+                    linked_prd="docs/prds/phase-1/PRD-1.1-risk-summary-service-v2.md",
+                ),
+            )
+        )
 
-    decision = decide_next_action(snapshot)
-    execution = build_runner_execution(snapshot, decision)
+        decision = decide_next_action(snapshot)
+        execution = build_runner_execution(snapshot, decision)
 
     assert execution is not None
     assert execution.runner_name is RunnerName.PM
     assert "WI-1.1.4-risk-summary-core-service" in execution.prompt
-    assert "Linked PRD" in execution.prompt
+    assert "## Governed Handoff Bundle" in execution.prompt
+    assert "## Linked PRD" in execution.prompt
+    assert "handoff_bundle_json" in execution.metadata
 
 
 def test_build_runner_execution_for_review_includes_pr_context() -> None:
-    snapshot = RuntimeSnapshot(
-        work_items=(
-            WorkItemSnapshot(
-                id="WI-1.1.4-risk-summary-core-service",
-                title="WI-1.1.4",
-                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
-                stage=WorkItemStage.READY,
+    with tempfile.TemporaryDirectory() as temp_dir:
+        repo_root = Path(temp_dir)
+        work_item_path = _write_runtime_work_item(
+            repo_root,
+            relative_path="work_items/ready/WI-1.1.4-risk-summary-core-service.md",
+            title="WI-1.1.4",
+        )
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-1.1.4-risk-summary-core-service",
+                    title="WI-1.1.4",
+                    path=work_item_path,
+                    stage=WorkItemStage.READY,
+                ),
             ),
-        ),
-        pull_requests=(
-            PullRequestSnapshot(
-                work_item_id="WI-1.1.4-risk-summary-core-service",
-                number=52,
-                is_draft=False,
-                url="https://github.com/tomanizer/risk-manager/pull/52",
-                head_ref_name="codex/wi-1-1-4",
-                unresolved_review_threads=1,
+            pull_requests=(
+                PullRequestSnapshot(
+                    work_item_id="WI-1.1.4-risk-summary-core-service",
+                    number=52,
+                    is_draft=False,
+                    url="https://github.com/tomanizer/risk-manager/pull/52",
+                    head_ref_name="codex/wi-1-1-4",
+                    unresolved_review_threads=1,
+                ),
             ),
-        ),
-    )
+        )
 
-    decision = decide_next_action(snapshot)
-    execution = build_runner_execution(snapshot, decision)
+        decision = decide_next_action(snapshot)
+        execution = build_runner_execution(snapshot, decision)
 
     assert decision.action is NextActionType.RUN_REVIEW
     assert execution is not None
     assert execution.runner_name is RunnerName.REVIEW
     assert "PR #52" in execution.prompt
     assert "PR base ref: origin/main" in execution.prompt
+    assert "## PR Context" in execution.prompt
     assert execution.metadata["pr_number"] == "52"
+    assert "handoff_bundle_json" in execution.metadata
 
 
 def test_build_runner_execution_for_coding_includes_base_ref() -> None:
-    snapshot = RuntimeSnapshot(
-        work_items=(
-            WorkItemSnapshot(
-                id="WI-1.1.4-risk-summary-core-service",
-                title="WI-1.1.4",
-                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
-                stage=WorkItemStage.READY,
+    with tempfile.TemporaryDirectory() as temp_dir:
+        repo_root = Path(temp_dir)
+        work_item_path = _write_runtime_work_item(
+            repo_root,
+            relative_path="work_items/ready/WI-1.1.4-risk-summary-core-service.md",
+            title="WI-1.1.4",
+        )
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-1.1.4-risk-summary-core-service",
+                    title="WI-1.1.4",
+                    path=work_item_path,
+                    stage=WorkItemStage.READY,
+                ),
             ),
-        ),
-        pull_requests=(
-            PullRequestSnapshot(
-                work_item_id="WI-1.1.4-risk-summary-core-service",
-                number=52,
-                is_draft=False,
-                url="https://github.com/tomanizer/risk-manager/pull/52",
-                head_ref_name="codex/wi-1-1-4",
-                base_ref_name="main",
-                ci_status="FAILURE",
+            pull_requests=(
+                PullRequestSnapshot(
+                    work_item_id="WI-1.1.4-risk-summary-core-service",
+                    number=52,
+                    is_draft=False,
+                    url="https://github.com/tomanizer/risk-manager/pull/52",
+                    head_ref_name="codex/wi-1-1-4",
+                    base_ref_name="main",
+                    ci_status="FAILURE",
+                ),
             ),
-        ),
-    )
+        )
 
-    decision = decide_next_action(snapshot)
-    execution = build_runner_execution(snapshot, decision)
+        decision = decide_next_action(snapshot)
+        execution = build_runner_execution(snapshot, decision)
 
     assert decision.action is NextActionType.RUN_CODING
     assert execution is not None
     assert execution.runner_name is RunnerName.CODING
     assert "PR base ref: origin/main" in execution.prompt
     assert "PR head branch: codex/wi-1-1-4" in execution.prompt
+    assert "## Acceptance Criteria" in execution.prompt
     assert execution.metadata["checkout_detached"] == "true"
     assert execution.metadata["branch_owned_by_runtime"] == "false"
+    assert "handoff_bundle_json" in execution.metadata
 
 
 def test_build_runner_execution_for_issue_planner_keeps_pr_head_checkout_metadata_off() -> None:
-    snapshot = RuntimeSnapshot(
-        work_items=(
-            WorkItemSnapshot(
-                id="WI-1.1.4-risk-summary-core-service",
-                title="WI-1.1.4",
-                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
-                stage=WorkItemStage.READY,
+    with tempfile.TemporaryDirectory() as temp_dir:
+        repo_root = Path(temp_dir)
+        work_item_path = _write_runtime_work_item(
+            repo_root,
+            relative_path="work_items/ready/WI-1.1.4-risk-summary-core-service.md",
+            title="WI-1.1.4",
+        )
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-1.1.4-risk-summary-core-service",
+                    title="WI-1.1.4",
+                    path=work_item_path,
+                    stage=WorkItemStage.READY,
+                ),
             ),
-        ),
-        pull_requests=(
-            PullRequestSnapshot(
-                work_item_id="WI-1.1.4-risk-summary-core-service",
-                number=52,
-                is_draft=False,
-                url="https://github.com/tomanizer/risk-manager/pull/52",
-                head_ref_name="codex/wi-1-1-4",
-                base_ref_name="main",
+            pull_requests=(
+                PullRequestSnapshot(
+                    work_item_id="WI-1.1.4-risk-summary-core-service",
+                    number=52,
+                    is_draft=False,
+                    url="https://github.com/tomanizer/risk-manager/pull/52",
+                    head_ref_name="codex/wi-1-1-4",
+                    base_ref_name="main",
+                ),
             ),
-        ),
-    )
+        )
 
-    decision = TransitionDecision(
-        action=NextActionType.RUN_ISSUE_PLANNER,
-        work_item_id="WI-1.1.4-risk-summary-core-service",
-        reason="Need to split this work item.",
-    )
-    execution = build_runner_execution(snapshot, decision)
+        decision = TransitionDecision(
+            action=NextActionType.RUN_ISSUE_PLANNER,
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            reason="Need to split this work item.",
+        )
+        execution = build_runner_execution(snapshot, decision)
 
     assert execution is not None
     assert execution.runner_name is RunnerName.ISSUE_PLANNER
@@ -925,33 +1014,41 @@ def test_build_runner_execution_for_issue_planner_keeps_pr_head_checkout_metadat
     assert "pr_head_branch" not in execution.metadata
     assert "checkout_ref" not in execution.metadata
     assert "checkout_detached" not in execution.metadata
+    assert "## Governed Handoff Bundle" in execution.prompt
 
 
 def test_build_runner_execution_preserves_decision_metadata() -> None:
-    snapshot = RuntimeSnapshot(
-        work_items=(
-            WorkItemSnapshot(
-                id="WI-1.1.4-risk-summary-core-service",
-                title="WI-1.1.4",
-                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
-                stage=WorkItemStage.READY,
+    with tempfile.TemporaryDirectory() as temp_dir:
+        repo_root = Path(temp_dir)
+        work_item_path = _write_runtime_work_item(
+            repo_root,
+            relative_path="work_items/ready/WI-1.1.4-risk-summary-core-service.md",
+            title="WI-1.1.4",
+        )
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-1.1.4-risk-summary-core-service",
+                    title="WI-1.1.4",
+                    path=work_item_path,
+                    stage=WorkItemStage.READY,
+                ),
             ),
-        ),
-        pull_requests=(
-            PullRequestSnapshot(
-                work_item_id="WI-1.1.4-risk-summary-core-service",
-                number=52,
-                is_draft=False,
-                url="https://github.com/tomanizer/risk-manager/pull/52",
-                ci_status="FAILURE",
-                merge_state_status="DIRTY",
-                review_decision="APPROVED",
+            pull_requests=(
+                PullRequestSnapshot(
+                    work_item_id="WI-1.1.4-risk-summary-core-service",
+                    number=52,
+                    is_draft=False,
+                    url="https://github.com/tomanizer/risk-manager/pull/52",
+                    ci_status="FAILURE",
+                    merge_state_status="DIRTY",
+                    review_decision="APPROVED",
+                ),
             ),
-        ),
-    )
+        )
 
-    decision = decide_next_action(snapshot)
-    execution = build_runner_execution(snapshot, decision)
+        decision = decide_next_action(snapshot)
+        execution = build_runner_execution(snapshot, decision)
 
     assert decision.action is NextActionType.RUN_CODING
     assert execution is not None
@@ -960,19 +1057,26 @@ def test_build_runner_execution_preserves_decision_metadata() -> None:
 
 
 def test_dispatch_runner_execution_returns_prepared_result() -> None:
-    snapshot = RuntimeSnapshot(
-        work_items=(
-            WorkItemSnapshot(
-                id="WI-1.1.4-risk-summary-core-service",
-                title="WI-1.1.4",
-                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
-                stage=WorkItemStage.READY,
-            ),
+    with tempfile.TemporaryDirectory() as temp_dir:
+        repo_root = Path(temp_dir)
+        work_item_path = _write_runtime_work_item(
+            repo_root,
+            relative_path="work_items/ready/WI-1.1.4-risk-summary-core-service.md",
+            title="WI-1.1.4",
         )
-    )
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-1.1.4-risk-summary-core-service",
+                    title="WI-1.1.4",
+                    path=work_item_path,
+                    stage=WorkItemStage.READY,
+                ),
+            )
+        )
 
-    decision = decide_next_action(snapshot)
-    execution = build_runner_execution(snapshot, decision)
+        decision = decide_next_action(snapshot)
+        execution = build_runner_execution(snapshot, decision)
 
     assert execution is not None
     with patch.dict(os.environ, {"AGENT_RUNTIME_PM_BACKEND": "prepared"}, clear=False):
@@ -986,19 +1090,26 @@ def test_dispatch_runner_execution_returns_prepared_result() -> None:
 
 
 def test_dispatch_runner_execution_writes_audit_events() -> None:
-    snapshot = RuntimeSnapshot(
-        work_items=(
-            WorkItemSnapshot(
-                id="WI-1.1.4-risk-summary-core-service",
-                title="WI-1.1.4",
-                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
-                stage=WorkItemStage.READY,
-            ),
+    with tempfile.TemporaryDirectory() as temp_dir:
+        repo_root = Path(temp_dir)
+        work_item_path = _write_runtime_work_item(
+            repo_root,
+            relative_path="work_items/ready/WI-1.1.4-risk-summary-core-service.md",
+            title="WI-1.1.4",
         )
-    )
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-1.1.4-risk-summary-core-service",
+                    title="WI-1.1.4",
+                    path=work_item_path,
+                    stage=WorkItemStage.READY,
+                ),
+            )
+        )
 
-    decision = decide_next_action(snapshot)
-    execution = build_runner_execution(snapshot, decision)
+        decision = decide_next_action(snapshot)
+        execution = build_runner_execution(snapshot, decision)
 
     assert execution is not None
     execution = replace(execution, metadata={**execution.metadata, "run_id": "pm-wi-1-1-4-test-run"})
@@ -1025,19 +1136,26 @@ def test_dispatch_runner_execution_writes_audit_events() -> None:
 
 
 def test_dispatch_runner_execution_audits_without_run_id() -> None:
-    snapshot = RuntimeSnapshot(
-        work_items=(
-            WorkItemSnapshot(
-                id="WI-1.1.4-risk-summary-core-service",
-                title="WI-1.1.4",
-                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
-                stage=WorkItemStage.READY,
-            ),
+    with tempfile.TemporaryDirectory() as temp_dir:
+        repo_root = Path(temp_dir)
+        work_item_path = _write_runtime_work_item(
+            repo_root,
+            relative_path="work_items/ready/WI-1.1.4-risk-summary-core-service.md",
+            title="WI-1.1.4",
         )
-    )
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-1.1.4-risk-summary-core-service",
+                    title="WI-1.1.4",
+                    path=work_item_path,
+                    stage=WorkItemStage.READY,
+                ),
+            )
+        )
 
-    decision = decide_next_action(snapshot)
-    execution = build_runner_execution(snapshot, decision)
+        decision = decide_next_action(snapshot)
+        execution = build_runner_execution(snapshot, decision)
 
     assert execution is not None
 
@@ -1054,19 +1172,26 @@ def test_dispatch_runner_execution_audits_without_run_id() -> None:
 
 
 def test_dispatch_runner_execution_writes_failed_audit_event_on_exception() -> None:
-    snapshot = RuntimeSnapshot(
-        work_items=(
-            WorkItemSnapshot(
-                id="WI-1.1.4-risk-summary-core-service",
-                title="WI-1.1.4",
-                path=Path("work_items/ready/WI-1.1.4-risk-summary-core-service.md"),
-                stage=WorkItemStage.READY,
-            ),
+    with tempfile.TemporaryDirectory() as temp_dir:
+        repo_root = Path(temp_dir)
+        work_item_path = _write_runtime_work_item(
+            repo_root,
+            relative_path="work_items/ready/WI-1.1.4-risk-summary-core-service.md",
+            title="WI-1.1.4",
         )
-    )
+        snapshot = RuntimeSnapshot(
+            work_items=(
+                WorkItemSnapshot(
+                    id="WI-1.1.4-risk-summary-core-service",
+                    title="WI-1.1.4",
+                    path=work_item_path,
+                    stage=WorkItemStage.READY,
+                ),
+            )
+        )
 
-    decision = decide_next_action(snapshot)
-    execution = build_runner_execution(snapshot, decision)
+        decision = decide_next_action(snapshot)
+        execution = build_runner_execution(snapshot, decision)
 
     assert execution is not None
     execution = replace(execution, metadata={**execution.metadata, "run_id": "pm-wi-1-1-4-test-run"})

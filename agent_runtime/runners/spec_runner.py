@@ -25,6 +25,7 @@ class SpecRunnerInput:
     target_prd_id: str | None = None
     registry_path: str | None = None
     next_slice: str | None = None
+    handoff_bundle_markdown: str | None = None
 
 
 def build_spec_prompt(input_data: SpecRunnerInput) -> str:
@@ -48,7 +49,7 @@ def build_spec_prompt(input_data: SpecRunnerInput) -> str:
         )
         return prompt
 
-    return (
+    prompt = (
         "Act only as the spec-resolution agent.\n"
         f"Resolve the blocker for {input_data.work_item_id}.\n"
         f"Work item: {input_data.work_item_path}\n"
@@ -56,6 +57,9 @@ def build_spec_prompt(input_data: SpecRunnerInput) -> str:
         "If dispatched by agent_runtime, treat the allocated worktree as authoritative and do not switch to `main`, create another worktree, or create another branch.\n"
         "If running manually outside agent_runtime, refresh current `main` and create a fresh branch from current `main` before authoring the PRD/spec update."
     )
+    if input_data.handoff_bundle_markdown is not None:
+        prompt += f"\n\n## Governed Handoff Bundle\n\n{input_data.handoff_bundle_markdown}"
+    return prompt
 
 
 class SpecRunner:

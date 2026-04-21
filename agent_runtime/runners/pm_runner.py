@@ -20,6 +20,7 @@ class PMRunnerInput:
     work_item_id: str
     work_item_path: str
     linked_prd: str | None = None
+    handoff_bundle_markdown: str | None = None
 
 
 def build_pm_prompt(input_data: PMRunnerInput) -> str:
@@ -34,6 +35,8 @@ def build_pm_prompt(input_data: PMRunnerInput) -> str:
         "\nIf dispatched by agent_runtime, treat the allocated worktree and branch as authoritative."
         "\nDo not switch to `main`, allocate another worktree, or create another branch inside this run."
     )
+    if input_data.handoff_bundle_markdown is not None:
+        prompt += f"\n\n## Governed Handoff Bundle\n\n{input_data.handoff_bundle_markdown}"
     return prompt
 
 

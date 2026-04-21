@@ -30,6 +30,19 @@ def test_build_review_prompt_includes_runtime_managed_checkout_rule() -> None:
     assert "git push origin HEAD:codex/wi-1-1-4" in prompt
 
 
+def test_build_review_prompt_includes_governed_handoff_bundle_when_provided() -> None:
+    prompt = build_review_prompt(
+        ReviewRunnerInput(
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            pr_number=71,
+            handoff_bundle_markdown="# Agent Handoff Bundle\n\n## Checkout Context\n- base_ref: `origin/main`",
+        )
+    )
+
+    assert "## Governed Handoff Bundle" in prompt
+    assert "## Checkout Context" in prompt
+
+
 def test_dispatch_review_execution_prepared_backend_when_explicitly_set() -> None:
     execution = RunnerExecution(
         runner_name=RunnerName.REVIEW,

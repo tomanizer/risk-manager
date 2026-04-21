@@ -2,11 +2,11 @@
 
 ## Status
 
-**READY** - GitHub issue `#196` is open, the contract-first slice is bounded, and no upstream code dependency must land before this foundation work can start.
+**DONE** - Merged to `main` via [PR #202](https://github.com/tomanizer/risk-manager/pull/202). The shared governed handoff-bundle contract now exists in repo code and is available for runtime and manual consumers to adopt in follow-on slices.
 
 ## Blocker
 
-- None. PM can assign this slice to Coding Agent.
+- None. Work complete.
 
 ## Linked PRD
 
@@ -25,6 +25,12 @@ None.
 ## Purpose
 
 Introduce one typed, serializable shared handoff-bundle contract that can become the common context surface for runtime-managed and manual agent invocation flows.
+
+## Completion evidence on `main`
+
+- Merge: [PR #202](https://github.com/tomanizer/risk-manager/pull/202)
+- `agent_runtime/handoff_bundle.py` now defines the shared typed bundle, builder, JSON serialization, and deterministic markdown rendering contract.
+- `agent_runtime/tests/test_handoff_bundle.py` now covers required-field extraction, optional-field handling, deterministic serialization, and markdown rendering behavior.
 
 ## Scope
 
