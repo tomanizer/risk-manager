@@ -2,11 +2,11 @@
 
 ## Status
 
-**READY** - GitHub issue `#197` is open, the checkout-correctness scope is explicit, and this slice can land independently of the shared handoff-bundle work.
+**DONE** - Merged to `main` via [PR #194](https://github.com/tomanizer/risk-manager/pull/194). Runtime-managed checkout semantics now distinguish fresh-slice versus PR-follow-up execution and preserve safe release behavior for non-runtime-owned branches.
 
 ## Blocker
 
-- None. PM can assign this slice to Coding Agent.
+- None. Work complete.
 
 ## Linked PRD
 
@@ -25,6 +25,14 @@ None.
 ## Purpose
 
 Make runtime-managed checkout semantics branch-correct by distinguishing fresh-slice runs from PR-follow-up runs and ensuring follow-up coding stays on the authoritative PR head branch instead of creating a sibling feature branch.
+
+## Completion evidence on `main`
+
+- Merge: [PR #194](https://github.com/tomanizer/risk-manager/pull/194)
+- `agent_runtime/orchestrator/execution.py` now persists PR-head checkout metadata including `pr_head_branch`, `checkout_ref`, `checkout_detached`, and `branch_owned_by_runtime` for PR-linked coding and review runs.
+- `agent_runtime/orchestrator/worktree_manager.py` now allocates detached PR-head worktrees when appropriate and skips branch deletion for non-runtime-owned branches on release.
+- `agent_runtime/storage/sqlite.py` now persists `branch_owned_by_runtime` in `worktree_leases`.
+- Targeted verification at merge time for [PR #194](https://github.com/tomanizer/risk-manager/pull/194): `python -m pytest agent_runtime/tests/test_worktree_manager.py agent_runtime/tests/test_transitions.py -q`
 
 ## Scope
 
