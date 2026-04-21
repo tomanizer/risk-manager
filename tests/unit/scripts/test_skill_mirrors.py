@@ -13,6 +13,7 @@ from scripts.skills.common import (
     find_mirror_drift,
     render_mirror_content,
 )
+import scripts.skills.common as skills_common
 
 
 def test_discover_skills_parses_multiline_description(tmp_path: Path) -> None:
@@ -115,6 +116,31 @@ description: 123
         assert "non-empty string `description`" in str(exc)
     else:
         raise AssertionError("Expected malformed frontmatter to raise ValueError.")
+
+
+def test_discover_skills_parses_frontmatter_without_pyyaml(tmp_path: Path, monkeypatch) -> None:
+    _write_agents_stub(tmp_path)
+    skill_path = tmp_path / CANONICAL_SKILLS_DIR / "demo" / "SKILL.md"
+    skill_path.parent.mkdir(parents=True)
+    skill_path.write_text(
+        """---
+name: demo
+description: >-
+  First sentence.
+  Second sentence.
+---
+
+# demo
+""",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(skills_common, "_yaml", None)
+
+    skills = discover_skills(tmp_path)
+
+    assert len(skills) == 1
+    assert skills[0].description == "First sentence. Second sentence."
 
 
 def _write_agents_stub(root: Path) -> None:

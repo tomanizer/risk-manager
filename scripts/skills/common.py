@@ -4,7 +4,10 @@ from dataclasses import dataclass
 from pathlib import Path
 import re
 
-import yaml
+try:
+    import yaml as _yaml
+except ModuleNotFoundError:  # pragma: no cover - exercised in CI environments without PyYAML
+    _yaml = None
 
 
 CANONICAL_SKILLS_DIR = Path("skills")
@@ -305,7 +308,7 @@ def _parse_frontmatter(content: str, path: Path) -> dict[str, str]:
         raise ValueError(f"Skill file `{path.as_posix()}` has an unterminated YAML frontmatter block.") from exc
 
     metadata_block = "\n".join(lines[1:closing_index])
-    payload = yaml.safe_load(metadata_block)
+    payload = _load_frontmatter_payload(metadata_block)
     if not isinstance(payload, dict):
         raise ValueError(f"Skill file `{path.as_posix()}` frontmatter must decode to a mapping.")
 
@@ -316,6 +319,89 @@ def _parse_frontmatter(content: str, path: Path) -> dict[str, str]:
     if not isinstance(description, str) or not description.strip():
         raise ValueError(f"Skill file `{path.as_posix()}` must define a non-empty string `description` in frontmatter.")
     return {"name": name.strip(), "description": description.strip()}
+
+
+def _load_frontmatter_payload(metadata_block: str) -> object:
+    if _yaml is not None:
+        return _yaml.safe_load(metadata_block)
+    return _parse_frontmatter_without_yaml(metadata_block)
+
+
+def _parse_frontmatter_without_yaml(metadata_block: str) -> dict[str, object]:
+    payload: dict[str, object] = {}
+    lines = metadata_block.splitlines()
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        if not line.strip():
+            index += 1
+            continue
+        if line.startswith(" "):
+            raise ValueError("Skill frontmatter contains an unexpected indented line.")
+
+        match = re.match(r"^(?P<key>[A-Za-z0-9_-]+):(?:\s*(?P<value>.*))?$", line)
+        if match is None:
+            raise ValueError(f"Unsupported frontmatter line: `{line}`.")
+
+        key = match.group("key")
+        raw_value = (match.group("value") or "").rstrip()
+        if raw_value in {">", ">-", "|", "|-"}:
+            block_lines: list[str] = []
+            index += 1
+            while index < len(lines):
+                block_line = lines[index]
+                if block_line.startswith("  "):
+                    block_lines.append(block_line[2:])
+                    index += 1
+                    continue
+                if not block_line.strip():
+                    block_lines.append("")
+                    index += 1
+                    continue
+                break
+            payload[key] = _normalize_block_scalar(raw_value, block_lines)
+            continue
+
+        payload[key] = _parse_scalar_without_yaml(raw_value)
+        index += 1
+    return payload
+
+
+def _normalize_block_scalar(style: str, lines: list[str]) -> str:
+    if style.startswith(">"):
+        paragraphs: list[str] = []
+        current: list[str] = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped:
+                current.append(stripped)
+                continue
+            if current:
+                paragraphs.append(" ".join(current))
+                current = []
+        if current:
+            paragraphs.append(" ".join(current))
+        return "\n\n".join(paragraphs)
+    return "\n".join(lines)
+
+
+def _parse_scalar_without_yaml(raw_value: str) -> object:
+    value = raw_value.strip()
+    if not value:
+        return ""
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+        return value[1:-1]
+
+    lowered = value.lower()
+    if lowered in {"true", "false"}:
+        return lowered == "true"
+    if lowered in {"null", "~"}:
+        return None
+    if re.fullmatch(r"[+-]?\d+", value):
+        return int(value)
+    if re.fullmatch(r"[+-]?(?:\d+\.\d*|\d*\.\d+)", value):
+        return float(value)
+    return value
 
 
 def render_mirror_content(content: str) -> str:
