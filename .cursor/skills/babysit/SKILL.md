@@ -50,8 +50,8 @@ Before doing anything else, print:
 ### 1. Snapshot PR state
 
 ```bash
-gh pr view <PR#> --json title,state,isDraft,url,mergeable,mergeStateStatus,baseRefName,headRefName,reviewDecision
-gh pr checks <PR#>
+gh pr view {pr_number} --json title,state,isDraft,url,mergeable,mergeStateStatus,baseRefName,headRefName,reviewDecision
+gh pr checks {pr_number}
 ```
 
 Report: mergeable, merge-state (e.g. blocked by rules), and which checks passed / failed / pending.
@@ -63,7 +63,7 @@ Capture `{owner}` and `{repo}` once from `origin` or `gh repo view --json name,o
 ### 2. Checkout PR head (before any local commits)
 
 ```bash
-gh pr checkout <PR#>
+gh pr checkout {pr_number}
 ```
 
 Confirm your branch matches the PR head (`headRefName` from step 1). If you only read state and make **no commits**, checkout is optional; once you edit or commit, you must be on the PR head branch.
@@ -98,18 +98,17 @@ gh api graphql -f query='query($owner:String!, $repo:String!, $pr:Int!) { reposi
 
 Use the exact bot identities and structures already observed in this repository:
 
-- **Gemini login:** `gemini-code-assist`
-- **Copilot login:** `copilot-pull-request-reviewer`
-- **Gemini summary review shape:** `reviews[].author.login == "gemini-code-assist"` with a body starting `## Code Review`
-- **Gemini inline thread shape:** `reviewThreads[].comments[].author.login == "gemini-code-assist"` with severity badges and often a ```suggestion``` block
-- **Gemini fallback issue-comment shape:** `issues/{pr}/comments[].user.login == "gemini-code-assist"` with a note that Gemini could not generate a review for the file types involved
-- **Copilot summary review shape:** `reviews[].author.login == "copilot-pull-request-reviewer"` with a body starting `## Pull request overview`
-- **Copilot inline thread shape:** `reviewThreads[].comments[].author.login == "copilot-pull-request-reviewer"` with focused file-level comments and occasional ```suggestion``` blocks
+- **Gemini review login via REST:** `reviews[].user.login == "gemini-code-assist[bot]"` with a body starting `## Code Review`
+- **Gemini inline thread login via GraphQL:** `reviewThreads.nodes[].comments.nodes[].author.login == "gemini-code-assist"` with severity badges and often a ```suggestion``` block
+- **Gemini fallback issue-comment shape:** `issues/{pr_number}/comments[].user.login == "gemini-code-assist[bot]"` with a note that Gemini could not generate a review for the file types involved
+- **Copilot review login via REST:** `reviews[].user.login == "copilot-pull-request-reviewer[bot]"` with a body starting `## Pull request overview`
+- **Copilot inline thread login via GraphQL:** `reviewThreads.nodes[].comments.nodes[].author.login == "copilot-pull-request-reviewer"` with focused file-level comments and occasional ```suggestion``` blocks
+- **Copilot requested-reviewer shape via REST:** `requested_reviewers.users[].login` commonly includes `Copilot`
 
-Treat these exact author matches as the default arrival signals:
+Treat these observed shapes as the default arrival signals:
 
-- **Gemini arrived** when reviews, issue comments, review comments, or review threads include author login **`gemini-code-assist`**.
-- **Copilot arrived** when reviews, issue comments, review comments, or requested reviewers include author/login **`copilot-pull-request-reviewer`**.
+- **Gemini arrived** when reviews or issue comments use `user.login == "gemini-code-assist[bot]"`, or review threads use `author.login == "gemini-code-assist"`.
+- **Copilot arrived** when reviews use `user.login == "copilot-pull-request-reviewer[bot]"`, review threads use `author.login == "copilot-pull-request-reviewer"`, or `requested_reviewers.users[].login` includes `Copilot`.
 
 If the PR already has Gemini or Copilot activity when babysit starts, treat that as the relevant review having already arrived; do not wait for a second copy before triaging.
 
@@ -119,7 +118,7 @@ If `isDraft` is `true`, babysit should **not** move the PR to ready-for-review i
 
 1. Poll the review inventory helpers on a bounded loop until Gemini review activity appears, or the wait deadline expires.
 2. Once Gemini has arrived, triage it before changing PR state:
-   - **valid** -> apply the minimal sensible fix, run targeted verification, commit, push
+   - **valid** -> apply the minimal sensible fix, run targeted verification (see step 8), commit, push
    - **partial** -> fix the valid subset, reply with what remains or why scope stops here
    - **not applicable / already fixed** -> reply briefly, then resolve the thread if it is inline
 3. Re-query threads after each push. Keep going until there are no actionable Gemini threads left or you hit a human-judgment blocker.
@@ -127,17 +126,19 @@ If `isDraft` is `true`, babysit should **not** move the PR to ready-for-review i
 
 ### 6. Promote to ready and verify Copilot trigger
 
-After Gemini has been triaged on a draft PR, or immediately if the PR was already open:
+After Gemini has been triaged on a draft PR:
 
 ```bash
-gh pr ready <PR#>
+gh pr ready {pr_number}
 ```
+
+If `isDraft` is already `false`, skip the `gh pr ready` command and go straight to Copilot-trigger verification.
 
 Then verify that Copilot review has actually been triggered.
 
 1. Poll `requested_reviewers`, reviews, issue comments, and review comments on a bounded loop.
-2. A pending requested reviewer whose login is `copilot-pull-request-reviewer` counts as **triggered but not yet completed**.
-3. A Copilot-authored review/comment from `copilot-pull-request-reviewer` counts as **arrived**.
+2. A pending requested reviewer where `requested_reviewers.users[].login` includes `Copilot` counts as **triggered but not yet completed**.
+3. A Copilot-authored review/comment from the observed Copilot identities above counts as **arrived**.
 4. If no Copilot signal appears before the deadline, report that automatic Copilot review was **not observed** after the PR became ready. Treat that as a workflow blocker or manual follow-up item rather than guessing.
 
 Important nuance: GitHub documents that Copilot automatic review normally fires when a PR is created open or the **first** time a draft PR is switched to open. GitHub also documents that Copilot does **not** automatically re-review later pushes unless the repo has the relevant setting enabled. If Copilot already reviewed the draft PR earlier, triage that existing Copilot feedback and do not assume a second automatic review will appear after `gh pr ready`.
