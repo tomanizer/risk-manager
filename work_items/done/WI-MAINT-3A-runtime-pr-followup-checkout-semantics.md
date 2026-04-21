@@ -32,7 +32,7 @@ Make runtime-managed checkout semantics branch-correct by distinguishing fresh-s
 - `agent_runtime/orchestrator/execution.py` now persists PR-head checkout metadata including `pr_head_branch`, `checkout_ref`, `checkout_detached`, and `branch_owned_by_runtime` for PR-linked coding and review runs.
 - `agent_runtime/orchestrator/worktree_manager.py` now allocates detached PR-head worktrees when appropriate and skips branch deletion for non-runtime-owned branches on release.
 - `agent_runtime/storage/sqlite.py` now persists `branch_owned_by_runtime` in `worktree_leases`.
-- Targeted verification on current `main`: `python -m pytest agent_runtime/tests/test_worktree_manager.py agent_runtime/tests/test_transitions.py -q` -> `50 passed`
+- Targeted verification at merge time for [PR #194](https://github.com/tomanizer/risk-manager/pull/194): `python -m pytest agent_runtime/tests/test_worktree_manager.py agent_runtime/tests/test_transitions.py -q`
 
 ## Scope
 
