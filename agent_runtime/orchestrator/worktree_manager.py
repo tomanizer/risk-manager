@@ -11,6 +11,7 @@ import uuid
 import sqlite3
 
 from agent_runtime.config.defaults import RuntimeDefaults
+from agent_runtime.git_env import scrub_git_local_env
 from agent_runtime.runners.contracts import RunnerExecution
 from agent_runtime.storage.sqlite import (
     WorktreeLeaseRecord,
@@ -43,6 +44,7 @@ def _git(repo_root: Path, *args: str) -> None:
             check=True,
             capture_output=True,
             text=True,
+            env=scrub_git_local_env(),
         )
     except subprocess.CalledProcessError as error:
         stderr = error.stderr.strip()
@@ -106,6 +108,7 @@ def _is_valid_worktree(path: Path) -> bool:
         check=False,
         capture_output=True,
         text=True,
+        env=scrub_git_local_env(),
     )
     return result.returncode == 0 and result.stdout.strip() == "true"
 
@@ -138,6 +141,7 @@ def _git_stdout(repo_root: Path, *args: str) -> str:
             check=True,
             capture_output=True,
             text=True,
+            env=scrub_git_local_env(),
         )
     except subprocess.CalledProcessError as error:
         stderr = error.stderr.strip()
@@ -153,6 +157,7 @@ def _current_branch_name(path: Path) -> str | None:
         check=False,
         capture_output=True,
         text=True,
+        env=scrub_git_local_env(),
     )
     if result.returncode != 0:
         return None

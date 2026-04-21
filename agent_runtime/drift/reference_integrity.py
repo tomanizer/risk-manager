@@ -7,6 +7,8 @@ from pathlib import Path
 import re
 import subprocess
 
+from agent_runtime.git_env import scrub_git_local_env
+
 
 TEXT_SUFFIXES = {
     ".json",
@@ -165,6 +167,7 @@ def _git_tracked_files(root: Path) -> tuple[Path, ...] | None:
             check=True,
             capture_output=True,
             text=True,
+            env=scrub_git_local_env(),
         )
     except (FileNotFoundError, subprocess.CalledProcessError):
         return None

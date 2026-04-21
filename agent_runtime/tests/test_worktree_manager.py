@@ -8,7 +8,10 @@ import tempfile
 from unittest.mock import patch
 import sqlite3
 
+import pytest
+
 from agent_runtime.config.defaults import RuntimeDefaults
+from agent_runtime.git_env import scrub_git_local_env
 from agent_runtime.orchestrator.worktree_manager import (
     allocate_worktree,
     bind_worktree_to_execution,
@@ -30,7 +33,30 @@ def _git(cwd: Path, *args: str) -> None:
         check=True,
         capture_output=True,
         text=True,
+        env=scrub_git_local_env(),
     )
+
+
+def _git_stdout(cwd: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", *args],
+        cwd=cwd,
+        check=True,
+        capture_output=True,
+        text=True,
+        env=scrub_git_local_env(),
+    ).stdout.strip()
+
+
+def _git_returncode(cwd: Path, *args: str) -> int:
+    return subprocess.run(
+        ["git", *args],
+        cwd=cwd,
+        check=False,
+        capture_output=True,
+        text=True,
+        env=scrub_git_local_env(),
+    ).returncode
 
 
 def test_allocate_reuse_and_release_worktree() -> None:
@@ -157,14 +183,7 @@ def test_allocate_worktree_replaces_stale_gitdir_stub() -> None:
         assert stale is not None
         assert stale.status == "released"
 
-        rev_parse = subprocess.run(
-            ["git", "rev-parse", "--is-inside-work-tree"],
-            cwd=lease.worktree_path,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        assert rev_parse.stdout.strip() == "true"
+        assert _git_stdout(Path(lease.worktree_path), "rev-parse", "--is-inside-work-tree") == "true"
 
 
 def test_release_worktree_keeps_non_runtime_owned_branch() -> None:
@@ -202,14 +221,7 @@ def test_release_worktree_keeps_non_runtime_owned_branch() -> None:
 
         assert release_worktree(defaults, db_path, lease.run_id) == "released"
 
-        branch_check = subprocess.run(
-            ["git", "rev-parse", "--verify", "refs/heads/pr/head"],
-            cwd=repo_root,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        assert branch_check.returncode == 0
+        assert _git_returncode(repo_root, "rev-parse", "--verify", "refs/heads/pr/head") == 0
 
 
 def test_allocate_worktree_replaces_stale_detached_checkout_when_target_ref_advances() -> None:
@@ -244,26 +256,14 @@ def test_allocate_worktree_replaces_stale_detached_checkout_when_target_ref_adva
         initial_lease = allocate_worktree(defaults, db_path, execution)
         initial_worktree_path = Path(initial_lease.worktree_path)
 
-        initial_head = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=initial_worktree_path,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
+        initial_head = _git_stdout(initial_worktree_path, "rev-parse", "HEAD")
 
         (repo_root / "README.md").write_text("runtime test advanced\n", encoding="utf-8")
         _git(repo_root, "add", "README.md")
         _git(repo_root, "commit", "-m", "advance pr head")
         _git(repo_root, "branch", "-f", "pr/head", "HEAD")
 
-        updated_target = subprocess.run(
-            ["git", "rev-parse", "pr/head"],
-            cwd=repo_root,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
+        updated_target = _git_stdout(repo_root, "rev-parse", "pr/head")
         assert updated_target != initial_head
 
         refreshed_lease = allocate_worktree(defaults, db_path, execution)
@@ -274,13 +274,7 @@ def test_allocate_worktree_replaces_stale_detached_checkout_when_target_ref_adva
         assert released_initial.status == "released"
         assert not initial_worktree_path.exists()
 
-        refreshed_head = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            cwd=refreshed_lease.worktree_path,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout.strip()
+        refreshed_head = _git_stdout(Path(refreshed_lease.worktree_path), "rev-parse", "HEAD")
         assert refreshed_head == updated_target
 
 
@@ -334,11 +328,26 @@ def test_allocate_worktree_cleans_orphaned_worktree_when_lease_insert_loses_race
         assert reused_lease == concurrent_lease
         assert not defaults.worktree_root_path.exists() or tuple(defaults.worktree_root_path.iterdir()) == ()
 
-        branch_listing = subprocess.run(
-            ["git", "branch", "--list", "codex/*"],
-            cwd=repo_root,
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        assert branch_listing.stdout.strip() == ""
+        assert _git_stdout(repo_root, "branch", "--list", "codex/*") == ""
+
+
+def test_git_helper_ignores_repo_bound_git_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    git_dir = _git_stdout(repo_root, "rev-parse", "--git-dir")
+    work_tree = _git_stdout(repo_root, "rev-parse", "--show-toplevel")
+
+    monkeypatch.setenv("GIT_DIR", git_dir)
+    monkeypatch.setenv("GIT_WORK_TREE", work_tree)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_repo = Path(temp_dir) / "repo"
+        temp_repo.mkdir()
+
+        _git(temp_repo, "init")
+        _git(temp_repo, "config", "user.email", "test@example.com")
+        _git(temp_repo, "config", "user.name", "Test User")
+        (temp_repo / "README.md").write_text("temp repo\n", encoding="utf-8")
+        _git(temp_repo, "add", "README.md")
+        _git(temp_repo, "commit", "-m", "init")
+
+        assert Path(_git_stdout(temp_repo, "rev-parse", "--show-toplevel")).samefile(temp_repo)
