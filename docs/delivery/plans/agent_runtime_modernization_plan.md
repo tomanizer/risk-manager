@@ -5,8 +5,8 @@
 - Initiative: `agent-runtime-modernization`
 - Status: Active
 - Owner: PM / Coordination Agent
-- Linked audit: `docs/guides/agent_runtime_audit_2026-04-21.md`
-- Linked repo-local template: `docs/delivery/plans/agent_runtime_modernization_plan_template.md`
+- Linked audit: [agent_runtime_audit_2026-04-21.md](../../guides/agent_runtime_audit_2026-04-21.md)
+- Linked repo-local template: [agent_runtime_modernization_plan_template.md](./agent_runtime_modernization_plan_template.md)
 - Linked umbrella issue: [#195](https://github.com/tomanizer/risk-manager/issues/195)
 - Last updated: `2026-04-21`
 

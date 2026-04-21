@@ -14,7 +14,7 @@ Wave 1: fix runtime-managed checkout semantics for PR-follow-up coding
 ## Parent
 
 - Umbrella: [#195](https://github.com/tomanizer/risk-manager/issues/195)
-- Linked audit: `docs/guides/agent_runtime_audit_2026-04-21.md`
+- Linked audit: [agent_runtime_audit_2026-04-21.md](../../guides/agent_runtime_audit_2026-04-21.md)
 - Opened as: [#197](https://github.com/tomanizer/risk-manager/issues/197)
 
 ## Body

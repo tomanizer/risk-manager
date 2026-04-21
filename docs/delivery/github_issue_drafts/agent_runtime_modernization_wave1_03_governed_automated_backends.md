@@ -14,7 +14,7 @@ Wave 1: make automated backends run with governed role instructions
 ## Parent
 
 - Umbrella: [#195](https://github.com/tomanizer/risk-manager/issues/195)
-- Linked audit: `docs/guides/agent_runtime_audit_2026-04-21.md`
+- Linked audit: [agent_runtime_audit_2026-04-21.md](../../guides/agent_runtime_audit_2026-04-21.md)
 - Opened as: [#198](https://github.com/tomanizer/risk-manager/issues/198)
 
 ## Body

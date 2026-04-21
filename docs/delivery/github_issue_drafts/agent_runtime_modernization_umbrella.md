@@ -14,8 +14,8 @@ Agent Runtime Modernization: unify handoffs, runtime-managed execution, and the 
 ## Parent / Initiative
 
 - Initiative: `agent-runtime-modernization`
-- Linked audit: `docs/guides/agent_runtime_audit_2026-04-21.md`
-- Linked repo-local plan: `docs/delivery/plans/agent_runtime_modernization_plan.md`
+- Linked audit: [agent_runtime_audit_2026-04-21.md](../../guides/agent_runtime_audit_2026-04-21.md)
+- Linked repo-local plan: [agent_runtime_modernization_plan.md](../plans/agent_runtime_modernization_plan.md)
 - Opened as: [#195](https://github.com/tomanizer/risk-manager/issues/195)
 
 ## Body

@@ -5,7 +5,7 @@
 - Initiative: `agent-runtime-modernization`
 - Status: Draft
 - Owner: PM / Coordination Agent
-- Linked audit: `docs/guides/agent_runtime_audit_2026-04-21.md`
+- Linked audit: `<path to audit document>`
 - Linked umbrella issue: `<GitHub issue URL or number>`
 - Last updated: `<YYYY-MM-DD>`
 

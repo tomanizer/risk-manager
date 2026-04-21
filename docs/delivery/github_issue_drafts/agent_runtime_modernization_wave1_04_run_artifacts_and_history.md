@@ -14,7 +14,7 @@ Wave 1: add durable run artifacts and append-only execution history to `agent_ru
 ## Parent
 
 - Umbrella: [#195](https://github.com/tomanizer/risk-manager/issues/195)
-- Linked audit: `docs/guides/agent_runtime_audit_2026-04-21.md`
+- Linked audit: [agent_runtime_audit_2026-04-21.md](../../guides/agent_runtime_audit_2026-04-21.md)
 - Opened as: [#199](https://github.com/tomanizer/risk-manager/issues/199)
 
 ## Body
