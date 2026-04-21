@@ -234,4 +234,3 @@ def test_handoff_bundle_serialization_and_markdown_are_deterministic(tmp_path: P
     assert payload["linked_prd"]["resolved_path"] == "docs/prds/phase-1/PRD-1.1-risk-summary-service-v2.md"
     assert "## Scope" in first.render_markdown()
     assert "- base_ref: `origin/main`" in first.render_markdown()
-

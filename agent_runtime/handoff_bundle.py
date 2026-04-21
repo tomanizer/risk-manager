@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 import json
 from pathlib import Path
 import re
-from typing import Mapping
+from typing import Mapping, cast
 
 from agent_runtime.orchestrator.state import PullRequestSnapshot
 
@@ -301,8 +301,15 @@ def _render_document_reference(reference: HandoffDocumentReference) -> list[str]
     return lines
 
 
-def _render_key_value_list(value: object) -> list[str]:
-    payload = asdict(value) if not isinstance(value, dict) else value
+def _render_key_value_list(
+    value: Mapping[str, object] | HandoffCheckoutContext | HandoffPullRequestContext | HandoffSourceProvenance,
+) -> list[str]:
+    if isinstance(value, Mapping):
+        payload = dict(value)
+    elif is_dataclass(value):
+        payload = cast(dict[str, object], asdict(value))
+    else:
+        raise TypeError(f"Expected dataclass or dict for markdown rendering, got {type(value)!r}")
     lines: list[str] = []
     for key, raw_value in payload.items():
         if isinstance(raw_value, tuple):
@@ -402,4 +409,3 @@ def build_handoff_bundle(
             pull_request_source="PullRequestSnapshot" if pull_request is not None else None,
         ),
     )
-
