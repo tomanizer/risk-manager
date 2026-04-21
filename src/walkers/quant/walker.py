@@ -23,9 +23,6 @@ from src.modules.risk_analytics.contracts import MeasureType, NodeRef
 from src.modules.risk_analytics.fixtures import FixtureIndex
 from src.shared import ServiceError
 
-from .contracts import QUANT_WALKER_VERSION
-
-
 def summarize_change(
     node_ref: NodeRef,
     measure_type: MeasureType,

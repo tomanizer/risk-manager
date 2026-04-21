@@ -60,7 +60,7 @@ Canon (not WI-gated):
 
 ## Target area
 
-- `tests/unit/walkers/quant/test_replay_determinism.py`
+- `tests/unit/walkers/quant/`
 
 ## Acceptance criteria
 
