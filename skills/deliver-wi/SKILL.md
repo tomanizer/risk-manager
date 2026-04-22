@@ -104,7 +104,9 @@ Default to **PM** when in doubt — it is always safe to run PM first.
 
 ## Step 4 — Fill the template
 
-Read the selected template file. Replace the **exact bracketed placeholder string as written in the template** — including any descriptive suffix. Do not assume differently worded placeholders are interchangeable across templates.
+You may run `python scripts/invoke.py --role <ROLE> --work-item <WI_ID>` to automatically generate the prompt filled with the shared handoff bundle data.
+
+If filling manually, read the selected template file and replace the **exact bracketed placeholder string as written in the template** — including any descriptive suffix. Do not assume differently worded placeholders are interchangeable across templates.
 
 ### PM placeholder mapping
 
