@@ -17,6 +17,7 @@ dev = [
     "mypy",
     "PyYAML>=6.0,<7.0",
     "types-PyYAML",
+    "alterraflow @ file://localhost/app/alterraflow",
 ]
 agent = [
     "langgraph>=0.3,<1.0",
@@ -42,7 +43,7 @@ compute = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "agent_runtime/tests"]
+testpaths = ["tests"]
 
 [tool.ruff]
 target-version = "py312"
@@ -70,4 +71,4 @@ module = ["opentelemetry.*", "structlog", "langgraph.*", "langchain_core.*", "op
 ignore_missing_imports = true
 
 [tool.setuptools.packages.find]
-include = ["src*", "agent_runtime*"]
+include = ["src*"]
