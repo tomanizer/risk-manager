@@ -2,13 +2,13 @@
 
 ## Status
 
-**BLOCKED** - gated on `WI-MAINT-2A` and `WI-MAINT-2B` merging on `main`.
+**READY** - `WI-MAINT-2A` and `WI-MAINT-2B` are merged on `main`, so manual-surface parity is now the next shared-handoff follow-on slice.
 
 ## Blocker
 
-- The manual invocation surface should not be migrated until the shared handoff-bundle contract exists and the runtime consumer shape is stable enough to compare against.
+- None. PM can assign this slice to Coding Agent.
 
-**Owner:** Coding Agent completes `WI-MAINT-2A` and `WI-MAINT-2B` -> human merge -> PM moves this WI to `ready/`.
+**Owner:** PM / Coordination Agent.
 
 ## Linked PRD
 
@@ -80,11 +80,9 @@ Migrate the manual invocation tooling to the shared handoff-bundle builder and c
 
 ## Suggested agent
 
-Coding Agent (after unblock)
+Coding Agent
 
 ## READY_CRITERIA (checklist - work_items/READY_CRITERIA.md)
-
-*Blocked until `WI-MAINT-2A` and `WI-MAINT-2B` complete; when unblocked, all must hold:*
 
 1. **Linked contract** - The shared bundle contract and runtime consumer migration are both merged on `main`.
 2. **Scope clarity** - Manual-surface parity only; no template redesign or branching-policy change.

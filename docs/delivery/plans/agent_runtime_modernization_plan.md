@@ -258,7 +258,7 @@ Materialized work items on `2026-04-21`:
 
 - [WI-MAINT-2A](../../../work_items/done/WI-MAINT-2A-shared-handoff-bundle-contract.md) - done via [PR #202](https://github.com/tomanizer/risk-manager/pull/202)
 - [WI-MAINT-2B](../../../work_items/done/WI-MAINT-2B-runtime-shared-handoff-migration.md) - done via [PR #205](https://github.com/tomanizer/risk-manager/pull/205)
-- [WI-MAINT-2C](../../../work_items/blocked/WI-MAINT-2C-manual-handoff-surface-parity.md) - blocked on `WI-MAINT-2A` and `WI-MAINT-2B`
+- [WI-MAINT-2C](../../../work_items/ready/WI-MAINT-2C-manual-handoff-surface-parity.md) - ready for the manual-surface parity follow-on now that `WI-MAINT-2A` and `WI-MAINT-2B` are done
 - [WI-MAINT-3A](../../../work_items/done/WI-MAINT-3A-runtime-pr-followup-checkout-semantics.md) - done via [PR #194](https://github.com/tomanizer/risk-manager/pull/194)
 
 ## 11. Suggested Wave 1 Work-Item Granularity
