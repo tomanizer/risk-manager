@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, is_dataclass
+from dataclasses import asdict, dataclass, is_dataclass, replace
 import json
 from pathlib import Path
 import re
@@ -291,6 +291,103 @@ class HandoffBundle:
         lines.extend(["", "## Source Provenance"])
         lines.extend(_render_key_value_list(self.source_provenance))
         return "\n".join(lines).rstrip() + "\n"
+
+
+def handoff_bundle_from_json(payload: str) -> HandoffBundle:
+    data = cast(dict[str, object], json.loads(payload))
+    linked_prd_payload = cast(dict[str, object] | None, data.get("linked_prd"))
+    pr_context_payload = cast(dict[str, object] | None, data.get("pr_context"))
+    source_provenance_payload = cast(dict[str, object], data["source_provenance"])
+    checkout_context_payload = cast(dict[str, object], data["checkout_context"])
+    linked_adrs_payload = cast(list[dict[str, object]], data.get("linked_adrs", []))
+
+    return HandoffBundle(
+        role=str(data["role"]),
+        work_item_id=str(data["work_item_id"]),
+        work_item_title=str(data["work_item_title"]),
+        work_item_path=str(data["work_item_path"]),
+        checkout_context=HandoffCheckoutContext(
+            base_ref=cast(str | None, checkout_context_payload.get("base_ref")),
+            checkout_ref=cast(str | None, checkout_context_payload.get("checkout_ref")),
+            checkout_detached=cast(bool | None, checkout_context_payload.get("checkout_detached")),
+            branch_name=cast(str | None, checkout_context_payload.get("branch_name")),
+            branch_owned_by_runtime=cast(bool | None, checkout_context_payload.get("branch_owned_by_runtime")),
+            pr_head_branch=cast(str | None, checkout_context_payload.get("pr_head_branch")),
+            worktree_path=cast(str | None, checkout_context_payload.get("worktree_path")),
+            run_id=cast(str | None, checkout_context_payload.get("run_id")),
+        ),
+        linked_prd=(
+            None
+            if linked_prd_payload is None
+            else HandoffDocumentReference(
+                reference_text=str(linked_prd_payload["reference_text"]),
+                resolved_path=cast(str | None, linked_prd_payload.get("resolved_path")),
+            )
+        ),
+        linked_adrs=tuple(
+            HandoffDocumentReference(
+                reference_text=str(item["reference_text"]),
+                resolved_path=cast(str | None, item.get("resolved_path")),
+            )
+            for item in linked_adrs_payload
+        ),
+        dependencies=str(data.get("dependencies", "")),
+        scope=str(data.get("scope", "")),
+        target_area=str(data.get("target_area", "")),
+        out_of_scope=str(data.get("out_of_scope", "")),
+        acceptance_criteria=str(data.get("acceptance_criteria", "")),
+        stop_conditions=cast(str | None, data.get("stop_conditions")),
+        pr_context=(
+            None
+            if pr_context_payload is None
+            else HandoffPullRequestContext(
+                number=cast(int, pr_context_payload["number"]),
+                is_draft=cast(bool, pr_context_payload["is_draft"]),
+                url=cast(str | None, pr_context_payload.get("url")),
+                head_ref_name=cast(str | None, pr_context_payload.get("head_ref_name")),
+                base_ref_name=cast(str | None, pr_context_payload.get("base_ref_name")),
+                updated_at=cast(str | None, pr_context_payload.get("updated_at")),
+                unresolved_review_threads=cast(int | None, pr_context_payload.get("unresolved_review_threads")),
+                has_new_review_comments=cast(bool | None, pr_context_payload.get("has_new_review_comments")),
+                review_decision=cast(str | None, pr_context_payload.get("review_decision")),
+                merge_state_status=cast(str | None, pr_context_payload.get("merge_state_status")),
+                ci_status=cast(str | None, pr_context_payload.get("ci_status")),
+            )
+        ),
+        source_provenance=HandoffSourceProvenance(
+            builder_name=str(source_provenance_payload["builder_name"]),
+            repo_root=str(source_provenance_payload["repo_root"]),
+            work_item_path=str(source_provenance_payload["work_item_path"]),
+            work_item_stage=cast(str | None, source_provenance_payload.get("work_item_stage")),
+            runtime_metadata_keys=tuple(cast(list[str], source_provenance_payload.get("runtime_metadata_keys", []))),
+            pull_request_source=cast(str | None, source_provenance_payload.get("pull_request_source")),
+        ),
+    )
+
+
+def refresh_handoff_bundle_runtime_metadata(payload: str, runtime_metadata: Mapping[str, str]) -> HandoffBundle:
+    bundle = handoff_bundle_from_json(payload)
+    checkout_detached = _parse_optional_bool(runtime_metadata.get("checkout_detached"))
+    branch_owned_by_runtime = _parse_optional_bool(runtime_metadata.get("branch_owned_by_runtime"))
+    runtime_metadata_keys = set(bundle.source_provenance.runtime_metadata_keys)
+    runtime_metadata_keys.update(runtime_metadata.keys())
+
+    refreshed_checkout_context = replace(
+        bundle.checkout_context,
+        base_ref=runtime_metadata.get("base_ref", bundle.checkout_context.base_ref),
+        checkout_ref=runtime_metadata.get("checkout_ref", bundle.checkout_context.checkout_ref),
+        checkout_detached=checkout_detached if checkout_detached is not None else bundle.checkout_context.checkout_detached,
+        branch_name=runtime_metadata.get("branch_name", bundle.checkout_context.branch_name),
+        branch_owned_by_runtime=(branch_owned_by_runtime if branch_owned_by_runtime is not None else bundle.checkout_context.branch_owned_by_runtime),
+        pr_head_branch=runtime_metadata.get("pr_head_branch", bundle.checkout_context.pr_head_branch),
+        worktree_path=runtime_metadata.get("worktree_path", bundle.checkout_context.worktree_path),
+        run_id=runtime_metadata.get("run_id", bundle.checkout_context.run_id),
+    )
+    refreshed_source_provenance = replace(
+        bundle.source_provenance,
+        runtime_metadata_keys=tuple(sorted(runtime_metadata_keys)),
+    )
+    return replace(bundle, checkout_context=refreshed_checkout_context, source_provenance=refreshed_source_provenance)
 
 
 def _render_document_reference(reference: HandoffDocumentReference) -> list[str]:

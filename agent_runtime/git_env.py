@@ -23,6 +23,8 @@ LOCAL_GIT_ENV_VARS = (
     "GIT_COMMON_DIR",
 )
 
+GIT_SUBPROCESS_TIMEOUT_SECONDS = 30
+
 
 def scrub_git_local_env(env: Mapping[str, str] | None = None) -> dict[str, str]:
     sanitized = dict(os.environ if env is None else env)

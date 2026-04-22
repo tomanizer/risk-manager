@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 import subprocess
 
-from agent_runtime.git_env import scrub_git_local_env
+from agent_runtime.git_env import GIT_SUBPROCESS_TIMEOUT_SECONDS, scrub_git_local_env
 
 
 TEXT_SUFFIXES = {
@@ -168,6 +168,7 @@ def _git_tracked_files(root: Path) -> tuple[Path, ...] | None:
             capture_output=True,
             text=True,
             env=scrub_git_local_env(),
+            timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
         )
     except (FileNotFoundError, subprocess.CalledProcessError):
         return None

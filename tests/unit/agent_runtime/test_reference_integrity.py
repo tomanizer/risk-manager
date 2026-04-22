@@ -7,6 +7,7 @@ import sys
 
 import pytest
 
+from agent_runtime.git_env import GIT_SUBPROCESS_TIMEOUT_SECONDS
 from agent_runtime.drift.reference_integrity import build_reference_scan_report
 
 
@@ -18,6 +19,7 @@ def _repo_git_binding() -> tuple[str, str]:
         check=True,
         capture_output=True,
         text=True,
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
     ).stdout.strip()
     work_tree = subprocess.run(
         ["git", "rev-parse", "--show-toplevel"],
@@ -25,6 +27,7 @@ def _repo_git_binding() -> tuple[str, str]:
         check=True,
         capture_output=True,
         text=True,
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
     ).stdout.strip()
     return git_dir, work_tree
 

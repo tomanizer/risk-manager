@@ -11,7 +11,8 @@ import sqlite3
 import pytest
 
 from agent_runtime.config.defaults import RuntimeDefaults
-from agent_runtime.git_env import scrub_git_local_env
+from agent_runtime.git_env import GIT_SUBPROCESS_TIMEOUT_SECONDS, scrub_git_local_env
+from agent_runtime.handoff_bundle import build_handoff_bundle
 from agent_runtime.orchestrator.worktree_manager import (
     allocate_worktree,
     bind_worktree_to_execution,
@@ -34,6 +35,7 @@ def _git(cwd: Path, *args: str) -> None:
         capture_output=True,
         text=True,
         env=scrub_git_local_env(),
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
     )
 
 
@@ -45,6 +47,7 @@ def _git_stdout(cwd: Path, *args: str) -> str:
         capture_output=True,
         text=True,
         env=scrub_git_local_env(),
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
     ).stdout.strip()
 
 
@@ -56,6 +59,7 @@ def _git_returncode(cwd: Path, *args: str) -> int:
         capture_output=True,
         text=True,
         env=scrub_git_local_env(),
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
     ).returncode
 
 
@@ -135,6 +139,69 @@ def test_release_worktree_reports_missing_or_already_released() -> None:
         assert release_worktree(defaults, db_path, lease.run_id) == "released"
         assert release_worktree(defaults, db_path, lease.run_id) == "already_released"
         assert release_worktree(defaults, db_path, "missing-run") == "not_found"
+
+
+def test_bind_worktree_to_execution_refreshes_handoff_bundle_checkout_context() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        repo_root = Path(temp_dir) / "repo"
+        work_item_path = repo_root / "work_items" / "ready" / "WI-1.1.4-risk-summary-core-service.md"
+        work_item_path.parent.mkdir(parents=True, exist_ok=True)
+        (repo_root / "docs" / "prds").mkdir(parents=True, exist_ok=True)
+        (repo_root / "docs" / "prds" / "PRD-1.1-risk-summary-service-v2.md").write_text("# PRD\n", encoding="utf-8")
+        work_item_path.write_text(
+            "\n".join(
+                [
+                    "# WI-1.1.4",
+                    "",
+                    "## Linked PRD",
+                    "",
+                    "docs/prds/PRD-1.1-risk-summary-service-v2.md",
+                    "",
+                    "## Scope",
+                    "",
+                    "- runtime handoff",
+                    "",
+                    "## Target area",
+                    "",
+                    "- `agent_runtime/`",
+                    "",
+                    "## Acceptance criteria",
+                    "",
+                    "- bundle context is present",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        bundle = build_handoff_bundle(
+            role="pm",
+            work_item_path=work_item_path,
+            runtime_metadata={"base_ref": "origin/main"},
+            repo_root=repo_root,
+        )
+        execution = RunnerExecution(
+            runner_name=RunnerName.PM,
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            prompt=f"Act only as the PM agent.\n\n## Governed Handoff Bundle\n\n{bundle.render_markdown()}",
+            metadata={"base_ref": "origin/main", "handoff_bundle_json": bundle.to_json()},
+        )
+        lease = WorktreeLeaseRecord(
+            run_id="pm-wi-1-1-4-test-run",
+            work_item_id=execution.work_item_id,
+            runner_name=execution.runner_name.value,
+            branch_name="codex/pm-wi-1-1-4-test",
+            base_ref="origin/main",
+            worktree_path="/tmp/runtime-worktree",
+            status="active",
+        )
+
+        bound_execution = bind_worktree_to_execution(execution, lease)
+
+        assert "- run_id: `pm-wi-1-1-4-test-run`" in bound_execution.prompt
+        assert "- worktree_path: `/tmp/runtime-worktree`" in bound_execution.prompt
+        assert "pm-wi-1-1-4-test-run" in bound_execution.metadata["handoff_bundle_json"]
+        assert "/tmp/runtime-worktree" in bound_execution.metadata["handoff_bundle_json"]
+        assert '"run_id": "pm-wi-1-1-4-test-run"' in bound_execution.metadata["handoff_bundle_json"]
+        assert '"worktree_path": "/tmp/runtime-worktree"' in bound_execution.metadata["handoff_bundle_json"]
 
 
 def test_allocate_worktree_replaces_stale_gitdir_stub() -> None:

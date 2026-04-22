@@ -7,7 +7,6 @@ import shlex
 import subprocess
 import sys
 
-
 LOCAL_GIT_ENV_VARS = (
     "GIT_ALTERNATE_OBJECT_DIRECTORIES",
     "GIT_CONFIG",
@@ -25,6 +24,7 @@ LOCAL_GIT_ENV_VARS = (
     "GIT_SHALLOW_FILE",
     "GIT_COMMON_DIR",
 )
+GIT_SUBPROCESS_TIMEOUT_SECONDS = 30
 
 
 def parse_args() -> argparse.Namespace:
@@ -125,6 +125,7 @@ def has_tracked_paths(repo_root: Path, *patterns: str) -> bool:
         capture_output=True,
         text=True,
         env=scrub_git_local_env(),
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
     )
     return bool(completed.stdout.strip())
 
@@ -137,6 +138,7 @@ def worktree_state(repo_root: Path, env: dict[str, str]) -> str:
         capture_output=True,
         text=True,
         env=env,
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
     )
     return completed.stdout
 
