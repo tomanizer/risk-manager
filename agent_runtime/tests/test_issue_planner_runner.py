@@ -98,6 +98,20 @@ def test_build_issue_planner_prompt_handles_backlog_materialization_context() ->
     assert "WI-4.2.4, WI-4.2.5, WI-4.2.6, WI-4.2.7" in prompt
 
 
+def test_build_issue_planner_prompt_includes_governed_handoff_bundle_when_provided() -> None:
+    prompt = build_issue_planner_prompt(
+        IssuePlannerRunnerInput(
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            split_reason="Scope is too broad.",
+            work_item_path="work_items/ready/WI-1.1.4-risk-summary-core-service.md",
+            handoff_bundle_markdown="# Agent Handoff Bundle\n\n## Target Area\n- `agent_runtime/`",
+        )
+    )
+
+    assert "## Governed Handoff Bundle" in prompt
+    assert "## Target Area" in prompt
+
+
 # ---------------------------------------------------------------------------
 # dispatch_issue_planner_execution
 # ---------------------------------------------------------------------------
@@ -238,7 +252,9 @@ def test_run_issue_planner_decision_builds_issue_planner_execution() -> None:
         assert execution.runner_name is RunnerName.ISSUE_PLANNER
         assert execution.work_item_id == "WI-1.1.4-risk-summary-core-service"
         assert "Issue Planner agent" in execution.prompt
+        assert "## Governed Handoff Bundle" in execution.prompt
         assert "PRD-1.1-v2" in execution.prompt
+        assert "handoff_bundle_json" in execution.metadata
 
 
 def test_empty_ready_queue_with_backlog_materialization_routes_to_issue_planner() -> None:
@@ -309,5 +325,7 @@ def test_backlog_materialization_decision_builds_issue_planner_execution() -> No
 
         assert execution is not None
         assert execution.runner_name is RunnerName.ISSUE_PLANNER
+        assert "## Governed Handoff Bundle" in execution.prompt
         assert "Materialize the missing follow-on work items" in execution.prompt
         assert "WI-4.2.4, WI-4.2.5, WI-4.2.6, WI-4.2.7" in execution.prompt
+        assert "handoff_bundle_json" in execution.metadata

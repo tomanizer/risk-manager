@@ -5,7 +5,31 @@ from pathlib import Path
 import subprocess
 import sys
 
+import pytest
+
+from agent_runtime.git_env import GIT_SUBPROCESS_TIMEOUT_SECONDS
 from agent_runtime.drift.reference_integrity import build_reference_scan_report
+
+
+def _repo_git_binding() -> tuple[str, str]:
+    repo_root = Path(__file__).resolve().parents[3]
+    git_dir = subprocess.run(
+        ["git", "rev-parse", "--git-dir"],
+        cwd=repo_root,
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
+    ).stdout.strip()
+    work_tree = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        cwd=repo_root,
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
+    ).stdout.strip()
+    return git_dir, work_tree
 
 
 def test_reference_scan_reports_missing_internal_paths(tmp_path: Path) -> None:
@@ -37,6 +61,23 @@ def test_reference_scan_reports_missing_internal_paths(tmp_path: Path) -> None:
     assert finding.reference == "docs/missing.md"
     assert finding.drift_class == "canon drift"
     assert finding.owner == "PM"
+
+
+def test_reference_scan_ignores_repo_bound_git_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    git_dir, work_tree = _repo_git_binding()
+    monkeypatch.setenv("GIT_DIR", git_dir)
+    monkeypatch.setenv("GIT_WORK_TREE", work_tree)
+
+    docs_dir = tmp_path / "docs"
+    docs_dir.mkdir()
+    (tmp_path / "README.md").write_text("# root\n", encoding="utf-8")
+    (docs_dir / "guide.md").write_text("See `docs/missing.md`.\n", encoding="utf-8")
+
+    report = build_reference_scan_report(tmp_path)
+
+    assert report.stats.files_scanned == 2
+    assert report.stats.findings_count == 1
+    assert report.findings[0].reference == "docs/missing.md"
 
 
 def test_reference_scan_classifies_prompt_refs_as_operational_instruction_drift(tmp_path: Path) -> None:

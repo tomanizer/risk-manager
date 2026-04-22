@@ -21,6 +21,7 @@ class CodingRunnerInput:
     base_ref: str | None = None
     pr_head_branch: str | None = None
     drift_summary: str | None = None
+    handoff_bundle_markdown: str | None = None
 
 
 def build_coding_prompt(input_data: CodingRunnerInput) -> str:
@@ -44,6 +45,8 @@ def build_coding_prompt(input_data: CodingRunnerInput) -> str:
         )
     if input_data.drift_summary is not None:
         prompt += f"\n\n## Current repo drift state\n\n{input_data.drift_summary}"
+    if input_data.handoff_bundle_markdown is not None:
+        prompt += f"\n\n## Governed Handoff Bundle\n\n{input_data.handoff_bundle_markdown}"
     return prompt
 
 

@@ -11,6 +11,8 @@ import uuid
 import sqlite3
 
 from agent_runtime.config.defaults import RuntimeDefaults
+from agent_runtime.git_env import GIT_SUBPROCESS_TIMEOUT_SECONDS, scrub_git_local_env
+from agent_runtime.handoff_bundle import refresh_handoff_bundle_runtime_metadata
 from agent_runtime.runners.contracts import RunnerExecution
 from agent_runtime.storage.sqlite import (
     WorktreeLeaseRecord,
@@ -43,6 +45,8 @@ def _git(repo_root: Path, *args: str) -> None:
             check=True,
             capture_output=True,
             text=True,
+            env=scrub_git_local_env(),
+            timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
         )
     except subprocess.CalledProcessError as error:
         stderr = error.stderr.strip()
@@ -106,6 +110,8 @@ def _is_valid_worktree(path: Path) -> bool:
         check=False,
         capture_output=True,
         text=True,
+        env=scrub_git_local_env(),
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
     )
     return result.returncode == 0 and result.stdout.strip() == "true"
 
@@ -138,6 +144,8 @@ def _git_stdout(repo_root: Path, *args: str) -> str:
             check=True,
             capture_output=True,
             text=True,
+            env=scrub_git_local_env(),
+            timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
         )
     except subprocess.CalledProcessError as error:
         stderr = error.stderr.strip()
@@ -153,6 +161,8 @@ def _current_branch_name(path: Path) -> str | None:
         check=False,
         capture_output=True,
         text=True,
+        env=scrub_git_local_env(),
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
     )
     if result.returncode != 0:
         return None
@@ -296,7 +306,14 @@ def bind_worktree_to_execution(execution: RunnerExecution, lease: WorktreeLeaseR
         "base_ref": lease.base_ref,
         "branch_owned_by_runtime": "true" if lease.branch_owned_by_runtime else "false",
     }
-    return replace(execution, prompt=_inject_runtime_checkout_context(execution.prompt, lease, metadata), metadata=metadata)
+    prompt = execution.prompt
+    if "handoff_bundle_json" in metadata:
+        refreshed_bundle = refresh_handoff_bundle_runtime_metadata(metadata["handoff_bundle_json"], metadata)
+        metadata["handoff_bundle_json"] = refreshed_bundle.to_json()
+        marker = "\n\n## Governed Handoff Bundle\n\n"
+        if marker in prompt:
+            prompt = f"{prompt.partition(marker)[0]}{marker}{refreshed_bundle.render_markdown()}"
+    return replace(execution, prompt=_inject_runtime_checkout_context(prompt, lease, metadata), metadata=metadata)
 
 
 def release_worktree(defaults: RuntimeDefaults, db_path: Path, run_id: str) -> str:

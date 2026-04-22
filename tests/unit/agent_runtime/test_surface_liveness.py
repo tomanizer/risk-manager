@@ -5,7 +5,31 @@ from pathlib import Path
 import subprocess
 import sys
 
+import pytest
+
+from agent_runtime.git_env import GIT_SUBPROCESS_TIMEOUT_SECONDS
 from agent_runtime.drift.surface_liveness import build_surface_liveness_report
+
+
+def _repo_git_binding() -> tuple[str, str]:
+    repo_root = Path(__file__).resolve().parents[3]
+    git_dir = subprocess.run(
+        ["git", "rev-parse", "--git-dir"],
+        cwd=repo_root,
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
+    ).stdout.strip()
+    work_tree = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        cwd=repo_root,
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=GIT_SUBPROCESS_TIMEOUT_SECONDS,
+    ).stdout.strip()
+    return git_dir, work_tree
 
 
 def test_surface_liveness_report_detects_missing_repo_module_entrypoint(tmp_path: Path) -> None:
@@ -20,6 +44,23 @@ def test_surface_liveness_report_detects_missing_repo_module_entrypoint(tmp_path
     finding = report.findings[0]
     assert finding.kind == "missing_repo_module_entrypoint"
     assert finding.related_path == "agent_runtime"
+
+
+def test_surface_liveness_report_ignores_repo_bound_git_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    git_dir, work_tree = _repo_git_binding()
+    monkeypatch.setenv("GIT_DIR", git_dir)
+    monkeypatch.setenv("GIT_WORK_TREE", work_tree)
+
+    _write_surface_liveness_repo(tmp_path)
+    (tmp_path / "agent_runtime").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "agent_runtime" / "__init__.py").write_text("", encoding="utf-8")
+    (tmp_path / "docs" / "guide.md").write_text(".venv/bin/python -m agent_runtime\n", encoding="utf-8")
+
+    report = build_surface_liveness_report(tmp_path)
+
+    assert report.stats.active_text_files_scanned == 6
+    assert report.stats.findings_count == 1
+    assert report.findings[0].kind == "missing_repo_module_entrypoint"
 
 
 def test_surface_liveness_report_detects_legacy_import_in_active_code(tmp_path: Path) -> None:

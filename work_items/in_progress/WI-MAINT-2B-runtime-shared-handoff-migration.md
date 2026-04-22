@@ -2,13 +2,11 @@
 
 ## Status
 
-**BLOCKED** - gated on `WI-MAINT-2A` merging on `main`.
+**READY** - `WI-MAINT-2A` is merged on `main`, the shared handoff-bundle contract now exists in `agent_runtime/handoff_bundle.py`, and runtime consumer migration is the next bounded slice.
 
 ## Blocker
 
-- The shared handoff-bundle contract must exist on `main` before runtime runner surfaces migrate to it; otherwise coding would have to invent the contract while also changing the consumers.
-
-**Owner:** Coding Agent completes `WI-MAINT-2A` -> human merge -> PM moves this WI to `ready/`.
+- None. PM can assign this slice to Coding Agent.
 
 ## Linked PRD
 
@@ -85,11 +83,9 @@ Migrate runtime-managed runner execution generation to the shared handoff-bundle
 
 ## Suggested agent
 
-Coding Agent (after unblock)
+Coding Agent
 
 ## READY_CRITERIA (checklist - work_items/READY_CRITERIA.md)
-
-*Blocked until `WI-MAINT-2A` completes; when unblocked, all must hold:*
 
 1. **Linked contract** - `WI-MAINT-2A` is merged and provides the shared handoff-bundle contract on `main`.
 2. **Scope clarity** - Runtime consumer migration only; manual surfaces and backend-governance plumbing remain out of scope.

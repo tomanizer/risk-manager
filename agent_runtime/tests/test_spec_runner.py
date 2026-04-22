@@ -213,6 +213,39 @@ def test_build_spec_prompt_handles_prd_bootstrap_context() -> None:
     assert "create a fresh branch from current `main`" in prompt
 
 
+def test_build_spec_prompt_bootstrap_context_includes_governed_handoff_bundle_when_provided() -> None:
+    prompt = build_spec_prompt(
+        SpecRunnerInput(
+            work_item_id="PRD-5.1-v2",
+            blocked_reason="Registry indicates a new orchestrator PRD is required.",
+            work_item_path="docs/prds/phase-2/PRD-5.1-daily-risk-investigation-orchestrator-v1.md",
+            linked_prd="docs/prds/phase-2/PRD-5.1-daily-risk-investigation-orchestrator-v1.md",
+            bootstrap_capability="ORCH-DAILY-RISK-INVESTIGATION",
+            target_prd_id="PRD-5.1-v2",
+            registry_path="docs/registry/current_state_registry.yaml",
+            next_slice="Author PRD-5.1-v2 for multi-walker orchestration.",
+            handoff_bundle_markdown="# Agent Handoff Bundle\n\n## Checkout Context\n- base_ref: `origin/main`",
+        )
+    )
+
+    assert "## Governed Handoff Bundle" in prompt
+    assert "## Checkout Context" in prompt
+
+
+def test_build_spec_prompt_includes_governed_handoff_bundle_when_provided() -> None:
+    prompt = build_spec_prompt(
+        SpecRunnerInput(
+            work_item_id="WI-1.1.4-risk-summary-core-service",
+            blocked_reason="Canon gap needs clarification.",
+            work_item_path="work_items/blocked/WI-1.1.4-risk-summary-core-service.md",
+            handoff_bundle_markdown="# Agent Handoff Bundle\n\n## Scope\n- bounded clarification",
+        )
+    )
+
+    assert "## Governed Handoff Bundle" in prompt
+    assert "## Scope" in prompt
+
+
 def test_load_prd_bootstrap_candidates_returns_actionable_now_candidate_only(tmp_path: Path) -> None:
     registry_path = tmp_path / "docs" / "registry" / "current_state_registry.yaml"
     registry_path.parent.mkdir(parents=True, exist_ok=True)
@@ -490,28 +523,34 @@ def test_empty_ready_queue_with_prd_bootstrap_routes_to_spec() -> None:
 
 
 def test_prd_bootstrap_decision_builds_spec_execution() -> None:
-    decision = TransitionDecision(
-        action=NextActionType.RUN_SPEC,
-        work_item_id="PRD-5.1-v2",
-        reason="Registry indicates ORCH-DAILY-RISK-INVESTIGATION needs PRD-5.1-v2.",
-        target_path=Path("docs/prds/phase-2/PRD-5.1-daily-risk-investigation-orchestrator-v1.md"),
-        metadata={
-            "bootstrap_mode": "prd_gap",
-            "capability_name": "ORCH-DAILY-RISK-INVESTIGATION",
-            "target_prd_id": "PRD-5.1-v2",
-            "existing_prd_path": "docs/prds/phase-2/PRD-5.1-daily-risk-investigation-orchestrator-v1.md",
-            "registry_path": "docs/registry/current_state_registry.yaml",
-            "next_slice": "Author PRD-5.1-v2 for multi-walker orchestration.",
-            "next_version_reason": "PRD-5.1 intentionally excludes quant/time-series routing and richer orchestration behavior required for Module 1 MVP.",
-        },
-    )
+    with tempfile.TemporaryDirectory() as temp_dir:
+        prd_path = Path(temp_dir) / "PRD-5.1-daily-risk-investigation-orchestrator-v1.md"
+        prd_path.write_text("# PRD-5.1\n\n## Context\n\nBootstrap a new PRD version.\n", encoding="utf-8")
 
-    execution = build_runner_execution(RuntimeSnapshot(work_items=()), decision)
+        decision = TransitionDecision(
+            action=NextActionType.RUN_SPEC,
+            work_item_id="PRD-5.1-v2",
+            reason="Registry indicates ORCH-DAILY-RISK-INVESTIGATION needs PRD-5.1-v2.",
+            target_path=prd_path,
+            metadata={
+                "bootstrap_mode": "prd_gap",
+                "capability_name": "ORCH-DAILY-RISK-INVESTIGATION",
+                "target_prd_id": "PRD-5.1-v2",
+                "existing_prd_path": "docs/prds/phase-2/PRD-5.1-daily-risk-investigation-orchestrator-v1.md",
+                "registry_path": "docs/registry/current_state_registry.yaml",
+                "next_slice": "Author PRD-5.1-v2 for multi-walker orchestration.",
+                "next_version_reason": "PRD-5.1 intentionally excludes quant/time-series routing and richer orchestration behavior required for Module 1 MVP.",
+            },
+        )
 
-    assert execution is not None
-    assert execution.runner_name is RunnerName.SPEC
-    assert "Bootstrap PRD/spec drafting for ORCH-DAILY-RISK-INVESTIGATION." in execution.prompt
-    assert "Target PRD: PRD-5.1-v2" in execution.prompt
+        execution = build_runner_execution(RuntimeSnapshot(work_items=()), decision)
+
+        assert execution is not None
+        assert execution.runner_name is RunnerName.SPEC
+        assert "Bootstrap PRD/spec drafting for ORCH-DAILY-RISK-INVESTIGATION." in execution.prompt
+        assert "Target PRD: PRD-5.1-v2" in execution.prompt
+        assert "## Governed Handoff Bundle" in execution.prompt
+        assert execution.metadata["handoff_bundle_json"]
 
 
 # --- Workflow run ordering tests ---
