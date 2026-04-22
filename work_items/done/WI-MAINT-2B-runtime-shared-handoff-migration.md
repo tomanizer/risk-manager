@@ -2,11 +2,11 @@
 
 ## Status
 
-**READY** - `WI-MAINT-2A` is merged on `main`, the shared handoff-bundle contract now exists in `agent_runtime/handoff_bundle.py`, and runtime consumer migration is the next bounded slice.
+**DONE** - Merged to `main` via [PR #205](https://github.com/tomanizer/risk-manager/pull/205). Runtime-managed PM, coding, review, spec, and issue-planner executions now consume the shared governed handoff bundle, and execution metadata carries the serialized bundle for later artifact persistence.
 
 ## Blocker
 
-- None. PM can assign this slice to Coding Agent.
+- None. Work complete.
 
 ## Linked PRD
 
