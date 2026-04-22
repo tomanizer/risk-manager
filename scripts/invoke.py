@@ -22,14 +22,14 @@ import argparse
 import re
 import sys
 from pathlib import Path
+from typing import Optional
 
 # Ensure the repository root is in sys.path
 _REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from agent_runtime.handoff_bundle import build_handoff_bundle, HandoffBundle
-from typing import Optional
+from agent_runtime.handoff_bundle import build_handoff_bundle, HandoffBundle  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -95,7 +95,11 @@ def _fill_template(template: str, bundle: Optional[HandoffBundle], extra: dict[s
     list_tokens: dict[str, str] = {}
 
     if bundle:
-        inline["<LINKED_PRD>"] = bundle.linked_prd.resolved_path if bundle.linked_prd and bundle.linked_prd.resolved_path else f"<PRD not found: {bundle.linked_prd.reference_text if bundle.linked_prd else 'none'}>"
+        inline["<LINKED_PRD>"] = (
+            bundle.linked_prd.resolved_path
+            if bundle.linked_prd and bundle.linked_prd.resolved_path
+            else f"<PRD not found: {bundle.linked_prd.reference_text if bundle.linked_prd else 'none'}>"
+        )
         inline["<ASSIGNED_WORK_ITEM>"] = bundle.work_item_path
         inline["<TARGET_WORK_ITEM>"] = bundle.work_item_path
         inline["<WORK_ITEM_ID>"] = bundle.work_item_id
@@ -113,8 +117,12 @@ def _fill_template(template: str, bundle: Optional[HandoffBundle], extra: dict[s
         inline["<BULLETED_SCOPE_LIST — what the coding agent must build>"] = bundle.scope or "<scope not found>"
         inline["<TARGET_FILES — exact file paths the agent should create or modify>"] = bundle.target_area or "<target area not found>"
         inline["<BULLETED_OUT_OF_SCOPE — explicit reminders of what not to touch>"] = bundle.out_of_scope or "<out of scope not found>"
-        inline["<BULLETED_ACCEPTANCE_CRITERIA — what must be true when the slice is complete>"] = bundle.acceptance_criteria or "<acceptance criteria not found>"
-        inline["<BULLETED_STOP_CONDITIONS — when the agent should stop and report a blocker>"] = bundle.stop_conditions or "<stop conditions not found in work item>"
+        inline["<BULLETED_ACCEPTANCE_CRITERIA — what must be true when the slice is complete>"] = (
+            bundle.acceptance_criteria or "<acceptance criteria not found>"
+        )
+        inline["<BULLETED_STOP_CONDITIONS — when the agent should stop and report a blocker>"] = (
+            bundle.stop_conditions or "<stop conditions not found in work item>"
+        )
 
     inline.update(extra)
 
@@ -139,7 +147,6 @@ def _fill_template(template: str, bundle: Optional[HandoffBundle], extra: dict[s
         result = result.replace(token, value)
 
     return result
-
 
 
 def _repo_relative(path: Optional[Path]) -> str:
@@ -250,7 +257,7 @@ def main() -> int:
     template_text = template_path.read_text(encoding="utf-8")
 
     # Load work item (optional for drift / spec)
-    wi: Optional['HandoffBundle'] = None
+    wi: Optional["HandoffBundle"] = None
     if args.work_item:
         wi_file = find_work_item_file(args.work_item)
         if not wi_file:
