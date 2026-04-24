@@ -22,14 +22,10 @@ import argparse
 import re
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
-# Ensure the repository root is in sys.path
-_REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(_REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(_REPO_ROOT))
-
-from agent_runtime.handoff_bundle import build_handoff_bundle, HandoffBundle  # noqa: E402
+if TYPE_CHECKING:
+    from agent_runtime.handoff_bundle import HandoffBundle
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -153,7 +149,7 @@ def _repo_relative(path: Optional[Path]) -> str:
     if not path:
         return ""
     try:
-        return path.resolve().relative_to(_REPO_ROOT).as_posix()
+        return path.resolve().relative_to(REPO_ROOT).as_posix()
     except ValueError:
         return path.as_posix()
 
@@ -224,6 +220,11 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    _repo_root = Path(__file__).resolve().parents[1]
+    if str(_repo_root) not in sys.path:
+        sys.path.insert(0, str(_repo_root))
+    from agent_runtime.handoff_bundle import build_handoff_bundle  # noqa: PLC0415
+
     args = parse_args()
 
     if args.list_roles:
